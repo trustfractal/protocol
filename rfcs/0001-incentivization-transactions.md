@@ -8,8 +8,9 @@ Provide a mechanism to pay users for having a verified identity and continuously
 
 [motivation]: #motivation
 
-The protocol is deeply dependant on the network effects of users wanting applications and applications wanting users.
-To grow faster, we want to directly incentivize users to be on the network and create data.
+The protocol is deeply dependant on the network effects of data production and use.
+Neither side is useful without the other.
+To grow faster, we directly incentivize users to be on the network and create data.
 
 We expect users to proactively set up their identity, data capture, and data hosting to receive FCL tokens.
 
@@ -37,8 +38,8 @@ We will mint tokens with the following constraints:
    This ensures users are indifferent towards more users using the system.
 1. Maximum total issued per day, with minting evenly distributed among IDs.
 
-Additionally, communicate to users that we will retroactively be incentivizing genuine data.
-Users should have these Merkle roots include their genuine browsing data, as they will be paid for that later.
+Additionally, we may choose to communicate to users that we will retroactively be incentivizing genuine data.
+Users should have these Merkle roots include their genuine browsing data, as they will be paid for that later, if we launch the mainnet without support for analysis of data.
 
 # Rationale and Alternatives
 
