@@ -1,7 +1,7 @@
-use crate::{mock::*, Error};
+use crate::mock::*;
 use frame_support::{
-    assert_noop, assert_ok,
-    traits::{Currency, OnFinalize, OnInitialize},
+    assert_ok,
+    traits::{OnFinalize, OnInitialize},
 };
 
 #[cfg(test)]

@@ -25,6 +25,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+pub use fractal_minting::Call as FractalMintingCall;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -194,6 +195,8 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
+    /// The set code logic, just the default since we're not a parachain.
+    type OnSetCode = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -264,6 +267,22 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
+parameter_types! {
+    pub const MaxRewardPerUser: Balance = 1 << 60;
+    pub const MaxMintPerPeriod: Balance = 1 << 64;
+    pub const MintEveryNBlocks: BlockNumber = 10;
+}
+
+impl fractal_minting::Config for Runtime {
+    type Event = Event;
+
+    type Currency = Balances;
+
+    type MaxRewardPerUser = MaxRewardPerUser;
+    type MaxMintPerPeriod = MaxMintPerPeriod;
+    type MintEveryNBlocks = MintEveryNBlocks;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -271,14 +290,15 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        System: frame_system::{Module, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
-        Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-        Aura: pallet_aura::{Module, Config<T>},
-        Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event},
-        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Module, Storage},
-        Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        Aura: pallet_aura::{Pallet, Config<T>},
+        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -312,99 +332,99 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllModules,
+    AllPallets,
 >;
 
 impl_runtime_apis! {
     impl sp_api::Core<Block> for Runtime {
-  fn version() -> RuntimeVersion {
-      VERSION
+        fn version() -> RuntimeVersion {
+            VERSION
+        }
+
+        fn execute_block(block: Block) {
+            Executive::execute_block(block);
+        }
+
+        fn initialize_block(header: &<Block as BlockT>::Header) {
+            Executive::initialize_block(header)
+        }
     }
 
-    fn execute_block(block: Block) {
-      Executive::execute_block(block);
+    impl sp_api::Metadata<Block> for Runtime {
+        fn metadata() -> OpaqueMetadata {
+            Runtime::metadata().into()
+        }
     }
 
-    fn initialize_block(header: &<Block as BlockT>::Header) {
-      Executive::initialize_block(header)
-    }
-  }
+    impl sp_block_builder::BlockBuilder<Block> for Runtime {
+        fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
+            Executive::apply_extrinsic(extrinsic)
+        }
 
-  impl sp_api::Metadata<Block> for Runtime {
-    fn metadata() -> OpaqueMetadata {
-      Runtime::metadata().into()
-    }
-  }
+        fn finalize_block() -> <Block as BlockT>::Header {
+            Executive::finalize_block()
+        }
 
-  impl sp_block_builder::BlockBuilder<Block> for Runtime {
-    fn apply_extrinsic(extrinsic: <Block as BlockT>::Extrinsic) -> ApplyExtrinsicResult {
-      Executive::apply_extrinsic(extrinsic)
-    }
+        fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
+            data.create_extrinsics()
+        }
 
-    fn finalize_block() -> <Block as BlockT>::Header {
-      Executive::finalize_block()
-    }
+        fn check_inherents(
+            block: Block,
+            data: sp_inherents::InherentData,
+        ) -> sp_inherents::CheckInherentsResult {
+            data.check_extrinsics(&block)
+        }
 
-    fn inherent_extrinsics(data: sp_inherents::InherentData) -> Vec<<Block as BlockT>::Extrinsic> {
-      data.create_extrinsics()
-    }
-
-    fn check_inherents(
-      block: Block,
-      data: sp_inherents::InherentData,
-    ) -> sp_inherents::CheckInherentsResult {
-      data.check_extrinsics(&block)
+        fn random_seed() -> <Block as BlockT>::Hash {
+            RandomnessCollectiveFlip::random_seed().0
+        }
     }
 
-    fn random_seed() -> <Block as BlockT>::Hash {
-      RandomnessCollectiveFlip::random_seed()
-    }
-  }
-
-  impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
-    fn validate_transaction(
-      source: TransactionSource,
-      tx: <Block as BlockT>::Extrinsic,
-    ) -> TransactionValidity {
-      Executive::validate_transaction(source, tx)
-    }
-  }
-
-  impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
-    fn offchain_worker(header: &<Block as BlockT>::Header) {
-      Executive::offchain_worker(header)
-    }
-  }
-
-  impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
-    fn slot_duration() -> u64 {
-      Aura::slot_duration()
+    impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
+        fn validate_transaction(
+            source: TransactionSource,
+            tx: <Block as BlockT>::Extrinsic,
+        ) -> TransactionValidity {
+            Executive::validate_transaction(source, tx)
+        }
     }
 
-    fn authorities() -> Vec<AuraId> {
-      Aura::authorities()
-    }
-  }
-
-  impl sp_session::SessionKeys<Block> for Runtime {
-    fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-      opaque::SessionKeys::generate(seed)
+    impl sp_offchain::OffchainWorkerApi<Block> for Runtime {
+        fn offchain_worker(header: &<Block as BlockT>::Header) {
+            Executive::offchain_worker(header)
+        }
     }
 
-    fn decode_session_keys(
-      encoded: Vec<u8>,
-    ) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
-      opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
-    }
-  }
+    impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+        fn slot_duration() -> sp_consensus_aura::SlotDuration {
+            sp_consensus_aura::SlotDuration::from_millis(Aura::slot_duration())
+        }
 
-  impl fg_primitives::GrandpaApi<Block> for Runtime {
-    fn grandpa_authorities() -> GrandpaAuthorityList {
-      Grandpa::grandpa_authorities()
+        fn authorities() -> Vec<AuraId> {
+            Aura::authorities()
+        }
     }
 
-    fn submit_report_equivocation_unsigned_extrinsic(
-          _equivocation_proof: fg_primitives::EquivocationProof<
+    impl sp_session::SessionKeys<Block> for Runtime {
+        fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
+            opaque::SessionKeys::generate(seed)
+        }
+
+        fn decode_session_keys(
+            encoded: Vec<u8>,
+        ) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
+            opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
+        }
+    }
+
+    impl fg_primitives::GrandpaApi<Block> for Runtime {
+        fn grandpa_authorities() -> GrandpaAuthorityList {
+            Grandpa::grandpa_authorities()
+        }
+
+        fn submit_report_equivocation_unsigned_extrinsic(
+            _equivocation_proof: fg_primitives::EquivocationProof<
                 <Block as BlockT>::Hash,
                 NumberFor<Block>,
             >,
@@ -452,7 +472,7 @@ impl_runtime_apis! {
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
             use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
-            use frame_system_benchmarking::Module as SystemBench;
+            use frame_system_benchmarking::Pallet as SystemBench;
             impl frame_system_benchmarking::Config for Runtime {}
 
             let whitelist: Vec<TrackedStorageKey> = vec![

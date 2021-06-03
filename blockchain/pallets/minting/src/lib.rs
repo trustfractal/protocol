@@ -1,13 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use core::convert::TryInto;
-use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, dispatch,
-    traits::{Currency, Get},
-    weights::Weight,
-};
-use frame_system::ensure_signed;
-use sp_runtime::traits::CheckedDiv;
+pub use pallet::*;
 
 #[cfg(test)]
 mod mock;
@@ -15,67 +8,79 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-type BalanceOf<T> =
-    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+#[frame_support::pallet]
+pub mod pallet {
+    use frame_support::pallet_prelude::*;
+    use frame_system::pallet_prelude::*;
 
-pub trait Config: frame_system::Config {
-    type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+    use core::convert::TryInto;
+    use frame_support::{
+        traits::{Currency, Get},
+        weights::Weight,
+    };
+    use frame_system::ensure_signed;
+    use sp_runtime::traits::CheckedDiv;
 
-    type Currency: Currency<Self::AccountId>;
+    type BalanceOf<T> =
+        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    type MaxRewardPerUser: Get<BalanceOf<Self>>;
-    type MaxMintPerPeriod: Get<BalanceOf<Self>>;
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-    type MintEveryNBlocks: Get<Self::BlockNumber>;
-}
+        type Currency: Currency<Self::AccountId>;
 
-decl_storage! {
-    trait Store for Module<T: Config> as FractalMintingStorage {
-        pub NextMintingRewards get(fn next_minting_rewards):
-            map hasher(blake2_128_concat) T::AccountId => ();
+        type MaxRewardPerUser: Get<BalanceOf<Self>>;
+        type MaxMintPerPeriod: Get<BalanceOf<Self>>;
+
+        type MintEveryNBlocks: Get<Self::BlockNumber>;
     }
-}
 
-decl_event!(
-    pub enum Event<T>
-    where
-        Balance = BalanceOf<T>,
-    {
+    #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
+    pub struct Pallet<T>(_);
+
+    #[pallet::storage]
+    pub type NextMintingRewards<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+
+    #[pallet::event]
+    #[pallet::metadata(BalanceOf<T> = "Balance")]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
         /// Some amount of balance was minted among the number of provided accounts.
         /// [amount, number_of_accounts]
-        Minted(Balance, u32),
+        Minted(BalanceOf<T>, u32),
     }
-);
 
-decl_error! {
-    pub enum Error for Module<T: Config> {
-    }
-}
+    #[pallet::error]
+    pub enum Error<T> {}
 
-decl_module! {
-    pub struct Module<T: Config> for enum Call where origin: T::Origin {
-        type Error = Error<T>;
-
-        fn deposit_event() = default;
-
-        #[weight = 10_000 + T::DbWeight::get().writes(1)]
-        pub fn register_for_minting(origin) -> dispatch::DispatchResult {
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Register the origin for minting in the next minting period.
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn register_for_minting(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            NextMintingRewards::<T>::insert(who, ());
+            NextMintingRewards::<T>::insert(who, true);
 
-            Ok(())
+            Ok(Default::default())
         }
+    }
 
-        fn on_initialize(_block_number: T::BlockNumber) -> Weight {
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Weight::default()
         }
 
-        fn on_finalize(block_number: T::BlockNumber) {
+        fn on_finalize(block_number: BlockNumberFor<T>) {
             if block_number % T::MintEveryNBlocks::get() != 0u32.into() {
                 return;
             }
 
+            // TODO(shelbyd): Don't iterate whole storage just to count.
             let accounts: u32 = NextMintingRewards::<T>::iter()
                 .count()
                 .try_into()
@@ -95,7 +100,7 @@ decl_module! {
             }
 
             let total_minted = mint_per_user * accounts.into();
-            Self::deposit_event(RawEvent::Minted(total_minted, accounts));
+            Self::deposit_event(Event::Minted(total_minted, accounts));
         }
     }
 }
