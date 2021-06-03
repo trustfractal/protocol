@@ -39,6 +39,23 @@ mod register_for_minting {
     }
 
     #[test]
+    fn gets_no_reward_until_block() {
+        new_test_ext().execute_with(|| {
+            run_to_next_minting();
+
+            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_eq!(Balances::free_balance(&1), 0);
+
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&1),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
     fn only_receives_for_immediate_minting() {
         new_test_ext().execute_with(|| {
             assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
