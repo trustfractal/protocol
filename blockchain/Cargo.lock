@@ -1558,6 +1558,7 @@ dependencies = [
  "frame-system",
  "pallet-balances",
  "parity-scale-codec",
+ "schnorrkel",
  "serde",
  "sp-core",
  "sp-io",

@@ -1,6 +1,6 @@
 use fractal_protocol_blockchain_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-    SystemConfig, WASM_BINARY,
+    AccountId, AuraConfig, BalancesConfig, FractalMintingConfig, GenesisConfig, GrandpaConfig,
+    Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -159,6 +159,9 @@ fn testnet_genesis(
         pallet_sudo: SudoConfig {
             // Assign network admin rights.
             key: root_key,
+        },
+        fractal_minting: FractalMintingConfig {
+            fractal_public_key: get_from_seed::<sr25519::Public>("FractalId"),
         },
     }
 }

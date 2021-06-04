@@ -1,10 +1,12 @@
 use crate as fractal_minting;
 use frame_support::parameter_types;
 use frame_system as system;
-use sp_core::H256;
+use schnorrkel::MiniSecretKey;
+use sp_core::{sr25519::Pair as KeyPair, Pair, H256};
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
+    BuildStorage,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -19,7 +21,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Event<T>},
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config, Event<T>},
     }
 );
 
@@ -82,9 +84,18 @@ impl fractal_minting::Config for Test {
     type MintEveryNBlocks = MintEveryNBlocks;
 }
 
+pub fn fractal_pair() -> KeyPair {
+    MiniSecretKey::from_bytes(&[65; 32]).unwrap().into()
+}
+
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let t = system::GenesisConfig::default()
-        .build_storage::<Test>()
-        .unwrap();
-    t.into()
+    GenesisConfig {
+        fractal_minting: crate::GenesisConfig {
+            fractal_public_key: fractal_pair().public(),
+        },
+        ..Default::default()
+    }
+    .build_storage()
+    .unwrap()
+    .into()
 }

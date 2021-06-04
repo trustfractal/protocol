@@ -19,11 +19,12 @@ codec = {default-features = false, features = ['derive'], package = 'parity-scal
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+schnorrkel = {version = "0.9.1", features = ["preaudit_deprecated", "u64_backend"], default-features = false}
 
 [dev-dependencies]
 serde = '1.0.119'
-sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 pallet-balances = { default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
 
@@ -35,5 +36,7 @@ std = [
 	'frame-support/std',
 	'frame-system/std',
 	'frame-benchmarking/std',
+  'schnorrkel/std',
+  'sp-core/std',
 ]
 try-runtime = ['frame-support/try-runtime']

@@ -13,13 +13,59 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
+    use codec::{Decode, Encode};
     use core::convert::TryInto;
     use frame_support::{
+        dispatch::Vec,
         traits::{Currency, Get},
         weights::Weight,
     };
     use frame_system::ensure_signed;
+    use schnorrkel::keys::{Keypair, PublicKey};
+    use sp_core::sr25519::{Public, Signature};
     use sp_runtime::traits::CheckedDiv;
+
+    #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
+    pub struct Signed<T: Decode> {
+        pub(crate) signature: Signature,
+        encoded: Vec<u8>,
+        _value: core::marker::PhantomData<T>,
+    }
+
+    impl<T: Decode> Signed<T> {
+        pub fn with_secret(secret: &Keypair, value: T) -> Signed<T>
+        where
+            T: Encode,
+        {
+            let signature =
+                Signature::from_slice(&secret.sign_simple(&[], &value.encode()).to_bytes());
+            Signed {
+                signature,
+                encoded: value.encode(),
+                _value: core::marker::PhantomData,
+            }
+        }
+
+        pub fn verify_against(&self, public: &Public) -> Option<T> {
+            let schnorrkel_sig = schnorrkel::Signature::from_bytes(self.signature.as_ref()).ok()?;
+            let schnorrkel_pub = PublicKey::from_bytes(public).ok()?;
+            schnorrkel_pub
+                .verify_simple(&[], &self.encoded, &schnorrkel_sig)
+                .ok()?;
+            Some(T::decode(&mut self.encoded.clone().as_ref()).ok()?)
+        }
+    }
+
+    pub type FractalId = u64;
+    pub type Nonce = u32;
+
+    #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
+    pub struct FractalIdentity<A> {
+        pub account: A,
+        pub fractal_id: FractalId,
+        #[codec(compact)]
+        pub nonce: Nonce,
+    }
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -42,7 +88,26 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type NextMintingRewards<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
+
+    #[pallet::storage]
+    pub type IdNonces<T: Config> = StorageMap<_, Blake2_128Concat, FractalId, Nonce, ValueQuery>;
+
+    #[pallet::storage]
+    pub type FractalPublicKey<T: Config> = StorageValue<_, Public, ValueQuery>;
+
+    #[pallet::genesis_config]
+    #[derive(Default)]
+    pub struct GenesisConfig {
+        pub fractal_public_key: Public,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            FractalPublicKey::<T>::put(self.fractal_public_key);
+        }
+    }
 
     #[pallet::event]
     #[pallet::metadata(BalanceOf<T> = "Balance")]
@@ -54,18 +119,46 @@ pub mod pallet {
     }
 
     #[pallet::error]
-    pub enum Error<T> {}
+    pub enum Error<T> {
+        InvalidIdentitySignature,
+        MismatchedFractalIdentity,
+        LesserNonce,
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Register the origin for minting in the next minting period.
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn register_for_minting(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
+        pub fn register_for_minting(
+            origin: OriginFor<T>,
+            identity: Signed<FractalIdentity<T::AccountId>>,
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
+            let identity = identity
+                .verify_against(&FractalPublicKey::<T>::get())
+                .ok_or(Error::<T>::InvalidIdentitySignature)?;
 
-            NextMintingRewards::<T>::insert(who, true);
+            ensure!(
+                identity.account == who,
+                Error::<T>::MismatchedFractalIdentity
+            );
 
-            Ok(Default::default())
+            match IdNonces::<T>::try_get(identity.fractal_id) {
+                // Include this branch to not issue a storage write in the common case that the
+                // nonces match exactly.
+                Ok(nonce) if identity.nonce == nonce => {}
+
+                Ok(nonce) if identity.nonce < nonce => {
+                    return Err(Error::<T>::LesserNonce)?;
+                }
+                Ok(_) | Err(()) => {
+                    IdNonces::<T>::insert(identity.fractal_id, identity.nonce);
+                }
+            }
+
+            NextMintingRewards::<T>::insert(identity.fractal_id, who);
+
+            Ok(())
         }
     }
 
@@ -94,9 +187,9 @@ pub mod pallet {
 
             let recipients = NextMintingRewards::<T>::iter()
                 .take(accounts.try_into().expect("at least 32bit OS"));
-            for (account, _) in recipients {
+            for (id, account) in recipients {
                 T::Currency::deposit_creating(&account, reward_per_user);
-                NextMintingRewards::<T>::remove(account);
+                NextMintingRewards::<T>::remove(id);
             }
 
             let total_minted = mint_per_user * accounts.into();

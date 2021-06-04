@@ -1,8 +1,9 @@
-use crate::mock::*;
+use crate::{mock::*, *};
 use frame_support::{
-    assert_ok,
+    assert_noop, assert_ok,
     traits::{OnFinalize, OnInitialize},
 };
+use sp_core::sr25519::Signature;
 
 #[cfg(test)]
 mod register_for_minting {
@@ -24,10 +25,25 @@ mod register_for_minting {
         }
     }
 
+    fn identity(account: u64) -> Signed<FractalIdentity<u64>> {
+        signed_identity(FractalIdentity {
+            account,
+            fractal_id: account,
+            nonce: 0,
+        })
+    }
+
+    fn signed_identity(id: FractalIdentity<u64>) -> Signed<FractalIdentity<u64>> {
+        Signed::with_secret(&fractal_pair().as_ref(), id)
+    }
+
     #[test]
     fn receives_portion_of_minting_after_block() {
         new_test_ext().execute_with(|| {
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
 
             run_to_next_minting();
 
@@ -43,7 +59,10 @@ mod register_for_minting {
         new_test_ext().execute_with(|| {
             run_to_next_minting();
 
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
             assert_eq!(Balances::free_balance(&1), 0);
 
             run_to_next_minting();
@@ -58,7 +77,10 @@ mod register_for_minting {
     #[test]
     fn only_receives_for_immediate_minting() {
         new_test_ext().execute_with(|| {
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
 
             run_to_next_minting();
             run_to_next_minting();
@@ -76,7 +98,10 @@ mod register_for_minting {
             let users = 5;
 
             for id in 1..=users {
-                assert_ok!(FractalMinting::register_for_minting(Origin::signed(id)));
+                assert_ok!(FractalMinting::register_for_minting(
+                    Origin::signed(id),
+                    identity(id)
+                ));
             }
 
             run_to_next_minting();
@@ -93,15 +118,134 @@ mod register_for_minting {
     #[test]
     fn multiple_registrations_only_one_mint() {
         new_test_ext().execute_with(|| {
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                identity(1)
+            ));
 
             run_to_next_minting();
 
             assert_eq!(
                 Balances::free_balance(&1),
                 <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
+    fn errors_with_invalid_fractal_signature() {
+        new_test_ext().execute_with(|| {
+            let mut identity = identity(1);
+            identity.signature = Signature::from_raw([42; 64]);
+
+            assert_noop!(
+                FractalMinting::register_for_minting(Origin::signed(1), identity),
+                Error::<Test>::InvalidIdentitySignature
+            );
+        });
+    }
+
+    #[test]
+    fn errors_when_fractal_identity_does_not_match_origin_account() {
+        new_test_ext().execute_with(|| {
+            assert_noop!(
+                FractalMinting::register_for_minting(Origin::signed(1), identity(2)),
+                Error::<Test>::MismatchedFractalIdentity
+            );
+        });
+    }
+
+    #[test]
+    fn later_fractal_id_replaces_previous() {
+        new_test_ext().execute_with(|| {
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                signed_identity(FractalIdentity {
+                    account: 1,
+                    fractal_id: 42,
+                    nonce: 0,
+                })
+            ));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(2),
+                signed_identity(FractalIdentity {
+                    account: 2,
+                    fractal_id: 42,
+                    nonce: 0,
+                })
+            ));
+
+            run_to_next_minting();
+
+            assert_eq!(Balances::free_balance(&1), 0);
+        });
+    }
+
+    #[test]
+    fn greater_nonce_overrides_lesser() {
+        new_test_ext().execute_with(|| {
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                signed_identity(FractalIdentity {
+                    account: 1,
+                    fractal_id: 42,
+                    nonce: 1,
+                })
+            ));
+            assert_noop!(
+                FractalMinting::register_for_minting(
+                    Origin::signed(2),
+                    signed_identity(FractalIdentity {
+                        account: 2,
+                        fractal_id: 42,
+                        nonce: 0,
+                    })
+                ),
+                Error::<Test>::LesserNonce
+            );
+
+            run_to_next_minting();
+
+            assert_eq!(Balances::free_balance(&2), 0);
+            assert_eq!(
+                Balances::free_balance(&1),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
+    fn greater_nonce_overrides_lesser_in_subsequent_minting() {
+        new_test_ext().execute_with(|| {
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                signed_identity(FractalIdentity {
+                    account: 1,
+                    fractal_id: 42,
+                    nonce: 1,
+                })
+            ));
+
+            run_to_next_minting();
+
+            assert_noop!(
+                FractalMinting::register_for_minting(
+                    Origin::signed(2),
+                    signed_identity(FractalIdentity {
+                        account: 2,
+                        fractal_id: 42,
+                        nonce: 0,
+                    })
+                ),
+                Error::<Test>::LesserNonce
             );
         });
     }
