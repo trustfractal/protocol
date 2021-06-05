@@ -1,8 +1,7 @@
 use crate as fractal_minting;
 use frame_support::parameter_types;
 use frame_system as system;
-use schnorrkel::MiniSecretKey;
-use sp_core::{sr25519::Pair as KeyPair, Pair, H256};
+use sp_core::{sr25519::Pair, Pair as _, H256};
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -84,8 +83,8 @@ impl fractal_minting::Config for Test {
     type MintEveryNBlocks = MintEveryNBlocks;
 }
 
-pub fn fractal_pair() -> KeyPair {
-    MiniSecretKey::from_bytes(&[65; 32]).unwrap().into()
+pub fn fractal_pair() -> Pair {
+    Pair::from_seed(&[65; 32])
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

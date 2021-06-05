@@ -3,7 +3,6 @@ use frame_support::{
     assert_noop, assert_ok,
     traits::{OnFinalize, OnInitialize},
 };
-use sp_core::sr25519::Signature;
 
 #[cfg(test)]
 mod register_for_minting {
@@ -34,7 +33,7 @@ mod register_for_minting {
     }
 
     fn signed_identity(id: FractalIdentity<u64>) -> Signed<FractalIdentity<u64>> {
-        Signed::with_secret(&fractal_pair().as_ref(), id)
+        Signed::with_secret(&fractal_pair(), id)
     }
 
     #[test]
@@ -143,8 +142,14 @@ mod register_for_minting {
     #[test]
     fn errors_with_invalid_fractal_signature() {
         new_test_ext().execute_with(|| {
-            let mut identity = identity(1);
-            identity.signature = Signature::from_raw([42; 64]);
+            use codec::{Decode, Encode};
+            let bad_signature = vec![42; 64];
+            let message = vec![42];
+
+            let signed_message = bad_signature.into_iter()
+                .chain(message.encode())
+                .collect::<Vec<_>>();
+            let identity = Signed::decode(&mut signed_message.as_ref()).unwrap();
 
             assert_noop!(
                 FractalMinting::register_for_minting(Origin::signed(1), identity),

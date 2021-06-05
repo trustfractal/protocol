@@ -21,24 +21,33 @@ pub mod pallet {
         weights::Weight,
     };
     use frame_system::ensure_signed;
-    use schnorrkel::keys::{Keypair, PublicKey};
-    use sp_core::sr25519::{Public, Signature};
+    use sp_core::{
+        sr25519::{Pair, Public, Signature},
+        Pair as _,
+    };
     use sp_runtime::traits::CheckedDiv;
 
     #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
     pub struct Signed<T: Decode> {
-        pub(crate) signature: Signature,
+        signature: Signature,
         encoded: Vec<u8>,
         _value: core::marker::PhantomData<T>,
     }
 
     impl<T: Decode> Signed<T> {
-        pub fn with_secret(secret: &Keypair, value: T) -> Signed<T>
+        pub fn new(signature: Signature, encoded: Vec<u8>) -> Self {
+            Signed {
+                signature,
+                encoded,
+                _value: core::marker::PhantomData,
+            }
+        }
+
+        pub fn with_secret(pair: &Pair, value: T) -> Signed<T>
         where
             T: Encode,
         {
-            let signature =
-                Signature::from_slice(&secret.sign_simple(&[], &value.encode()).to_bytes());
+            let signature = pair.sign(&value.encode());
             Signed {
                 signature,
                 encoded: value.encode(),
@@ -47,12 +56,12 @@ pub mod pallet {
         }
 
         pub fn verify_against(&self, public: &Public) -> Option<T> {
-            let schnorrkel_sig = schnorrkel::Signature::from_bytes(self.signature.as_ref()).ok()?;
-            let schnorrkel_pub = PublicKey::from_bytes(public).ok()?;
-            schnorrkel_pub
-                .verify_simple(&[], &self.encoded, &schnorrkel_sig)
-                .ok()?;
-            Some(T::decode(&mut self.encoded.clone().as_ref()).ok()?)
+            let verified = Pair::verify(&self.signature, &self.encoded, public);
+            if !verified {
+                return None;
+            }
+            let decoded = T::decode(&mut self.encoded.as_ref()).ok()?;
+            Some(decoded)
         }
     }
 
