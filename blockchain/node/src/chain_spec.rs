@@ -161,7 +161,7 @@ fn testnet_genesis(
             key: root_key,
         },
         fractal_minting: FractalMintingConfig {
-            fractal_public_key: get_from_seed::<sr25519::Public>("FractalId"),
+            fractal_public_key: get_from_seed::<sr25519::Public>("Ferdie"),
         },
     }
 }
