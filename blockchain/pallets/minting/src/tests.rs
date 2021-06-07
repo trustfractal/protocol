@@ -146,7 +146,8 @@ mod register_for_minting {
             let bad_signature = vec![42; 64];
             let message = vec![42];
 
-            let signed_message = bad_signature.into_iter()
+            let signed_message = bad_signature
+                .into_iter()
                 .chain(message.encode())
                 .collect::<Vec<_>>();
             let identity = Signed::decode(&mut signed_message.as_ref()).unwrap();

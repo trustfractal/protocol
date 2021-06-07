@@ -21,15 +21,15 @@ pub mod pallet {
         weights::Weight,
     };
     use frame_system::ensure_signed;
-    use sp_core::{
-        sr25519::{Pair, Public, Signature},
-        Pair as _,
+    use sp_core::sr25519::{Public, Signature};
+    use sp_runtime::{
+        traits::{CheckedDiv, Verify},
+        AnySignature,
     };
-    use sp_runtime::traits::CheckedDiv;
 
     #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
     pub struct Signed<T: Decode> {
-        signature: Signature,
+        signature: AnySignature,
         encoded: Vec<u8>,
         _value: core::marker::PhantomData<T>,
     }
@@ -37,17 +37,20 @@ pub mod pallet {
     impl<T: Decode> Signed<T> {
         pub fn new(signature: Signature, encoded: Vec<u8>) -> Self {
             Signed {
-                signature,
+                signature: signature.into(),
                 encoded,
                 _value: core::marker::PhantomData,
             }
         }
 
-        pub fn with_secret(pair: &Pair, value: T) -> Signed<T>
+        #[cfg(feature = "std")]
+        pub fn with_secret(pair: &sp_core::sr25519::Pair, value: T) -> Signed<T>
         where
             T: Encode,
         {
-            let signature = pair.sign(&value.encode());
+            use sp_core::Pair;
+
+            let signature = pair.sign(&value.encode()).into();
             Signed {
                 signature,
                 encoded: value.encode(),
@@ -56,7 +59,7 @@ pub mod pallet {
         }
 
         pub fn verify_against(&self, public: &Public) -> Option<T> {
-            let verified = Pair::verify(&self.signature, &self.encoded, public);
+            let verified = self.signature.verify(self.encoded.as_slice(), public);
             if !verified {
                 return None;
             }
