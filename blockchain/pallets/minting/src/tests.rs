@@ -277,6 +277,26 @@ mod register_identity {
     }
 
     #[test]
+    fn second_identity_to_same_account_gets_double() {
+        new_test_ext().execute_with(|| {
+            register_id_mut(1, |id| {
+                id.fractal_id = 42;
+            });
+            register_id_mut(1, |id| {
+                id.fractal_id = 43;
+            });
+
+            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&1),
+                2 * <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
     fn second_identity_to_same_account_overridden() {
         new_test_ext().execute_with(|| {
             register_id_mut(1, |id| {

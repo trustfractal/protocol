@@ -100,7 +100,7 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type NextMintingRewards<T: Config> =
-        StorageMap<_, Blake2_128Concat, T::AccountId, (), ValueQuery>;
+        StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
 
     #[pallet::storage]
     pub type AccountIds<T: Config> = StorageDoubleMap<
@@ -176,10 +176,8 @@ pub mod pallet {
                 }
 
                 AccountIds::<T>::remove(account.clone(), fractal_id);
-                if let None = AccountIds::<T>::iter_prefix_values(&account).next() {
-                    NextMintingRewards::<T>::remove(account);
-                }
             }
+            NextMintingRewards::<T>::remove(fractal_id);
 
             IdToAccount::<T>::insert(fractal_id, (who.clone(), identity.nonce));
             AccountIds::<T>::insert(who.clone(), fractal_id, ());
@@ -192,11 +190,15 @@ pub mod pallet {
         pub fn register_for_minting(origin: OriginFor<T>) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            AccountIds::<T>::iter_prefix_values(&who)
-                .next()
-                .ok_or(Error::<T>::NoIdentityRegistered)?;
+            let mut any = false;
+            for (id, ()) in AccountIds::<T>::iter_prefix(&who) {
+                NextMintingRewards::<T>::insert(id, who.clone());
+                any = true;
+            }
 
-            NextMintingRewards::<T>::insert(who, ());
+            if !any {
+                return Err(Error::<T>::NoIdentityRegistered)?;
+            }
 
             Ok(())
         }
@@ -214,7 +216,6 @@ pub mod pallet {
             }
 
             let accounts = NextMintingRewards::<T>::iter()
-                .map(|(account, _)| account)
                 .collect::<Vec<_>>();
 
             let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
@@ -228,9 +229,9 @@ pub mod pallet {
             let recipients = accounts
                 .iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
-            for account in recipients {
+            for (id, account) in recipients {
                 T::Currency::deposit_creating(&account, reward_per_user);
-                NextMintingRewards::<T>::remove(account);
+                NextMintingRewards::<T>::remove(id);
             }
 
             let total_minted = mint_per_user * accounts_count.into();
