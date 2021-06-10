@@ -100,10 +100,22 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type NextMintingRewards<T: Config> =
-        StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, (), ValueQuery>;
 
     #[pallet::storage]
-    pub type IdNonces<T: Config> = StorageMap<_, Blake2_128Concat, FractalId, Nonce, ValueQuery>;
+    pub type AccountIds<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        FractalId,
+        (),
+        ValueQuery,
+    >;
+
+    #[pallet::storage]
+    pub type IdToAccount<T: Config> =
+        StorageMap<_, Blake2_128Concat, FractalId, (T::AccountId, Nonce), ValueQuery>;
 
     #[pallet::storage]
     pub type FractalPublicKey<T: Config> = StorageValue<_, Public, ValueQuery>;
@@ -134,14 +146,15 @@ pub mod pallet {
     pub enum Error<T> {
         InvalidIdentitySignature,
         MismatchedFractalIdentity,
-        LesserNonce,
+        NonIncreasingNonce,
+        NoIdentityRegistered,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Register the origin for minting in the next minting period.
+        /// Register the provided Fractal ID to the origin account.
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
-        pub fn register_for_minting(
+        pub fn register_identity(
             origin: OriginFor<T>,
             identity: Signed<FractalIdentity<T::AccountId>>,
         ) -> DispatchResult {
@@ -155,20 +168,35 @@ pub mod pallet {
                 Error::<T>::MismatchedFractalIdentity
             );
 
-            match IdNonces::<T>::try_get(identity.fractal_id) {
-                // Include this branch to not issue a storage write in the common case that the
-                // nonces match exactly.
-                Ok(nonce) if identity.nonce == nonce => {}
+            let fractal_id = identity.fractal_id;
 
-                Ok(nonce) if identity.nonce < nonce => {
-                    return Err(Error::<T>::LesserNonce)?;
+            if let Ok((account, nonce)) = IdToAccount::<T>::try_get(fractal_id) {
+                if identity.nonce <= nonce {
+                    return Err(Error::<T>::NonIncreasingNonce)?;
                 }
-                Ok(_) | Err(()) => {
-                    IdNonces::<T>::insert(identity.fractal_id, identity.nonce);
+
+                AccountIds::<T>::remove(account.clone(), fractal_id);
+                if let None = AccountIds::<T>::iter_prefix_values(&account).next() {
+                    NextMintingRewards::<T>::remove(account);
                 }
             }
 
-            NextMintingRewards::<T>::insert(identity.fractal_id, who);
+            IdToAccount::<T>::insert(fractal_id, (who.clone(), identity.nonce));
+            AccountIds::<T>::insert(who.clone(), fractal_id, ());
+
+            Ok(())
+        }
+
+        /// Register to receive minting in the next period.
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1, 1))]
+        pub fn register_for_minting(origin: OriginFor<T>) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+
+            AccountIds::<T>::iter_prefix_values(&who)
+                .next()
+                .ok_or(Error::<T>::NoIdentityRegistered)?;
+
+            NextMintingRewards::<T>::insert(who, ());
 
             Ok(())
         }
