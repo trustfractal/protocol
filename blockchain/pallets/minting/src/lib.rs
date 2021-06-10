@@ -185,27 +185,28 @@ pub mod pallet {
                 return;
             }
 
-            // TODO(shelbyd): Don't iterate whole storage just to count.
-            let accounts: u32 = NextMintingRewards::<T>::iter()
-                .count()
-                .try_into()
-                .unwrap_or(core::u32::MAX);
+            let accounts = NextMintingRewards::<T>::iter()
+                .map(|(account, _)| account)
+                .collect::<Vec<_>>();
+
+            let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
 
             let mint_per_user = T::MaxMintPerPeriod::get()
-                .checked_div(&accounts.into())
+                .checked_div(&accounts_count.into())
                 .unwrap_or(0u32.into());
 
             let reward_per_user = core::cmp::min(T::MaxRewardPerUser::get(), mint_per_user);
 
-            let recipients = NextMintingRewards::<T>::iter()
-                .take(accounts.try_into().expect("at least 32bit OS"));
-            for (id, account) in recipients {
+            let recipients = accounts
+                .iter()
+                .take(accounts_count.try_into().expect("at least 32bit OS"));
+            for account in recipients {
                 T::Currency::deposit_creating(&account, reward_per_user);
-                NextMintingRewards::<T>::remove(id);
+                NextMintingRewards::<T>::remove(account);
             }
 
-            let total_minted = mint_per_user * accounts.into();
-            Self::deposit_event(Event::Minted(total_minted, accounts));
+            let total_minted = mint_per_user * accounts_count.into();
+            Self::deposit_event(Event::Minted(total_minted, accounts_count));
         }
     }
 }
