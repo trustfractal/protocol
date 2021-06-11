@@ -1,0 +1,22 @@
+[package]
+name = "merklex"
+version = "0.0.1"
+edition = "2018"
+authors = ["Shelby Doolittle <shelby@shelbyd.com>"]
+description = "Merkle trees designed for proving extension of previous versions."
+license = "MIT"
+
+[dependencies]
+digest = { version = "0.9", default-features = false }
+generic-array = { version = "0.14", default-features = false }
+sp-std = { version = "3.0.0", default-features = false }
+
+[dev-dependencies]
+blake2 = { version = "0.9" }
+hex-literal = { version = "0.3" }
+
+[features]
+default = ['std']
+std = [
+  'sp-std/std',
+]
