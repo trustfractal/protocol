@@ -5,11 +5,8 @@
 extern crate quickcheck_macros;
 
 use digest::Digest;
-use generic_array::{typenum::consts::U64, ArrayLength, GenericArray};
-use sp_std::{
-    collections::vec_deque::VecDeque,
-    prelude::{Box, Vec},
-};
+use generic_array::{typenum::consts::U64, GenericArray};
+use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
 
 #[derive(Debug, Clone)]
 pub struct MerkleTree<D: Digest> {
@@ -20,13 +17,6 @@ pub struct MerkleTree<D: Digest> {
 impl<D: Digest> MerkleTree<D> {
     pub fn hash(&self) -> &GenericArray<u8, D::OutputSize> {
         &self.hash
-    }
-
-    pub fn leaf(hash: GenericArray<u8, D::OutputSize>) -> Self {
-        MerkleTree {
-            hash,
-            children: None,
-        }
     }
 
     pub fn leaf_bytes(bytes: &[u8]) -> Self {
@@ -80,7 +70,7 @@ impl<D: Digest> MerkleTree<D> {
     pub fn extends(&self, other: &Self) -> bool {
         match &other.children {
             None => self.left_contains(other),
-            Some((l, r)) => match self.sibling_of_left(l) {
+            Some((l, r)) => match self.sibling_of(l) {
                 None => false,
                 Some(sib) => sib.extends(r),
             },
@@ -95,17 +85,19 @@ impl<D: Digest> MerkleTree<D> {
         self == other || self.left().map(|l| l.left_contains(other)).unwrap_or(false)
     }
 
-    fn sibling_of_left(&self, other: &Self) -> Option<&Self> {
+    // Only searches left-subtrees for other.
+    fn sibling_of(&self, other: &Self) -> Option<&Self> {
         match &self.children {
             None => None,
             Some((l, r)) if l.as_ref() == other => Some(r.as_ref()),
-            Some((l, _)) => l.sibling_of_left(other),
+            Some((l, _)) => l.sibling_of(other),
         }
     }
 }
 
 impl<D: Digest<OutputSize = U64>> MerkleTree<D> {
-    pub(crate) fn leaf64(hash: [u8; 64]) -> MerkleTree<D> {
+    #[cfg(test)]
+    pub fn leaf64(hash: [u8; 64]) -> MerkleTree<D> {
         MerkleTree {
             hash: GenericArray::from_exact_iter(hash.iter().cloned()).unwrap(),
             children: None,
