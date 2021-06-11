@@ -14,6 +14,8 @@ sp-std = { version = "3.0.0", default-features = false }
 [dev-dependencies]
 blake2 = { version = "0.9" }
 hex-literal = { version = "0.3" }
+quickcheck = "1"
+quickcheck_macros = "1"
 
 [features]
 default = ['std']

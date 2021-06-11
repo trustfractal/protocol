@@ -1,5 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(test)]
+#[macro_use]
+extern crate quickcheck_macros;
+
 use digest::Digest;
 use generic_array::{typenum::consts::U64, ArrayLength, GenericArray};
 use sp_std::{
@@ -71,6 +75,32 @@ impl<D: Digest> MerkleTree<D> {
             .as_ref()
             .map(|(l, r)| l.weight() == r.weight())
             .unwrap_or(true)
+    }
+
+    pub fn extends(&self, other: &Self) -> bool {
+        match &other.children {
+            None => self.left_contains(other),
+            Some((l, r)) => match self.sibling_of_left(l) {
+                None => false,
+                Some(sib) => sib.extends(r),
+            },
+        }
+    }
+
+    fn left(&self) -> Option<&Self> {
+        self.children.as_ref().map(|(l, _)| l.as_ref())
+    }
+
+    fn left_contains(&self, other: &Self) -> bool {
+        self == other || self.left().map(|l| l.left_contains(other)).unwrap_or(false)
+    }
+
+    fn sibling_of_left(&self, other: &Self) -> Option<&Self> {
+        match &self.children {
+            None => None,
+            Some((l, r)) if l.as_ref() == other => Some(r.as_ref()),
+            Some((l, _)) => l.sibling_of_left(other),
+        }
     }
 }
 
@@ -152,7 +182,7 @@ mod tests {
 
         #[test]
         fn single_item() {
-            let tree = build_tree::<Blake2b, _, _>(&[&b"hello world"[..]]);
+            let tree = build_tree::<Blake2b, _, _>(&["hello world"]);
 
             let expected = MerkleTree::leaf64(hello_world_hash());
 
@@ -161,7 +191,7 @@ mod tests {
 
         #[test]
         fn two_items() {
-            let tree = build_tree::<Blake2b, _, _>(&[&b"hello world"[..], &b"hello world"[..]]);
+            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]);
 
             let mut hasher = Blake2b::new();
             hasher.update(&hello_world_hash());
@@ -173,8 +203,7 @@ mod tests {
 
         #[test]
         fn two_items_children() {
-            let tree =
-                build_tree::<Blake2b, _, _>(&[&b"hello world"[..], &b"hello world"[..]]).unwrap();
+            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
 
             assert_eq!(
                 tree.children(),
@@ -187,12 +216,8 @@ mod tests {
 
         #[test]
         fn three_items() {
-            let tree = build_tree::<Blake2b, _, _>(&[
-                &b"hello world"[..],
-                &b"hello world"[..],
-                &b"hello world"[..],
-            ])
-            .unwrap();
+            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
+                .unwrap();
 
             let (left, right) = tree.children().unwrap();
             assert_eq!(right, &MerkleTree::leaf64(hello_world_hash()));
@@ -214,51 +239,77 @@ mod tests {
         #[test]
         fn onto_leaf() {
             let leaf = MerkleTree::leaf64(hello_world_hash());
-            let pushed = leaf.push(&b"hello world"[..]);
+            let pushed = leaf.push("hello world");
 
             let from_sequence =
-                build_tree::<Blake2b, _, _>(&[&b"hello world"[..], &b"hello world"[..]]).unwrap();
+                build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
 
             assert_eq!(pushed, from_sequence);
         }
 
         #[test]
         fn imbalanced_tree() {
-            let three_items = build_tree::<Blake2b, _, _>(&[
-                &b"hello world"[..],
-                &b"hello world"[..],
-                &b"hello world"[..],
-            ])
-            .unwrap();
+            let three_items =
+                build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
+                    .unwrap();
 
             let four_items = build_tree::<Blake2b, _, _>(&[
-                &b"hello world"[..],
-                &b"hello world"[..],
-                &b"hello world"[..],
-                &b"hello world"[..],
+                "hello world",
+                "hello world",
+                "hello world",
+                "hello world",
             ])
             .unwrap();
 
-            let pushed = three_items.push(&b"hello world"[..]);
+            let pushed = three_items.push("hello world");
 
             assert_eq!(pushed, four_items);
         }
 
         #[test]
         fn balanced_tree() {
-            let two_items =
-                build_tree::<Blake2b, _, _>(&[&b"hello world"[..], &b"hello world"[..]]).unwrap();
+            let two_items = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
 
-            let three_items = build_tree::<Blake2b, _, _>(&[
-                &b"hello world"[..],
-                &b"hello world"[..],
-                &b"hello world"[..],
-            ])
-            .unwrap();
+            let three_items =
+                build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
+                    .unwrap();
 
-            let pushed = two_items.push(&b"hello world"[..]);
+            let pushed = two_items.push("hello world");
 
             assert_eq!(pushed, three_items);
+        }
+    }
+
+    #[cfg(test)]
+    mod extensions {
+        use super::*;
+
+        use quickcheck::TestResult;
+
+        #[quickcheck]
+        fn valid_extension(first: Vec<String>, second: Vec<String>) -> TestResult {
+            if first.len() == 0 {
+                return TestResult::discard();
+            }
+
+            let first_tree = build_tree::<Blake2b, _, _>(first.clone()).unwrap();
+            let second_tree = build_tree::<Blake2b, _, _>(first.into_iter().chain(second)).unwrap();
+
+            TestResult::from_bool(second_tree.extends(&first_tree))
+        }
+
+        #[quickcheck]
+        fn item_changed(mut items: Vec<String>, index: usize) -> TestResult {
+            if items.len() == 0 || index >= items.len() {
+                return TestResult::discard();
+            }
+
+            let initial_tree = build_tree::<Blake2b, _, _>(items.clone()).unwrap();
+
+            items[index].push_str("something");
+            let mutated_tree = build_tree::<Blake2b, _, _>(items).unwrap();
+
+            TestResult::from_bool(!mutated_tree.extends(&initial_tree))
         }
     }
 }
