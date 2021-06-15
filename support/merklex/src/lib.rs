@@ -19,6 +19,14 @@ impl<D: Digest> MerkleTree<D> {
         &self.hash
     }
 
+    pub fn from_iter<I: IntoIterator<Item = R>, R: AsRef<[u8]>>(items: I) -> Option<Self> {
+        let leaves = items
+            .into_iter()
+            .map(|item| MerkleTree::leaf_bytes(item.as_ref()))
+            .collect::<VecDeque<_>>();
+        build_from_layer::<D>(leaves)
+    }
+
     pub fn leaf_bytes(bytes: &[u8]) -> Self {
         MerkleTree {
             hash: D::digest(bytes),
@@ -111,16 +119,6 @@ impl<D: Digest> PartialEq for MerkleTree<D> {
     }
 }
 
-pub fn build_tree<D: Digest, T: AsRef<[u8]>, I: IntoIterator<Item = T>>(
-    items: I,
-) -> Option<MerkleTree<D>> {
-    let leaves = items
-        .into_iter()
-        .map(|item| MerkleTree::leaf_bytes(item.as_ref()))
-        .collect::<VecDeque<_>>();
-    build_from_layer::<D>(leaves)
-}
-
 fn build_from_layer<D: Digest>(mut leaves: VecDeque<MerkleTree<D>>) -> Option<MerkleTree<D>> {
     if leaves.len() == 0 {
         return None;
@@ -151,6 +149,7 @@ mod tests {
 
     use blake2::Blake2b;
     use hex_literal::hex;
+    use quickcheck::TestResult;
 
     fn hello_world_hash() -> [u8; 64] {
         hex!(
@@ -162,19 +161,19 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod build_tree {
+    mod building {
         use super::*;
 
         #[test]
         fn empty_input() {
-            let tree = build_tree::<Blake2b, &&[u8], _>(&[]);
+            let tree = MerkleTree::<Blake2b>::from_iter(&[] as &[&[u8]]);
 
             assert_eq!(tree, None);
         }
 
         #[test]
         fn single_item() {
-            let tree = build_tree::<Blake2b, _, _>(&["hello world"]);
+            let tree = MerkleTree::<Blake2b>::from_iter(&["hello world"]);
 
             let expected = MerkleTree::leaf64(hello_world_hash());
 
@@ -183,7 +182,7 @@ mod tests {
 
         #[test]
         fn two_items() {
-            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]);
+            let tree = MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world"]);
 
             let mut hasher = Blake2b::new();
             hasher.update(&hello_world_hash());
@@ -195,7 +194,7 @@ mod tests {
 
         #[test]
         fn two_items_children() {
-            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
+            let tree = MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world"]).unwrap();
 
             assert_eq!(
                 tree.children(),
@@ -208,8 +207,9 @@ mod tests {
 
         #[test]
         fn three_items() {
-            let tree = build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
-                .unwrap();
+            let tree =
+                MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world", "hello world"])
+                    .unwrap();
 
             let (left, right) = tree.children().unwrap();
             assert_eq!(right, &MerkleTree::leaf64(hello_world_hash()));
@@ -234,7 +234,7 @@ mod tests {
             let pushed = leaf.push("hello world");
 
             let from_sequence =
-                build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
+                MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world"]).unwrap();
 
             assert_eq!(pushed, from_sequence);
         }
@@ -242,10 +242,10 @@ mod tests {
         #[test]
         fn imbalanced_tree() {
             let three_items =
-                build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
+                MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world", "hello world"])
                     .unwrap();
 
-            let four_items = build_tree::<Blake2b, _, _>(&[
+            let four_items = MerkleTree::<Blake2b>::from_iter(&[
                 "hello world",
                 "hello world",
                 "hello world",
@@ -260,10 +260,11 @@ mod tests {
 
         #[test]
         fn balanced_tree() {
-            let two_items = build_tree::<Blake2b, _, _>(&["hello world", "hello world"]).unwrap();
+            let two_items =
+                MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world"]).unwrap();
 
             let three_items =
-                build_tree::<Blake2b, _, _>(&["hello world", "hello world", "hello world"])
+                MerkleTree::<Blake2b>::from_iter(&["hello world", "hello world", "hello world"])
                     .unwrap();
 
             let pushed = two_items.push("hello world");
@@ -284,8 +285,9 @@ mod tests {
                 return TestResult::discard();
             }
 
-            let first_tree = build_tree::<Blake2b, _, _>(first.clone()).unwrap();
-            let second_tree = build_tree::<Blake2b, _, _>(first.into_iter().chain(second)).unwrap();
+            let first_tree = MerkleTree::<Blake2b>::from_iter(first.clone()).unwrap();
+            let second_tree =
+                MerkleTree::<Blake2b>::from_iter(first.into_iter().chain(second)).unwrap();
 
             TestResult::from_bool(second_tree.extends(&first_tree))
         }
@@ -296,10 +298,10 @@ mod tests {
                 return TestResult::discard();
             }
 
-            let initial_tree = build_tree::<Blake2b, _, _>(items.clone()).unwrap();
+            let initial_tree = MerkleTree::<Blake2b>::from_iter(items.clone()).unwrap();
 
             items[index].push_str("something");
-            let mutated_tree = build_tree::<Blake2b, _, _>(items).unwrap();
+            let mutated_tree = MerkleTree::<Blake2b>::from_iter(items).unwrap();
 
             TestResult::from_bool(!mutated_tree.extends(&initial_tree))
         }
