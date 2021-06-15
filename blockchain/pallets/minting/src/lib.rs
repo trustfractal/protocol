@@ -215,8 +215,7 @@ pub mod pallet {
                 return;
             }
 
-            let accounts = NextMintingRewards::<T>::iter()
-                .collect::<Vec<_>>();
+            let accounts = NextMintingRewards::<T>::iter().collect::<Vec<_>>();
 
             let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
 
