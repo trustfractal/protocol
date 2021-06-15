@@ -105,15 +105,15 @@ impl<D: Digest> MerkleTree<D> {
     pub fn extension_proof(&self, other: &Self) -> Option<Self> {
         match (self.children(), other.children()) {
             _ if self == other && self.balanced() => Some(Self::leaf(self.hash.clone())),
+            (Some((self_l, self_r)), Some((other_l, other_r))) if self_l == other_l => {
+                let left = Self::leaf(self_l.hash.clone());
+                let right = self_r.extension_proof(other_r)?;
+                Some(Self::merge(left, right))
+            }
             (Some((self_l, self_r)), _) if self_l.extends(other) => {
                 let left = self_l.extension_proof(other)?;
                 let mut right = self_r.clone();
                 right.prune_balanced();
-                Some(Self::merge(left, right))
-            }
-            (Some((self_l, self_r)), Some((other_l, other_r))) if self_l == other_l => {
-                let left = Self::leaf(self_l.hash.clone());
-                let right = self_r.extension_proof(other_r)?;
                 Some(Self::merge(left, right))
             }
             _ => None,
