@@ -10,6 +10,7 @@ license = "MIT"
 digest = { version = "0.9", default-features = false }
 generic-array = { version = "0.14", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
+parity-scale-codec = { version = "2.0.0", default-features = false }
 
 [dev-dependencies]
 blake2 = { version = "0.9" }

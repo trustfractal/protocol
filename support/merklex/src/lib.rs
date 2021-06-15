@@ -6,6 +6,7 @@ extern crate quickcheck_macros;
 
 use digest::Digest;
 use generic_array::{typenum::consts::U64, GenericArray};
+use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
 
 pub struct MerkleTree<D: Digest> {
@@ -131,6 +132,17 @@ impl<D: Digest> MerkleTree<D> {
             r.prune_balanced();
         }
     }
+
+    pub fn deep_eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+            && match (&self.children, &other.children) {
+                (Some((self_l, self_r)), Some((other_l, other_r))) => {
+                    self_l.deep_eq(other_l) && self_r.deep_eq(other_r)
+                }
+                (None, None) => true,
+                _ => false,
+            }
+    }
 }
 
 impl<D: Digest<OutputSize = U64>> MerkleTree<D> {
@@ -174,6 +186,50 @@ impl<D: Digest> core::fmt::Debug for MerkleTree<D> {
             .field("hash", &hash_hex)
             .field("children", &self.children)
             .finish()
+    }
+}
+
+impl<D: Digest> Encode for MerkleTree<D> {
+    fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
+        match &self.children {
+            None => {
+                dest.push_byte(0);
+                dest.write(&self.hash);
+            }
+            Some((l, r)) => {
+                dest.push_byte(1);
+                l.encode_to(dest);
+                r.encode_to(dest);
+            }
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        1 + match &self.children {
+            None => D::output_size(),
+            Some((l, r)) => l.size_hint() + r.size_hint(),
+        }
+    }
+}
+
+impl<D: Digest> Decode for MerkleTree<D> {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
+        match input.read_byte()? {
+            0 => {
+                let mut hash = GenericArray::default();
+                input.read(hash.as_mut_slice())?;
+                Ok(Self {
+                    hash,
+                    children: None,
+                })
+            }
+            1 => {
+                let left = Self::decode(input)?;
+                let right = Self::decode(input)?;
+                Ok(Self::merge(left, right))
+            }
+            _ => return Err("expected exactly 0 or 1 for MerkleTree children")?,
+        }
     }
 }
 
@@ -467,19 +523,15 @@ mod tests {
         }
 
         #[quickcheck]
-        fn all_entries_the_same(
-            counts: Vec<u8>,
-        ) -> TestResult {
+        fn all_entries_the_same(counts: Vec<u8>) -> TestResult {
             if counts.len() == 0 || counts[0] == 0 || counts.len() > 5 {
                 return TestResult::discard();
             }
 
-            let totals = counts.into_iter()
-                .scan(0usize, |total, count| {
-                    *total += count as usize;
-                    Some(*total)
-                });
-
+            let totals = counts.into_iter().scan(0usize, |total, count| {
+                *total += count as usize;
+                Some(*total)
+            });
 
             let mut trees = Vec::new();
 
@@ -493,6 +545,26 @@ mod tests {
             }
 
             TestResult::passed()
+        }
+    }
+
+    #[cfg(test)]
+    mod codec {
+        use super::*;
+
+        #[quickcheck]
+        fn some_items(items: Vec<String>) -> TestResult {
+            if items.len() == 0 {
+                return TestResult::discard();
+            }
+
+            let tree = MerkleTree::<Blake2b>::from_iter(items).unwrap();
+
+            let encoded = tree.encode();
+            assert_eq!(encoded.len(), tree.size_hint());
+
+            let decoded = MerkleTree::<Blake2b>::decode(&mut encoded.as_ref()).unwrap();
+            TestResult::from_bool(decoded.deep_eq(&tree))
         }
     }
 }
