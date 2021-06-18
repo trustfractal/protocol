@@ -371,17 +371,17 @@ struct BitString(Vec<bool>);
 
 impl BitString {
     fn size_hint(count: usize) -> usize {
-        (count + 2 - 1) / 7 + 1
+        count / 7 + 1
     }
 }
 
 impl Encode for BitString {
     fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
         let mut result = Vec::<u8>::new();
-        let surrounded_in_true = [true].iter().chain(self.0.iter()).chain(&[true]);
+        let true_suffix = self.0.iter().chain(&[true]);
 
         let mut total = 0;
-        for (index, bit) in surrounded_in_true.enumerate() {
+        for (index, bit) in true_suffix.enumerate() {
             if index % 7 == 0 {
                 if let Some(last) = result.last_mut() {
                     *last |= 0b10000000;
@@ -419,7 +419,6 @@ impl Decode for BitString {
         let mut raw_bits = Vec::new();
         loop {
             let mut byte = input.read_byte()?;
-            eprintln!("{:#010b}", byte);
             let will_break = byte & 0x80 == 0;
             byte <<= 1;
 
@@ -433,13 +432,10 @@ impl Decode for BitString {
             }
         }
 
-        let first_true = raw_bits.iter().position(|bit| *bit).ok_or("no leading 1")?;
-        let mut pruned = raw_bits.split_off(first_true + 1);
+        let last_true = raw_bits.iter().rposition(|bit| *bit).ok_or("no trailing 1")?;
+        raw_bits.truncate(last_true);
 
-        let last_true = pruned.iter().rposition(|bit| *bit).ok_or("no trailing 1")?;
-        pruned.truncate(last_true);
-
-        Ok(BitString(pruned))
+        Ok(BitString(raw_bits))
     }
 }
 
