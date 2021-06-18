@@ -152,9 +152,7 @@ impl<D: Digest> MerkleTree<D> {
             }
             (Some((self_l, self_r)), _) if self_l.extends(other) => {
                 let left = self_l.extension_proof(other)?;
-                let mut right = self_r.clone();
-                right.prune_balanced();
-                Some(Self::merge(left, right))
+                Some(Self::merge(left, self_r.clone().prune_balanced()))
             }
 
             _ if self == other => Some(Self::leaf(self.hash.clone())),
@@ -162,16 +160,16 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
-    fn prune_balanced(&mut self) {
+    pub fn prune_balanced(mut self) -> Self {
         if self.balanced() {
             self.children = None;
-            return;
         }
 
-        if let Some((l, r)) = &mut self.children {
-            l.prune_balanced();
-            r.prune_balanced();
+        if let Some((l, r)) = self.children {
+            self.children = Some((Box::new(l.prune_balanced()), Box::new(r.prune_balanced())));
         }
+
+        self
     }
 
     pub fn deep_eq(&self, other: &Self) -> bool {
@@ -679,9 +677,9 @@ mod tests {
             let first_tree = MerkleTree::<Blake2b>::from_iter(first.clone()).unwrap();
             let second_tree =
                 MerkleTree::<Blake2b>::from_iter(first.into_iter().chain(second)).unwrap();
-            let extension = second_tree.extension_proof(&first_tree);
+            let extension = second_tree.extension_proof(&first_tree).unwrap();
 
-            TestResult::from_bool(extension.is_some() && extension.unwrap().extends(&first_tree))
+            TestResult::from_bool(extension.extends(&first_tree.prune_balanced()))
         }
 
         #[quickcheck]
@@ -711,8 +709,6 @@ mod tests {
 
             TestResult::from_bool(extension.is_none())
         }
-
-        // TODO(shelbyd): Check extension against root.
 
         #[quickcheck]
         fn second_extension(
@@ -759,7 +755,10 @@ mod tests {
             let first_extension = second_tree.extension_proof(&first_tree).unwrap();
             let second_extension = third_tree.extension_proof(&second_tree).unwrap();
 
-            TestResult::from_bool(second_extension.strict_extends(&first_extension))
+            TestResult::from_bool(
+                first_extension.strict_extends(&first_tree.prune_balanced())
+                    && second_extension.strict_extends(&first_extension),
+            )
         }
 
         #[quickcheck]
