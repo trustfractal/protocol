@@ -24,7 +24,31 @@ impl<D: Digest> MerkleTree<D> {
             .into_iter()
             .map(|item| MerkleTree::leaf_bytes(item.as_ref()))
             .collect::<VecDeque<_>>();
-        build_from_layer::<D>(leaves)
+        Self::build_from_layer(leaves)
+    }
+
+    fn build_from_layer(mut leaves: VecDeque<Self>) -> Option<Self> {
+        if leaves.len() == 0 {
+            return None;
+        }
+        if leaves.len() == 1 {
+            return leaves.pop_front();
+        }
+
+        let mut next_layer = VecDeque::with_capacity(leaves.len() / 2);
+        loop {
+            match (leaves.pop_front(), leaves.pop_front()) {
+                (Some(l), Some(r)) => {
+                    next_layer.push_back(MerkleTree::merge(l, r));
+                }
+                (None, None) => break,
+                (Some(n), None) => {
+                    next_layer.push_back(n);
+                }
+                (None, Some(_)) => unreachable!(),
+            }
+        }
+        Self::build_from_layer(next_layer)
     }
 
     pub fn leaf_bytes<R: AsRef<[u8]>>(bytes: R) -> Self {
@@ -297,30 +321,6 @@ impl<D: Digest> Decode for MerkleTree<D> {
 
         Ok(Self::from_structure_leaves(&structure.0, leaves.as_ref())?)
     }
-}
-
-fn build_from_layer<D: Digest>(mut leaves: VecDeque<MerkleTree<D>>) -> Option<MerkleTree<D>> {
-    if leaves.len() == 0 {
-        return None;
-    }
-    if leaves.len() == 1 {
-        return leaves.pop_front();
-    }
-
-    let mut next_layer = VecDeque::with_capacity(leaves.len() / 2);
-    loop {
-        match (leaves.pop_front(), leaves.pop_front()) {
-            (Some(l), Some(r)) => {
-                next_layer.push_back(MerkleTree::merge(l, r));
-            }
-            (None, None) => break,
-            (Some(n), None) => {
-                next_layer.push_back(n);
-            }
-            (None, Some(_)) => unreachable!(),
-        }
-    }
-    build_from_layer::<D>(next_layer)
 }
 
 #[cfg(test)]
