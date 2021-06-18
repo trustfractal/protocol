@@ -116,6 +116,10 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
+    pub fn strict_extends(&self, other: &Self) -> bool {
+        self != other && self.extends(other)
+    }
+
     pub fn extends(&self, other: &Self) -> bool {
         match (self.children(), other.children()) {
             _ if self == other => true,
@@ -127,9 +131,16 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
+    pub fn strict_extension_proof(&self, other: &Self) -> Option<Self> {
+        if self == other {
+            None
+        } else {
+            self.extension_proof(other)
+        }
+    }
+
     pub fn extension_proof(&self, other: &Self) -> Option<Self> {
         match (self.children(), other.children()) {
-            _ if self == other && self.balanced() => Some(Self::leaf(self.hash.clone())),
             (Some((self_l, self_r)), Some((other_l, other_r))) if self_l == other_l => {
                 let left = Self::leaf(self_l.hash.clone());
                 let right = self_r.extension_proof(other_r)?;
@@ -141,6 +152,8 @@ impl<D: Digest> MerkleTree<D> {
                 right.prune_balanced();
                 Some(Self::merge(left, right))
             }
+
+            _ if self == other => Some(Self::leaf(self.hash.clone())),
             _ => None,
         }
     }
@@ -432,7 +445,10 @@ impl Decode for BitString {
             }
         }
 
-        let last_true = raw_bits.iter().rposition(|bit| *bit).ok_or("no trailing 1")?;
+        let last_true = raw_bits
+            .iter()
+            .rposition(|bit| *bit)
+            .ok_or("no trailing 1")?;
         raw_bits.truncate(last_true);
 
         Ok(BitString(raw_bits))
@@ -665,6 +681,18 @@ mod tests {
         }
 
         #[quickcheck]
+        fn same_tree_is_not_strict_extension(items: Vec<String>) -> TestResult {
+            if items.len() == 0 {
+                return TestResult::discard();
+            }
+
+            let tree = MerkleTree::<Blake2b>::from_iter(items).unwrap();
+            let extension = tree.strict_extension_proof(&tree);
+
+            TestResult::from_bool(extension.is_none())
+        }
+
+        #[quickcheck]
         fn item_changed(mut items: Vec<String>, index: usize) -> TestResult {
             if items.len() == 0 || index >= items.len() {
                 return TestResult::discard();
@@ -704,6 +732,30 @@ mod tests {
             let second_extension = third_tree.extension_proof(&second_tree).unwrap();
 
             TestResult::from_bool(second_extension.extends(&first_extension))
+        }
+
+        #[quickcheck]
+        fn strict_second_extension(
+            first: Vec<String>,
+            second: Vec<String>,
+            third: Vec<String>,
+        ) -> TestResult {
+            if first.len() == 0 || second.len() == 0 || third.len() == 0 {
+                return TestResult::discard();
+            }
+
+            let first_tree = MerkleTree::<Blake2b>::from_iter(first.iter()).unwrap();
+            let second_tree =
+                MerkleTree::<Blake2b>::from_iter(first.iter().chain(second.iter())).unwrap();
+            let third_tree = MerkleTree::<Blake2b>::from_iter(
+                first.iter().chain(second.iter()).chain(third.iter()),
+            )
+            .unwrap();
+
+            let first_extension = second_tree.extension_proof(&first_tree).unwrap();
+            let second_extension = third_tree.extension_proof(&second_tree).unwrap();
+
+            TestResult::from_bool(second_extension.strict_extends(&first_extension))
         }
 
         #[quickcheck]
