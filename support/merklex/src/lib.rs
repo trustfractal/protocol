@@ -9,6 +9,7 @@ use generic_array::{typenum::consts::U64, GenericArray};
 use parity_scale_codec::{Compact, Decode, Encode, Error, Input, Output};
 use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
 
+// TODO(shelbyd): Have separate structs for left-balanced trees and arbitrary.
 pub struct MerkleTree<D: Digest> {
     hash: GenericArray<u8, D::OutputSize>,
     children: Option<(Box<Self>, Box<Self>)>,
@@ -112,7 +113,10 @@ impl<D: Digest> MerkleTree<D> {
     fn max_depth(&self) -> usize {
         match &self.children {
             None => 0,
-            Some((l, _)) => l.max_depth() + 1,
+            Some((l, r)) => {
+                debug_assert!(l.max_depth() >= r.max_depth());
+                l.max_depth() + 1
+            }
         }
     }
 
