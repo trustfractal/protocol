@@ -6,7 +6,7 @@ extern crate quickcheck_macros;
 
 use digest::Digest;
 use generic_array::{typenum::consts::U64, GenericArray};
-use parity_scale_codec::{Decode, Encode, Error, Input, Output};
+use parity_scale_codec::{Compact, Decode, Encode, Error, Input, Output};
 use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
 
 pub struct MerkleTree<D: Digest> {
@@ -27,9 +27,9 @@ impl<D: Digest> MerkleTree<D> {
         build_from_layer::<D>(leaves)
     }
 
-    pub fn leaf_bytes(bytes: &[u8]) -> Self {
+    pub fn leaf_bytes<R: AsRef<[u8]>>(bytes: R) -> Self {
         MerkleTree {
-            hash: D::digest(bytes),
+            hash: D::digest(bytes.as_ref()),
             children: None,
         }
     }
@@ -41,7 +41,7 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
-    fn merge(l: Self, r: Self) -> Self {
+    pub fn merge(l: Self, r: Self) -> Self {
         let mut hasher = D::new();
         hasher.update(&l.hash);
         hasher.update(&r.hash);
@@ -143,6 +143,77 @@ impl<D: Digest> MerkleTree<D> {
                 _ => false,
             }
     }
+
+    fn structure_bits(&self) -> Vec<bool> {
+        let mut result = Vec::new();
+
+        self.structure_bits_recurse(&mut result);
+        result.remove(0);
+        debug_assert_ne!(result.pop(), Some(true));
+        debug_assert_ne!(result.pop(), Some(true));
+
+        result
+    }
+
+    fn leaves(&self) -> Box<dyn Iterator<Item = &Self> + '_> {
+        match &self.children {
+            None => Box::new(core::iter::once(self)),
+            Some((l, r)) => {
+                let lazy_r = [()].iter().flat_map(move |_| r.leaves());
+                Box::new(l.leaves().chain(lazy_r))
+            }
+        }
+    }
+
+    fn structure_bits_recurse(&self, vec: &mut Vec<bool>) {
+        match &self.children {
+            None => vec.push(false),
+            Some((l, r)) => {
+                vec.push(true);
+                l.structure_bits_recurse(vec);
+                r.structure_bits_recurse(vec);
+            }
+        }
+    }
+
+    fn from_structure_leaves(
+        structure: &[bool],
+        leaves: &[GenericArray<u8, D::OutputSize>],
+    ) -> Result<Self, Error> {
+        match &leaves {
+            &[] => Err("no leaves provided")?,
+            &[leaf] => Ok(Self::leaf(leaf.clone())),
+            _ => {
+                let mut full_structure = Vec::with_capacity(structure.len() + 3);
+                full_structure.push(true);
+                full_structure.extend_from_slice(structure);
+                full_structure.push(false);
+                full_structure.push(false);
+
+                Ok(Self::structure_leaves_recurse(&full_structure, leaves)?.2)
+            }
+        }
+    }
+
+    fn structure_leaves_recurse<'i>(
+        structure: &'i [bool],
+        leaves: &'i [GenericArray<u8, D::OutputSize>],
+    ) -> Result<(&'i [bool], &'i [GenericArray<u8, D::OutputSize>], Self), Error> {
+        match structure.get(0).ok_or("not enough structure")? {
+            false => {
+                let leaf = Self::leaf(leaves.get(0).ok_or("not enough leaves")?.clone());
+                let structure = &structure[1..];
+                let leaves = &leaves[1..];
+                Ok((structure, leaves, leaf))
+            }
+            true => {
+                let (structure, leaves, left) =
+                    Self::structure_leaves_recurse(&structure[1..], leaves)?;
+                let (structure, leaves, right) = Self::structure_leaves_recurse(structure, leaves)?;
+                Ok((structure, leaves, Self::merge(left, right)))
+            }
+        }
+    }
 }
 
 impl<D: Digest<OutputSize = U64>> MerkleTree<D> {
@@ -191,45 +262,40 @@ impl<D: Digest> core::fmt::Debug for MerkleTree<D> {
 
 impl<D: Digest> Encode for MerkleTree<D> {
     fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
-        match &self.children {
-            None => {
-                dest.push_byte(0);
-                dest.write(&self.hash);
-            }
-            Some((l, r)) => {
-                dest.push_byte(1);
-                l.encode_to(dest);
-                r.encode_to(dest);
+        BitString(self.structure_bits()).encode_to(dest);
+
+        let leaves = self.leaves().map(|l| &l.hash).collect::<Vec<_>>();
+        Compact(leaves.len() as u64).encode_to(dest);
+        for hash in leaves {
+            for byte in hash {
+                byte.encode_to(dest);
             }
         }
     }
 
     fn size_hint(&self) -> usize {
-        1 + match &self.children {
-            None => D::output_size(),
-            Some((l, r)) => l.size_hint() + r.size_hint(),
-        }
+        let leaf_count = self.leaves().count();
+        Compact(leaf_count as u64).size_hint()
+            + leaf_count * D::output_size()
+            + BitString::size_hint(self.weight().saturating_sub(3))
     }
 }
 
 impl<D: Digest> Decode for MerkleTree<D> {
     fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
-        match input.read_byte()? {
-            0 => {
-                let mut hash = GenericArray::default();
-                input.read(hash.as_mut_slice())?;
-                Ok(Self {
-                    hash,
-                    children: None,
-                })
+        let structure = BitString::decode(input)?;
+        let leaf_count = Compact::<u64>::decode(input)?.0;
+
+        let mut leaves = Vec::with_capacity(leaf_count as usize);
+        for _ in 0..leaf_count {
+            let mut hash = Vec::with_capacity(D::output_size());
+            for _ in 0..D::output_size() {
+                hash.push(u8::decode(input)?);
             }
-            1 => {
-                let left = Self::decode(input)?;
-                let right = Self::decode(input)?;
-                Ok(Self::merge(left, right))
-            }
-            _ => return Err("expected exactly 0 or 1 for MerkleTree children")?,
+            leaves.push(GenericArray::clone_from_slice(&hash));
         }
+
+        Ok(Self::from_structure_leaves(&structure.0, leaves.as_ref())?)
     }
 }
 
@@ -255,6 +321,126 @@ fn build_from_layer<D: Digest>(mut leaves: VecDeque<MerkleTree<D>>) -> Option<Me
         }
     }
     build_from_layer::<D>(next_layer)
+}
+
+#[cfg(test)]
+impl<D: Digest> MerkleTree<D> {
+    fn arbitrary_with_depth(gen: &mut quickcheck::Gen, depth: u8) -> Self {
+        use quickcheck::Arbitrary;
+
+        if bool::arbitrary(gen) && depth < 16 {
+            let left = Self::arbitrary_with_depth(gen, depth + 1);
+            let right = Self::arbitrary_with_depth(gen, depth + 1);
+            Self::merge(left, right)
+        } else {
+            let hash =
+                GenericArray::from_exact_iter((0..D::output_size()).map(|_| u8::arbitrary(gen)))
+                    .expect("correct size iter");
+            Self::leaf(hash)
+        }
+    }
+}
+
+#[cfg(test)]
+impl<D: Digest + 'static> quickcheck::Arbitrary for MerkleTree<D> {
+    fn arbitrary(gen: &mut quickcheck::Gen) -> Self {
+        Self::arbitrary_with_depth(gen, 0)
+    }
+
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        let mut result: Box<dyn Iterator<Item = Self>> = Box::new(core::iter::empty());
+
+        if let Some((l, r)) = self.children.clone() {
+            let r_clone = r.clone();
+            result = Box::new(
+                core::iter::once({
+                    let mut node = self.clone();
+                    node.children = None;
+                    node
+                })
+                .chain(l.shrink().map(move |l| Self::merge(*l, *r_clone.clone())))
+                .chain(r.shrink().map(move |r| Self::merge(*l.clone(), *r))),
+            );
+        }
+
+        result
+    }
+}
+
+struct BitString(Vec<bool>);
+
+impl BitString {
+    fn size_hint(count: usize) -> usize {
+        (count + 2 - 1) / 7 + 1
+    }
+}
+
+impl Encode for BitString {
+    fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
+        let mut result = Vec::<u8>::new();
+        let surrounded_in_true = [true].iter().chain(self.0.iter()).chain(&[true]);
+
+        let mut total = 0;
+        for (index, bit) in surrounded_in_true.enumerate() {
+            if index % 7 == 0 {
+                if let Some(last) = result.last_mut() {
+                    *last |= 0b10000000;
+                }
+                result.push(0);
+            }
+            match result.last_mut() {
+                Some(last) => {
+                    *last = *last << 1 | if *bit { 1 } else { 0 };
+                }
+                None => unreachable!(),
+            }
+            total += 1;
+        }
+
+        if let Some(byte) = result.last_mut() {
+            let to_shift = 7 - total % 7;
+            if to_shift < 7 {
+                *byte <<= to_shift;
+            }
+        }
+
+        for byte in result {
+            byte.encode_to(dest);
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        Self::size_hint(self.0.len())
+    }
+}
+
+impl Decode for BitString {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
+        let mut raw_bits = Vec::new();
+        loop {
+            let mut byte = input.read_byte()?;
+            eprintln!("{:#010b}", byte);
+            let will_break = byte & 0x80 == 0;
+            byte <<= 1;
+
+            for _ in 0..7 {
+                raw_bits.push(byte & 0x80 == 0x80);
+                byte <<= 1;
+            }
+
+            if will_break {
+                break;
+            }
+        }
+
+        let first_true = raw_bits.iter().position(|bit| *bit).ok_or("no leading 1")?;
+        let mut pruned = raw_bits.split_off(first_true + 1);
+
+        let last_true = pruned.iter().rposition(|bit| *bit).ok_or("no trailing 1")?;
+        pruned.truncate(last_true);
+
+        Ok(BitString(pruned))
+    }
 }
 
 #[cfg(test)]
@@ -498,6 +684,8 @@ mod tests {
             TestResult::from_bool(extension.is_none())
         }
 
+        // TODO(shelbyd): Check extension against root.
+
         #[quickcheck]
         fn second_extension(
             first: Vec<String>,
@@ -553,18 +741,39 @@ mod tests {
         use super::*;
 
         #[quickcheck]
-        fn some_items(items: Vec<String>) -> TestResult {
-            if items.len() == 0 {
-                return TestResult::discard();
-            }
-
-            let tree = MerkleTree::<Blake2b>::from_iter(items).unwrap();
-
+        fn encode_decode_equals_original(tree: MerkleTree<Blake2b>) -> TestResult {
             let encoded = tree.encode();
-            assert_eq!(encoded.len(), tree.size_hint());
-
             let decoded = MerkleTree::<Blake2b>::decode(&mut encoded.as_ref()).unwrap();
             TestResult::from_bool(decoded.deep_eq(&tree))
+        }
+
+        #[quickcheck]
+        fn encode_size_hint(tree: MerkleTree<Blake2b>) -> TestResult {
+            let encoded = tree.encode();
+            TestResult::from_bool(encoded.len() == tree.size_hint())
+        }
+
+        #[quickcheck]
+        fn structure_bits(tree: MerkleTree<Blake2b>) -> TestResult {
+            TestResult::from_bool(tree.structure_bits().len() == tree.weight().saturating_sub(3))
+        }
+
+        #[cfg(test)]
+        mod bit_string {
+            use super::*;
+
+            #[quickcheck]
+            fn encode_decode_bit_string(bits: Vec<bool>) -> TestResult {
+                let encoded = BitString(bits.clone()).encode();
+                let decoded = BitString::decode(&mut encoded.as_ref()).unwrap().0;
+                TestResult::from_bool(decoded == bits)
+            }
+
+            #[quickcheck]
+            fn size_hint(bits: Vec<bool>) -> TestResult {
+                let encoded = BitString(bits.clone()).encode();
+                TestResult::from_bool(encoded.len() == BitString(bits).size_hint())
+            }
         }
     }
 }
