@@ -13,6 +13,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
+    use blake2::Blake2b;
     use codec::{Decode, Encode};
     use core::convert::TryInto;
     use frame_support::{
@@ -21,6 +22,7 @@ pub mod pallet {
         weights::Weight,
     };
     use frame_system::ensure_signed;
+    use merklex::MerkleTree;
     use sp_core::sr25519::{Public, Signature};
     use sp_runtime::{
         traits::{CheckedDiv, Verify},
@@ -118,6 +120,10 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, FractalId, (T::AccountId, Nonce), ValueQuery>;
 
     #[pallet::storage]
+    pub type IdDatasets<T: Config> =
+        StorageMap<_, Blake2_128Concat, FractalId, MerkleTree<Blake2b>, OptionQuery>;
+
+    #[pallet::storage]
     pub type FractalPublicKey<T: Config> = StorageValue<_, Public, ValueQuery>;
 
     #[pallet::genesis_config]
@@ -148,6 +154,9 @@ pub mod pallet {
         MismatchedFractalIdentity,
         NonIncreasingNonce,
         NoIdentityRegistered,
+        ExtensionDoesNotExtendExistingDataset,
+        MustSpecifyFractalIdWithMultipleIds,
+        FractalIdNotRegisteredToAccount,
     }
 
     #[pallet::call]
@@ -187,18 +196,43 @@ pub mod pallet {
 
         /// Register to receive minting in the next period.
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1, 1))]
-        pub fn register_for_minting(origin: OriginFor<T>) -> DispatchResult {
+        pub fn register_for_minting(
+            origin: OriginFor<T>,
+            identity: Option<FractalId>,
+            extension_proof: MerkleTree<Blake2b>,
+        ) -> DispatchResult {
             let who = ensure_signed(origin)?;
 
-            let mut any = false;
-            for (id, ()) in AccountIds::<T>::iter_prefix(&who) {
-                NextMintingRewards::<T>::insert(id, who.clone());
-                any = true;
+            let id = match identity {
+                Some(id) => {
+                    ensure!(
+                        AccountIds::<T>::contains_key(&who, &id),
+                        Error::<T>::FractalIdNotRegisteredToAccount
+                    );
+                    id
+                }
+                None => {
+                    let mut ids = AccountIds::<T>::iter_prefix(&who);
+
+                    match (ids.next(), ids.next()) {
+                        (None, _) => return Err(Error::<T>::NoIdentityRegistered)?,
+                        (Some((id, ())), None) => id,
+                        (Some(_), Some(_)) => {
+                            return Err(Error::<T>::MustSpecifyFractalIdWithMultipleIds)?;
+                        }
+                    }
+                }
+            };
+
+            if let Some(existing) = IdDatasets::<T>::get(id) {
+                ensure!(
+                    extension_proof.strict_extends(&existing),
+                    Error::<T>::ExtensionDoesNotExtendExistingDataset
+                );
             }
 
-            if !any {
-                return Err(Error::<T>::NoIdentityRegistered)?;
-            }
+            IdDatasets::<T>::insert(id, extension_proof);
+            NextMintingRewards::<T>::insert(id, who.clone());
 
             Ok(())
         }

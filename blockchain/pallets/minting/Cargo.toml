@@ -14,6 +14,8 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 # external dependencies
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
+merklex = {default-features = false, path = '../../../support/merklex'}
+blake2 = {version = "0.9"}
 
 # Substrate dependencies
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
@@ -35,6 +37,7 @@ std = [
 	'frame-support/std',
 	'frame-system/std',
 	'frame-benchmarking/std',
+  'merklex/std',
   'sp-core/std',
 ]
 try-runtime = ['frame-support/try-runtime']

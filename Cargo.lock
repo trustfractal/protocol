@@ -1563,9 +1563,11 @@ dependencies = [
 name = "fractal-minting"
 version = "0.0.1"
 dependencies = [
+ "blake2",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "merklex",
  "pallet-balances",
  "parity-scale-codec",
  "serde",

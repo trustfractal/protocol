@@ -1,8 +1,10 @@
 use crate::{mock::*, *};
+use blake2::Blake2b;
 use frame_support::{
     assert_noop, assert_ok,
     traits::{OnFinalize, OnInitialize},
 };
+use merklex::MerkleTree;
 
 #[cfg(test)]
 mod register_identity {
@@ -57,11 +59,31 @@ mod register_identity {
         ));
     }
 
+    fn register_for_minting(id: u64) {
+        assert_ok!(FractalMinting::register_for_minting(
+            Origin::signed(id),
+            None,
+            simple_tree().prune_balanced(),
+        ));
+    }
+
+    fn register_for_minting_dataset(id: u64, dataset: &[&'static str]) {
+        assert_ok!(FractalMinting::register_for_minting(
+            Origin::signed(id),
+            None,
+            MerkleTree::from_iter(dataset).expect("dataset with at least one element"),
+        ));
+    }
+
+    fn simple_tree() -> MerkleTree<Blake2b> {
+        MerkleTree::from_iter(&["test", "values"]).unwrap()
+    }
+
     #[test]
     fn receives_portion_of_minting_after_block() {
         new_test_ext().execute_with(|| {
             register_id(1);
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
 
             run_to_next_minting();
 
@@ -78,7 +100,7 @@ mod register_identity {
             run_to_next_minting();
 
             register_id(1);
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
             assert_eq!(Balances::free_balance(&1), 0);
 
             run_to_next_minting();
@@ -94,7 +116,7 @@ mod register_identity {
     fn only_receives_for_immediate_minting() {
         new_test_ext().execute_with(|| {
             register_id(1);
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
 
             run_to_next_minting();
             run_to_next_minting();
@@ -113,7 +135,7 @@ mod register_identity {
 
             for id in 1..=users {
                 register_id(id);
-                assert_ok!(FractalMinting::register_for_minting(Origin::signed(id)));
+                register_for_minting(id);
             }
 
             run_to_next_minting();
@@ -131,9 +153,9 @@ mod register_identity {
     fn multiple_registrations_only_one_mint() {
         new_test_ext().execute_with(|| {
             register_id(1);
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting_dataset(1, &["1"]);
+            register_for_minting_dataset(1, &["1", "2"]);
+            register_for_minting_dataset(1, &["1", "2", "3"]);
 
             run_to_next_minting();
 
@@ -180,7 +202,7 @@ mod register_identity {
             register_id_mut(1, |id| {
                 id.fractal_id = 42;
             });
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
 
             register_id_mut(2, |id| {
                 id.fractal_id = 42;
@@ -200,7 +222,7 @@ mod register_identity {
                 id.fractal_id = 42;
                 id.nonce = 1;
             });
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
 
             assert_noop!(
                 FractalMinting::register_identity(
@@ -236,7 +258,11 @@ mod register_identity {
             });
 
             assert_noop!(
-                FractalMinting::register_for_minting(Origin::signed(1)),
+                FractalMinting::register_for_minting(
+                    Origin::signed(1),
+                    None,
+                    simple_tree().prune_balanced()
+                ),
                 Error::<Test>::NoIdentityRegistered
             );
         });
@@ -270,7 +296,11 @@ mod register_identity {
     fn minting_requires_identity() {
         new_test_ext().execute_with(|| {
             assert_noop!(
-                FractalMinting::register_for_minting(Origin::signed(1)),
+                FractalMinting::register_for_minting(
+                    Origin::signed(1),
+                    None,
+                    simple_tree().prune_balanced()
+                ),
                 Error::<Test>::NoIdentityRegistered
             );
         });
@@ -286,7 +316,16 @@ mod register_identity {
                 id.fractal_id = 43;
             });
 
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                Some(42),
+                simple_tree().prune_balanced()
+            ));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                Some(43),
+                simple_tree().prune_balanced()
+            ));
             run_to_next_minting();
 
             assert_eq!(
@@ -310,7 +349,7 @@ mod register_identity {
                 id.nonce = 1;
             });
 
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            register_for_minting(1);
             run_to_next_minting();
 
             assert_eq!(
@@ -329,7 +368,16 @@ mod register_identity {
             register_id_mut(1, |id| {
                 id.fractal_id = 43;
             });
-            assert_ok!(FractalMinting::register_for_minting(Origin::signed(1)));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                Some(42),
+                simple_tree().prune_balanced()
+            ));
+            assert_ok!(FractalMinting::register_for_minting(
+                Origin::signed(1),
+                Some(43),
+                simple_tree().prune_balanced()
+            ));
 
             register_id_mut(2, |id| {
                 id.fractal_id = 43;
@@ -343,5 +391,69 @@ mod register_identity {
                 <Test as crate::Config>::MaxRewardPerUser::get()
             );
         });
+    }
+
+    #[cfg(test)]
+    mod extension_proofs {
+        use super::*;
+
+        #[test]
+        fn second_proof_does_not_extend_initial_proof() {
+            new_test_ext().execute_with(|| {
+                register_id(1);
+                assert_ok!(FractalMinting::register_for_minting(
+                    Origin::signed(1),
+                    None,
+                    simple_tree().prune_balanced()
+                ));
+                assert_noop!(
+                    FractalMinting::register_for_minting(
+                        Origin::signed(1),
+                        None,
+                        simple_tree().prune_balanced()
+                    ),
+                    Error::<Test>::ExtensionDoesNotExtendExistingDataset
+                );
+            });
+        }
+
+        #[test]
+        fn multiple_identities_requires_specifying_identity() {
+            new_test_ext().execute_with(|| {
+                register_id_mut(1, |id| {
+                    id.fractal_id = 42;
+                });
+                register_id_mut(1, |id| {
+                    id.fractal_id = 43;
+                });
+
+                assert_noop!(
+                    FractalMinting::register_for_minting(
+                        Origin::signed(1),
+                        None,
+                        simple_tree().prune_balanced()
+                    ),
+                    Error::<Test>::MustSpecifyFractalIdWithMultipleIds
+                );
+            });
+        }
+
+        #[test]
+        fn provided_identity_not_registered() {
+            new_test_ext().execute_with(|| {
+                register_id_mut(1, |id| {
+                    id.fractal_id = 42;
+                });
+
+                assert_noop!(
+                    FractalMinting::register_for_minting(
+                        Origin::signed(1),
+                        Some(43),
+                        simple_tree().prune_balanced()
+                    ),
+                    Error::<Test>::FractalIdNotRegisteredToAccount
+                );
+            });
+        }
     }
 }

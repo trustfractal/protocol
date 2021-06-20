@@ -6,7 +6,7 @@ extern crate quickcheck_macros;
 
 use digest::Digest;
 use generic_array::{typenum::consts::U64, GenericArray};
-use parity_scale_codec::{Compact, Decode, Encode, Error, Input, Output};
+use parity_scale_codec::{Compact, Decode, Encode, EncodeLike, Error, Input, Output};
 use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
 
 // TODO(shelbyd): Have separate structs for left-balanced trees and arbitrary.
@@ -319,6 +319,8 @@ impl<D: Digest> Encode for MerkleTree<D> {
             + BitString::size_hint(self.weight().saturating_sub(3))
     }
 }
+
+impl<D: Digest> EncodeLike for MerkleTree<D> {}
 
 impl<D: Digest> Decode for MerkleTree<D> {
     fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
