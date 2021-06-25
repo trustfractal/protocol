@@ -7,7 +7,7 @@ extern crate quickcheck_macros;
 use digest::Digest;
 use generic_array::{typenum::consts::U64, GenericArray};
 use parity_scale_codec::{Compact, Decode, Encode, EncodeLike, Error, Input, Output};
-use sp_std::{collections::vec_deque::VecDeque, prelude::Box};
+use sp_std::{collections::vec_deque::VecDeque, prelude::Box, vec::Vec};
 
 // TODO(shelbyd): Have separate structs for left-balanced trees and arbitrary.
 pub struct MerkleTree<D: Digest> {
@@ -280,6 +280,7 @@ impl<D: Digest> Clone for MerkleTree<D> {
     }
 }
 
+#[cfg(feature = "std")]
 impl<D: Digest> core::fmt::Debug for MerkleTree<D> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         use core::fmt::Write;
