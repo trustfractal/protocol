@@ -16,6 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     # https://github.com/marketplace/actions/rust-toolchain
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
@@ -25,10 +26,15 @@ jobs:
         override: true
         target: wasm32-unknown-unknown
         components: rustfmt, clippy
+
+    - uses: Swatinem/rust-cache@v1
+
     - name: Run cargo check
       uses: actions-rs/cargo@v1
       with:
         command: check
+
+
     - name: Build
       run: cargo build --verbose
     - name: Run tests
