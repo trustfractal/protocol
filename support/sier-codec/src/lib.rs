@@ -1,5 +1,11 @@
 use std::collections::HashMap;
 
+mod definition_parser;
+use definition_parser::parse;
+
+mod object;
+use object::{Object, Value};
+
 mod schema;
 use schema::{Id, StructDef};
 
@@ -9,20 +15,21 @@ pub struct Parser {
 
 impl Parser {
     pub fn add_file_defs<'i>(&mut self, file_contents: &'i str) -> Result<(), Error<'i>> {
-        for schema in schema::parse(file_contents).map_err(Error::Parsing)? {
+        for schema in parse(file_contents)? {
             self.structs.insert(schema.id(), schema);
         }
 
         Ok(())
     }
 
-    pub fn parse(&self, bytes: &[u8]) -> Result<Object, Error> {
+    pub fn parse<'i>(&self, bytes: &'i [u8]) -> Result<Object, Error<'i>> {
         use core::convert::TryInto;
 
         let id = bytes[0..8].try_into().map_err(|_| Error::Incomplete)?;
         let schema = self.structs.get(&id).ok_or(Error::MissingId(id))?;
 
-        Ok(Object { schema })
+        let bytes = &bytes[8..];
+        schema.parse(bytes)
     }
 
     pub fn struct_def(&self, name: &str) -> Option<&StructDef> {
@@ -45,15 +52,9 @@ impl Default for Parser {
 pub enum Error<'i> {
     Incomplete,
     MissingId(Id),
-    Parsing(nom::Err<nom::error::Error<&'i str>>),
-}
-
-pub struct Object<'s> {
-    schema: &'s StructDef,
-}
-
-impl Object<'_> {
-    pub fn schema(&self) -> &StructDef {
-        self.schema
-    }
+    DefinitionParsing(nom::Err<nom::error::Error<&'i str>>),
+    ValueParsing(nom::Err<nom::error::Error<&'i [u8]>>),
+    UnresolvedType(String),
+    DuplicateField(String),
+    TooManyBytes,
 }
