@@ -33,7 +33,6 @@ impl<'i> ParsedStruct<'i> {
 
         let mut seen = HashSet::with_capacity(self.fields.len());
         for field in &self.fields {
-            dbg!(&field);
             if seen.contains(field.name) {
                 return Err(Error::DuplicateField(field.name.to_string()));
             }
