@@ -27,6 +27,7 @@ impl StructDef {
         let digest = hasher.finalize();
 
         let bytes: &[u8] = &digest[0..8];
+        // TODO(shelbyd): Make ID type and use #split method of GenericArray.
         bytes.try_into().expect("hash should always be > 8 bytes")
     }
 
