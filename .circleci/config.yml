@@ -85,6 +85,7 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
+      - *restore_cache 
       - run:
           name: Install formatter
           command: rustup component add rustfmt
