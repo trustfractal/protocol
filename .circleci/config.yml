@@ -7,6 +7,11 @@ jobs:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
     steps:
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo apt install clang
       - checkout
       - run:
           name: Version information
