@@ -1,4 +1,23 @@
 version: 2
+setup_steps:
+  - &install_deps
+    run: 
+      name: Install dependencies
+      command: |
+        sudo apt update
+        sudo apt install clang
+  - &setup_rust
+    run:
+      name: Setup rust nightly and targets
+      command: |
+        rustup default nightly
+        rustup target install wasm32-unknown-unknown
+  - checkout
+  - &version_info
+    run: 
+      name: Version information
+      command: rustc --version; cargo --version; rustup --version
+  
 jobs:
   build-and-test:
     docker:
@@ -7,25 +26,10 @@ jobs:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
     steps:
-      - run:
-          name: Install dependencies
-          command: |
-            sudo apt update
-            sudo apt install clang
-      - run:
-          name: Setup rust nightly and targets
-          command: |
-            rustup default nightly
-            rustup target install wasm32-unknown-unknown
+      - *install_deps
+      - *setup_rust
+      - *version_info
       - checkout
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
-      # # If you have committed your Cargo.lock file to version control
-      # # delete this step.
-      # - run:
-      #     name: Calculate dependencies
-      #     command: cargo generate-lockfile
       - restore_cache:
           keys:
             - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
@@ -47,10 +51,10 @@ jobs:
     docker:
       - image: circleci/rust
     steps:
+      - *install_deps
+      - *setup_rust
+      - *version_info
       - checkout
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
       - run:
           name: Cache permission
           command: |
@@ -73,10 +77,10 @@ jobs:
     docker:
       - image: circleci/rust
     steps:
+      - *install_deps
+      - *setup_rust
+      - *version_info
       - checkout
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
       - run:
           name: Install formatter
           command: rustup component add rustfmt
@@ -88,10 +92,9 @@ jobs:
     docker:
       - image: circleci/rust
     steps:
-      - checkout
-      - run:
-          name: Version information
-          command: rustc --version; cargo --version; rustup --version
+      - *install_deps
+      - *setup_rust
+      - *version_info
       - run:
           name: Install Clippy
           command: rustup component add clippy
