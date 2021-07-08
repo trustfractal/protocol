@@ -17,6 +17,18 @@ setup_steps:
     run: 
       name: Version information
       command: rustc --version; cargo --version; rustup --version
+  - &restore_cache
+    restore_cache:
+      keys:
+        - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+  - &save_cache
+    save_cache:
+      paths:
+        - /usr/local/cargo/registry
+        - target/debug/.fingerprint
+        - target/debug/build
+        - target/debug/deps
+      key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
   
 jobs:
   build-and-test:
@@ -30,19 +42,11 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
-      - restore_cache:
-          keys:
-            - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+      - *restore_cache 
       - run:
           name: Build all targets
           command: cargo build
-      - save_cache:
-          paths:
-            - /usr/local/cargo/registry
-            - target/debug/.fingerprint
-            - target/debug/build
-            - target/debug/deps
-          key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+      - *save_cache
       - run:
           name: Run all tests
           command: cargo test
@@ -96,6 +100,7 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
+      - *restore_cache 
       - run:
           name: Install Clippy
           command: rustup component add clippy
