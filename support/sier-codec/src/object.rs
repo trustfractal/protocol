@@ -32,6 +32,7 @@ pub enum Value {
     U8(u8),
     U32(u32),
     U64(u64),
+    String(String),
 }
 
 impl Value {
@@ -45,6 +46,13 @@ impl Value {
     pub fn as_u64(&self) -> Option<u64> {
         match self {
             Value::U64(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            Value::String(s) => Some(s),
             _ => None,
         }
     }

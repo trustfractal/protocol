@@ -75,9 +75,49 @@ impl FieldDef {
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),
+            Type::String => {
+                let (bytes, str_bytes) = length_prefixed(bytes).map_err(Error::ValueParsing)?;
+                let s = std::str::from_utf8(str_bytes).map_err(Error::InvalidUtf8)?;
+
+                Ok((bytes, Value::String(String::from(s))))
+            }
         }
         .map_err(Error::ValueParsing)
     }
+}
+
+use nom::{
+    bytes::complete::{take, take_while},
+    combinator::recognize,
+    sequence::pair,
+    IResult,
+};
+
+fn length_prefixed(b: &[u8]) -> IResult<&[u8], &[u8]> {
+    let (b, len) = var_int(b)?;
+    take(len)(b)
+}
+
+fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
+    let (new_b, int_bytes) = recognize(pair(take_while(|b| b & 128 > 0), take(1usize)))(b)?;
+
+    let mut result: usize = 0;
+    for (i, byte) in int_bytes.iter().enumerate() {
+        let shift_by = 7 * i;
+        let effective_byte = (byte & 0b0111_1111) as usize;
+
+        let shifted = effective_byte << shift_by;
+        if shifted >> shift_by != effective_byte {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                b,
+                nom::error::ErrorKind::TooLarge,
+            )));
+        }
+
+        result |= shifted;
+    }
+
+    Ok((new_b, result))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -85,6 +125,7 @@ pub enum Type {
     U8,
     U32,
     U64,
+    String,
 }
 
 impl Type {
@@ -93,6 +134,7 @@ impl Type {
             Type::U8 => &[0],
             Type::U32 => &[1],
             Type::U64 => &[2],
+            Type::String => &[3],
         }
     }
 }
@@ -241,6 +283,131 @@ mod tests {
             };
 
             assert_eq!(struct_a.id(), struct_b.id());
+        }
+    }
+
+    #[cfg(test)]
+    mod parsing {
+        use super::*;
+
+        #[cfg(test)]
+        mod string {
+            use super::*;
+
+            #[test]
+            fn empty_string() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert_eq!(
+                    field.parse(&[0]).unwrap(),
+                    (&[][..], Value::String("".to_string()))
+                );
+            }
+
+            #[test]
+            fn simple_string() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert_eq!(
+                    field.parse(&[3, 65, 66, 67]).unwrap(),
+                    (&[][..], Value::String("ABC".to_string()))
+                );
+            }
+
+            #[test]
+            fn non_utf8() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert!(field.parse(&[4, 0, 159, 146, 150]).is_err());
+            }
+
+            #[test]
+            fn keeps_extra_bytes() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert_eq!(
+                    field.parse(&[2, 65, 66, 67, 68]).unwrap(),
+                    (&[67, 68][..], Value::String("AB".to_string()))
+                );
+            }
+
+            #[test]
+            fn no_size_byte() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert!(field.parse(&[]).is_err());
+            }
+
+            #[test]
+            fn fewer_bytes_than_size_says() {
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::String,
+                };
+
+                assert!(field.parse(&[3, 65, 66]).is_err());
+            }
+        }
+
+        #[cfg(test)]
+        mod var_int {
+            use super::*;
+
+            #[test]
+            fn zero() {
+                assert_eq!(var_int(&[0]).unwrap(), (&[][..], 0));
+            }
+
+            #[test]
+            fn one() {
+                assert_eq!(var_int(&[1]).unwrap(), (&[][..], 1));
+            }
+
+            #[test]
+            fn two_hundred_fifty_six() {
+                let leading_bit = 0b1000_0000;
+                assert_eq!(var_int(&[0 | leading_bit, 0b10]).unwrap(), (&[][..], 256));
+            }
+
+            #[test]
+            fn trailing_bytes() {
+                let leading_bit = 0b1000_0000;
+                assert_eq!(var_int(&[0 | leading_bit, 0b10, 42]).unwrap().0, &[42][..]);
+            }
+
+            #[test]
+            fn no_bytes() {
+                assert!(var_int(&[]).is_err());
+            }
+
+            #[test]
+            fn too_many_bits_for_usize() {
+                let mut bytes = [128; 10];
+                bytes[9] = 0b10;
+                assert!(var_int(&bytes).is_err());
+            }
+
+            #[test]
+            fn just_inside_usize() {
+                let mut bytes = [128; 10];
+                bytes[9] = 0b1;
+                assert!(var_int(&bytes).is_ok());
+            }
         }
     }
 }

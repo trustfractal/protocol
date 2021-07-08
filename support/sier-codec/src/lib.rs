@@ -25,7 +25,7 @@ impl Parser {
     pub fn parse<'i>(&self, bytes: &'i [u8]) -> Result<Object, Error<'i>> {
         use core::convert::TryInto;
 
-        let id = bytes[0..8].try_into().map_err(|_| Error::Incomplete)?;
+        let id = bytes[0..8].try_into().map_err(|_| Error::TooFewBytes)?;
         let schema = self.structs.get(&id).ok_or(Error::MissingId(id))?;
 
         let bytes = &bytes[8..];
@@ -50,11 +50,12 @@ impl Default for Parser {
 
 #[derive(Debug)]
 pub enum Error<'i> {
-    Incomplete,
     MissingId(Id),
     DefinitionParsing(nom::Err<nom::error::Error<&'i str>>),
     ValueParsing(nom::Err<nom::error::Error<&'i [u8]>>),
     UnresolvedType(String),
     DuplicateField(String),
+    TooFewBytes,
     TooManyBytes,
+    InvalidUtf8(std::str::Utf8Error),
 }
