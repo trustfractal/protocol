@@ -12,6 +12,11 @@ jobs:
           command: |
             sudo apt update
             sudo apt install clang
+      - run:
+          name: Setup rust nightly and targets
+          command: |
+            rustup default nightly
+            rustup target install wasm32-unknown-unknown
       - checkout
       - run:
           name: Version information
