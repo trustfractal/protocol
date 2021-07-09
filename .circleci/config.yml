@@ -111,9 +111,9 @@ jobs:
           command: cargo clippy -- -D warnings
       - *save_cache
 
-# NOTE: first we do format/security to build cache, then we execute the
-# link/build-and-test so we can use the saved cache. To avoid cargo download
-# errors. Security has a different type of cache.
+# NOTE: we run build-and-test first to build a cache
+#       not to hammer cargo endpoint resulting in download
+#       errors
 workflows:
   version: 2
   build-test:
@@ -123,18 +123,18 @@ workflows:
             tags:
               only: /.*/
       - build-and-test:
-          requires:
-            - format
           filters:
             tags:
               only: /.*/
       - format:
+          requires:
+            - build-and-test
           filters:
             tags:
               only: /.*/
       - lint:
           requires:
-            - format
+            - build-and-test
           filters:
             tags:
               only: /.*/
