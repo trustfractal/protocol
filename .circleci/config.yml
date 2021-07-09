@@ -92,6 +92,7 @@ jobs:
       - run:
           name: Formatting
           command: cargo fmt --all -- --check
+      - *save_cache
 
   lint:
     docker:
@@ -108,16 +109,22 @@ jobs:
       - run:
           name: Linting
           command: cargo clippy -- -D warnings
+      - *save_cache
 
+# NOTE: first we do format/security to build cache, then we execute the
+# link/build-and-test so we can use the saved cache. To avoid cargo download
+# errors. Security has a different type of cache.
 workflows:
   version: 2
   build-test:
     jobs:
-      - build-and-test:
+      - security:
           filters:
             tags:
               only: /.*/
-      - security:
+      - build-and-test:
+          requires:
+            - format
           filters:
             tags:
               only: /.*/
@@ -126,6 +133,8 @@ workflows:
             tags:
               only: /.*/
       - lint:
+          requires:
+            - format
           filters:
             tags:
               only: /.*/
