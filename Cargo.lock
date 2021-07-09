@@ -922,7 +922,7 @@ dependencies = [
 
 [[package]]
 name = "cranelift-codegen"
-version = "0.73.1"
+version = "0.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "654ab96f0f1cab71c0d323618a58360a492da2c341eb2c1f977fc195c664001b"
 dependencies = [
@@ -4723,7 +4723,7 @@ dependencies = [
 
 [[package]]
 name = "prost-types"
-version = "0.8.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b518d7cdd93dab1d1122cf07fa9a60771836c668dde9d9e2a139f957f0d9f1bb"
 dependencies = [
