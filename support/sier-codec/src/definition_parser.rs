@@ -69,10 +69,10 @@ pub fn parse(s: &str) -> Result<Vec<StructDef>, Error> {
     let (_, structs) =
         separated_list0(multispace0, struct_def)(s).map_err(Error::DefinitionParsing)?;
 
-    Ok(structs
+    structs
         .into_iter()
         .map(ParsedStruct::compile)
-        .collect::<Result<_, _>>()?)
+        .collect::<Result<_, _>>()
 }
 
 fn struct_def(s: &str) -> IResult<&str, ParsedStruct> {
