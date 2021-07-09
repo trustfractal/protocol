@@ -282,6 +282,7 @@ impl fractal_minting::Config for Runtime {
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
+#[allow(clippy::from_over_into)]
 construct_runtime!(
     pub enum Runtime where
         Block = Block,

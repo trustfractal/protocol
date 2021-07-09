@@ -181,15 +181,15 @@ pub mod pallet {
 
             if let Ok((account, nonce)) = IdToAccount::<T>::try_get(fractal_id) {
                 if identity.nonce <= nonce {
-                    return Err(Error::<T>::NonIncreasingNonce)?;
+                    return Err(Error::<T>::NonIncreasingNonce.into());
                 }
 
-                AccountIds::<T>::remove(account.clone(), fractal_id);
+                AccountIds::<T>::remove(account, fractal_id);
             }
             NextMintingRewards::<T>::remove(fractal_id);
 
             IdToAccount::<T>::insert(fractal_id, (who.clone(), identity.nonce));
-            AccountIds::<T>::insert(who.clone(), fractal_id, ());
+            AccountIds::<T>::insert(who, fractal_id, ());
 
             Ok(())
         }
@@ -215,10 +215,10 @@ pub mod pallet {
                     let mut ids = AccountIds::<T>::iter_prefix(&who);
 
                     match (ids.next(), ids.next()) {
-                        (None, _) => return Err(Error::<T>::NoIdentityRegistered)?,
+                        (None, _) => return Err(Error::<T>::NoIdentityRegistered.into()),
                         (Some((id, ())), None) => id,
                         (Some(_), Some(_)) => {
-                            return Err(Error::<T>::MustSpecifyFractalIdWithMultipleIds)?;
+                            return Err(Error::<T>::MustSpecifyFractalIdWithMultipleIds.into());
                         }
                     }
                 }
@@ -232,7 +232,7 @@ pub mod pallet {
             }
 
             IdDatasets::<T>::insert(id, extension_proof);
-            NextMintingRewards::<T>::insert(id, who.clone());
+            NextMintingRewards::<T>::insert(id, who);
 
             Ok(())
         }
@@ -255,7 +255,7 @@ pub mod pallet {
 
             let mint_per_user = T::MaxMintPerPeriod::get()
                 .checked_div(&accounts_count.into())
-                .unwrap_or(0u32.into());
+                .unwrap_or_else(|| 0u32.into());
 
             let reward_per_user = core::cmp::min(T::MaxRewardPerUser::get(), mint_per_user);
 
@@ -263,7 +263,7 @@ pub mod pallet {
                 .iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
             for (id, account) in recipients {
-                T::Currency::deposit_creating(&account, reward_per_user);
+                T::Currency::deposit_creating(account, reward_per_user);
                 NextMintingRewards::<T>::remove(id);
             }
 
