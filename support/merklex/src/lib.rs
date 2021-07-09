@@ -20,6 +20,8 @@ impl<D: Digest> MerkleTree<D> {
         &self.hash
     }
 
+    // TODO(boymaas): Implement this as a FromIterator trait
+    #[allow(clippy::all)]
     pub fn from_iter<I: IntoIterator<Item = R>, R: AsRef<[u8]>>(items: I) -> Option<Self> {
         let leaves = items
             .into_iter()
@@ -29,7 +31,7 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     fn build_from_layer(mut leaves: VecDeque<Self>) -> Option<Self> {
-        if leaves.len() == 0 {
+        if leaves.is_empty() {
             return None;
         }
         if leaves.len() == 1 {
@@ -219,9 +221,9 @@ impl<D: Digest> MerkleTree<D> {
         structure: &[bool],
         leaves: &[GenericArray<u8, D::OutputSize>],
     ) -> Result<Self, Error> {
-        match &leaves {
-            &[] => Err("no leaves provided")?,
-            &[leaf] => Ok(Self::leaf(leaf.clone())),
+        match leaves {
+            [] => Err("no leaves provided".into()),
+            [leaf] => Ok(Self::leaf(leaf.clone())),
             _ => {
                 let mut full_structure = Vec::with_capacity(structure.len() + 3);
                 full_structure.push(true);
@@ -234,6 +236,8 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
+    // TODO(shelbyd): very complex type used. Consider factoring parts into `type` definitions
+    #[allow(clippy::type_complexity)]
     fn structure_leaves_recurse<'i>(
         structure: &'i [bool],
         leaves: &'i [GenericArray<u8, D::OutputSize>],
@@ -337,7 +341,7 @@ impl<D: Digest> Decode for MerkleTree<D> {
             leaves.push(GenericArray::clone_from_slice(&hash));
         }
 
-        Ok(Self::from_structure_leaves(&structure.0, leaves.as_ref())?)
+        Self::from_structure_leaves(&structure.0, leaves.as_ref())
     }
 }
 
