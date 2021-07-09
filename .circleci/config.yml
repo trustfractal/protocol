@@ -17,6 +17,11 @@ setup_steps:
     run: 
       name: Version information
       command: rustc --version; cargo --version; rustup --version
+  - &cargo_fetch_retry
+    run:
+      name: Fetch dependencies with retry
+      command: |
+        for i in {1..5}; do cargo fetch && break || sleep 15; done
   - &restore_cache
     restore_cache:
       keys:
@@ -43,6 +48,7 @@ jobs:
       - *version_info
       - checkout
       - *restore_cache 
+      - *cargo_fetch_retry
       - run:
           name: Build all targets
           command: cargo build
@@ -86,6 +92,7 @@ jobs:
       - *version_info
       - checkout
       - *restore_cache 
+      - *cargo_fetch_retry
       - run:
           name: Install formatter
           command: rustup component add rustfmt
@@ -103,6 +110,7 @@ jobs:
       - *version_info
       - checkout
       - *restore_cache 
+      - *cargo_fetch_retry
       - run:
           name: Install Clippy
           command: rustup component add clippy
