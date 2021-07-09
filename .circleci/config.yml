@@ -21,7 +21,7 @@ setup_steps:
     run:
       name: Fetch dependencies with retry
       command: |
-        for i in {1..5}; do cargo fetch && break || sleep 15; done
+        for i in {1..10}; do cargo fetch && break || sleep 15; done
   - &restore_cache
     restore_cache:
       keys:
@@ -136,14 +136,10 @@ workflows:
             tags:
               only: /.*/
       - format:
-          requires:
-            - build-and-test
           filters:
             tags:
               only: /.*/
       - lint:
-          requires:
-            - build-and-test
           filters:
             tags:
               only: /.*/
