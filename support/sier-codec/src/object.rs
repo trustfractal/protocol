@@ -22,7 +22,7 @@ impl<'s> Index<&'_ str> for Object<'s> {
             .fields()
             .iter()
             .position(|f| f.name() == field_name)
-            .expect(&format!("no field with name '{}'", field_name));
+            .unwrap_or_else(|| panic!("no field with name '{}'", field_name));
         &self.values[index]
     }
 }
