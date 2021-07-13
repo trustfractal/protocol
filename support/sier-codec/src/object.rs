@@ -27,24 +27,43 @@ impl<'s> Index<&'_ str> for Object<'s> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Value {
-    U8(u8),
-    U32(u32),
-    U64(u64),
-    String(String),
-}
+macro_rules! impl_value_for_types {
+    ($({$rust_type:ty, $variant:ident},)*) => {
+        #[derive(Debug, PartialEq, Eq)]
+        pub enum Value {
+            $(
+                $variant($rust_type),
+            )*
+        }
 
-impl Value {
-    pub fn type_(&self) -> Type {
-        match self {
-            Value::U8(_) => Type::U8,
-            Value::U32(_) => Type::U32,
-            Value::U64(_) => Type::U64,
-            Value::String(_) => Type::String,
+        $(
+            impl From<$rust_type> for self::Value {
+                fn from(v: $rust_type) -> Self {
+                    Self::$variant(v)
+                }
+            }
+        )*
+
+        impl self::Value {
+            pub fn type_(&self) -> Type {
+                match self {
+                    $(
+                        self::Value::$variant(_) => crate::Type::$variant,
+                    )*
+                }
+            }
         }
     }
+}
 
+impl_value_for_types!(
+    {u8, U8},
+    {u32, U32},
+    {u64, U64},
+    {String, String},
+);
+
+impl Value {
     pub fn as_u8(&self) -> Option<u8> {
         match self {
             Value::U8(v) => Some(*v),
@@ -71,29 +90,5 @@ impl Value {
             Value::String(s) => Some(s),
             _ => None,
         }
-    }
-}
-
-impl From<u8> for Value {
-    fn from(v: u8) -> Value {
-        Value::U8(v)
-    }
-}
-
-impl From<u32> for Value {
-    fn from(v: u32) -> Value {
-        Value::U32(v)
-    }
-}
-
-impl From<u64> for Value {
-    fn from(v: u64) -> Value {
-        Value::U64(v)
-    }
-}
-
-impl From<String> for Value {
-    fn from(v: String) -> Value {
-        Value::String(v)
     }
 }
