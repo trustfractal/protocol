@@ -204,7 +204,7 @@ mod tests {
         };
 
         let result = struct_def.parse(&[42, 0]);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(Error::ValueParsing(_))));
     }
 
     #[test]
@@ -218,7 +218,7 @@ mod tests {
         };
 
         let result = struct_def.parse(&[42, 0]);
-        assert!(result.is_err());
+        assert!(matches!(result, Err(Error::TooManyBytes)));
     }
 
     #[cfg(test)]
@@ -327,7 +327,10 @@ mod tests {
                     type_: Type::String,
                 };
 
-                assert!(field.parse(&[4, 0, 159, 146, 150]).is_err());
+                assert!(matches!(
+                    field.parse(&[4, 0, 159, 146, 150]),
+                    Err(Error::InvalidUtf8(_))
+                ));
             }
 
             #[test]
@@ -350,7 +353,7 @@ mod tests {
                     type_: Type::String,
                 };
 
-                assert!(field.parse(&[]).is_err());
+                assert!(matches!(field.parse(&[]), Err(Error::ValueParsing(_))));
             }
 
             #[test]
@@ -360,7 +363,10 @@ mod tests {
                     type_: Type::String,
                 };
 
-                assert!(field.parse(&[3, 65, 66]).is_err());
+                assert!(matches!(
+                    field.parse(&[3, 65, 66]),
+                    Err(Error::ValueParsing(_))
+                ));
             }
         }
 
@@ -392,14 +398,19 @@ mod tests {
 
             #[test]
             fn no_bytes() {
-                assert!(var_int(&[]).is_err());
+                assert!(matches!(var_int(&[]), Err(_)));
             }
 
             #[test]
             fn too_many_bits_for_usize() {
                 let mut bytes = [128; 10];
                 bytes[9] = 0b10;
-                assert!(var_int(&bytes).is_err());
+                assert!(
+                    matches!(
+                        var_int(&bytes),
+                        Err(nom::Err::Error(e)) if e.code == nom::error::ErrorKind::TooLarge
+                    )
+                );
             }
 
             #[test]
