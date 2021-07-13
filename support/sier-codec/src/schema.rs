@@ -405,12 +405,10 @@ mod tests {
             fn too_many_bits_for_usize() {
                 let mut bytes = [128; 10];
                 bytes[9] = 0b10;
-                assert!(
-                    matches!(
-                        var_int(&bytes),
-                        Err(nom::Err::Error(e)) if e.code == nom::error::ErrorKind::TooLarge
-                    )
-                );
+                assert!(matches!(
+                    var_int(&bytes),
+                    Err(nom::Err::Error(e)) if e.code == nom::error::ErrorKind::TooLarge
+                ));
             }
 
             #[test]
