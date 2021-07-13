@@ -33,10 +33,7 @@ impl Parser {
     }
 
     pub fn struct_def(&self, name: &str) -> Option<&StructDef> {
-        self.structs
-            .values()
-            .filter(|s| s.type_name() == name)
-            .next()
+        self.structs.values().find(|s| s.type_name() == name)
     }
 }
 

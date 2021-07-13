@@ -43,7 +43,7 @@ impl StructDef {
             bytes = new_bytes;
             values.push(value);
         }
-        if bytes.len() > 0 {
+        if !bytes.is_empty() {
             return Err(Error::TooManyBytes);
         }
 
