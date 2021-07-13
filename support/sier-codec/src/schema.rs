@@ -1,7 +1,7 @@
 use blake2::{Blake2b, Digest};
 use core::convert::TryInto;
 
-use crate::{Error, Object, Value};
+use crate::{Builder, Error, Object, Value};
 
 pub type Id = [u8; 8];
 
@@ -51,6 +51,10 @@ impl StructDef {
             schema: self,
             values,
         })
+    }
+
+    pub fn builder(&self) -> Builder {
+        Builder::new(self)
     }
 }
 
@@ -120,7 +124,7 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
     Ok((new_b, result))
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Type {
     U8,
     U32,

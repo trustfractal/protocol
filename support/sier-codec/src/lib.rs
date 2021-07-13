@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+mod builder;
+use builder::Builder;
+
 mod definition_parser;
 use definition_parser::parse;
 
@@ -7,7 +10,7 @@ mod object;
 use object::{Object, Value};
 
 mod schema;
-use schema::{Id, StructDef};
+use schema::{FieldDef, Id, StructDef, Type};
 
 pub struct Parser {
     structs: HashMap<Id, StructDef>,
