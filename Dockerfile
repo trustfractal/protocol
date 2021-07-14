@@ -10,7 +10,6 @@ WORKDIR /source
 COPY --from=planner /source/recipe.json recipe.json
 RUN for i in {1..10}; do \
        cargo chef cook \
-         --check \
          --release \
          --recipe-path recipe.json && break || sleep 25; \
     done
