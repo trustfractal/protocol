@@ -42,9 +42,10 @@ workflows:
   build:
     jobs:
       - setup
+
       - chrome-extension:
           requires:
             - setup
-      # - rust:
-      #     requires:
-      #       - setup
+      - rust:
+          requires:
+            - setup
