@@ -171,8 +171,8 @@ workflows:
             tags:
               only: /.*/
       - deploy_node:
-          requires:
-            - build-and-test
+          # requires:
+          #   - build-and-test
           filters:
             tags:
               only: /.*/
