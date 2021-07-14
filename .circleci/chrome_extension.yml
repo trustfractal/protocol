@@ -1,0 +1,87 @@
+version: 2.1
+
+parameters:
+  run-chrome-ext-build:
+    type: boolean
+    default: false
+  run-rust-build:
+    type: boolean
+    default: false
+
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.9-node
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+            - node-v1-{{ .Branch }}-
+            - node-v1-
+      - run:
+          name: Install dependencies
+          command: "cd data_host/chrome_extension && yarn install"
+      - save_cache:
+          key: node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+          paths:
+            - data_host/chrome_extension/node_modules/
+      - run:
+          name: Test
+          command: "cd data_host/chrome_extension && yarn test"
+  lint:
+    docker:
+      - image: cimg/python:3.9-node
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+            - node-v1-{{ .Branch }}-
+            - node-v1-
+      - run:
+          name: Install dependencies
+          command: "cd data_host/chrome_extension && yarn install"
+      - save_cache:
+          key: node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+          paths:
+            - data_host/chrome_extension/node_modules/
+      - run:
+          name: Lint
+          command: "cd data_host/chrome_extension && yarn lint"
+  build:
+    docker:
+      - image: cimg/python:3.9-node
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+            - node-v1-{{ .Branch }}-
+            - node-v1-
+      - run:
+          name: Install dependencies
+          command: "cd data_host/chrome_extension && yarn install"
+      - save_cache:
+          key: node-v1-{{ .Branch }}-{{ checksum "data_host/chrome_extension/yarn.lock" }}
+          paths:
+            - data_host/chrome_extension/node_modules/
+      - run:
+          name: Build and zip the extension
+          command: |
+            cd data_host/chrome_extension
+            yarn build
+            zip -r /tmp/build.zip build
+      - store_artifacts:
+          path: /tmp/build.zip
+
+workflows:
+  build_chrome_ext:
+    when: << pipeline.parameters.run-chrome-ext-build >>
+    jobs:
+      - lint
+      - test
+      - build:
+          requires:
+            - lint
+            - test
