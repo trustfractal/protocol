@@ -114,6 +114,7 @@ fn type_(s: &str) -> IResult<&str, TypeDef> {
         "u8" => TypeDef::Primitive(Type::U8),
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
+        "string" => TypeDef::Primitive(Type::String),
         v => TypeDef::Unresolved(v),
     };
     Ok((s, as_type))

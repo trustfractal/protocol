@@ -39,3 +39,28 @@ fn some_numbers() {
     assert_eq!(message["foo"].as_u64(), Some(42));
     assert_eq!(message["bar"].as_u32(), Some(43));
 }
+
+const STRING: &'static str = r#"
+struct Foo {
+    foo :string;
+}
+"#;
+
+#[test]
+fn string() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(STRING).unwrap();
+
+    let id = parser.struct_def("Foo").unwrap().id();
+    let encoded_string = "abc";
+    let encoded = id
+        .iter()
+        .chain(&[encoded_string.len() as u8])
+        .chain(encoded_string.as_bytes())
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let message = parser.parse(encoded.as_ref()).unwrap();
+
+    assert_eq!(message["foo"].as_string(), Some("abc"));
+}
