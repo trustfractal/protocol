@@ -128,17 +128,22 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          docker_layer_caching: false
+          docker_layer_caching: true
+      - run:
+          name: Docker login
+          command: |
+            docker login --username $DOCKER_LOGIN --password $DOCKER_PASSWORD
       - run:
           name: Build docker container
           command: |
-            docker login --username $DOCKER_LOGIN --password $DOCKER_PASSWORD
-
             export BUILD_ID="${CIRCLE_SHA1:0:7}_$(date +'%Y%M%H%M%S')"
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
             docker build -t $IMAGE .
-            docker push $IMAGE
           no_output_timeout: 30m
+      - run:
+          name: Docker push
+          command: |
+            docker push $IMAGE
 
 
 workflows:
