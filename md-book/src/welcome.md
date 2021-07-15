@@ -21,14 +21,6 @@ We hope that you:
 
 Feel free to introduce yourself [here](https://github.com/trustfractal/protocol/discussions/8) to get started!
 
-<!--
-TODO: describe how to get in touch and chat with us.
-
-- is there any async platform that's more casual/conversational than GitHub Discussions that we could use?
-  - the rust-lang community uses Zulip extensively, which I'm personally a big fan of.
-  - I've also seen some great communities in Discord.
--->
-
 ## Links and Resources
 
 [Fractal Website]: https://protocol.fractal.id/
