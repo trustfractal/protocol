@@ -1,23 +1,22 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 
-import WebpageTracker, { Location } from '../../lib/WebpageTracker';
-import type { State } from '../state';
-import { initialState } from '../state';
+import type { WebpageTracker } from '../state';
+
+import Tracker, { Location } from '../../lib/WebpageTracker';
 import { ADD_WEBPAGE } from '../actionTypes';
 
+const initialState = {};
+
 const reducers = (
-  state: State = initialState,
+  webpages: WebpageTracker = initialState,
   action: PayloadAction<Location>
 ) => {
   switch (action.type) {
     case ADD_WEBPAGE:
-      return {
-        ...state,
-        webpages: WebpageTracker.add(state.webpages, action.payload),
-      };
+      return Tracker.add(webpages, action.payload);
 
     default:
-      return state;
+      return webpages;
   }
 };
 
