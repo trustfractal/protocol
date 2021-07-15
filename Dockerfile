@@ -3,7 +3,9 @@ WORKDIR /source
 
 COPY . .
 
-RUN cargo build --release
+RUN for i in {1..10}; do \
+      cargo build --release && break || sleep 15; \
+    done
 
 # --- RUNTIME ---
 FROM debian:buster AS runtime
