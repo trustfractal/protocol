@@ -1,4 +1,15 @@
-version: 2
+version: 2.1
+executors:
+  rust-build:
+    working_directory: /home/circleci/code # directory where steps will run
+    docker:
+      - image: circleci/rust
+
+    environment:
+      # specify cargo target dir to make sure
+      # all deps are compiled into that dir and the whole
+      # workspace can use it
+      CARGO_TARGET_DIR: "/home/circleci/target"
 
 # Template steps to be reused in the jobs
 setup_steps:
@@ -39,6 +50,7 @@ setup_steps:
   
 jobs:
   build-and-test:
+    executor: rust-build
     docker:
       - image: circleci/rust
     environment:
@@ -53,15 +65,18 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build
+          command: cargo build --release
       - *save_cache
       - run:
           name: Run all tests
-          command: cargo test
+          command: cargo test --release
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/release/node
 
   security:
-    docker:
-      - image: circleci/rust
+    executor: rust-build
     steps:
       - *install_deps
       - *setup_rust
@@ -86,8 +101,7 @@ jobs:
           command: cargo audit
 
   format:
-    docker:
-      - image: circleci/rust
+    executor: rust-build
     steps:
       - *install_deps
       - *setup_rust
@@ -104,8 +118,7 @@ jobs:
       - *save_cache
 
   lint:
-    docker:
-      - image: circleci/rust
+    executor: rust-build
     steps:
       - *install_deps
       - *setup_rust
@@ -123,12 +136,36 @@ jobs:
       - *save_cache
 
   deploy_node:
-    docker:
-      - image: circleci/rust
+    executor: rust-build
     steps:
-      - checkout
+      - attach_workspace:
+          at: /home/circleci
       - setup_remote_docker:
-          docker_layer_caching: true
+          docker_layer_caching: false
+
+      - run:
+          name: Docker login
+          command: |
+            docker login --username $DOCKER_LOGIN --password $DOCKER_PASSWORD
+
+      - run:
+          name: Build basic Dockerfile
+          command: |
+            cd backend 
+            # We use the artifact of the previous
+            # build step which should be in 
+            #    `build/release/streaker`
+            # in the backend dir.
+
+            # this escape \<< is circeci specific
+            cat \<<EOS >Dockerfile
+            FROM ubuntu:focal
+
+            WORKDIR /app
+
+            COPY target/release/node /app
+            ENTRYPOINT ["/app/node"]
+            EOS
 
       - run:
           name: Setup custom environment variables
@@ -137,10 +174,6 @@ jobs:
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
 
             echo "export IMAGE=$IMAGE" >> $BASH_ENV
-      - run:
-          name: Docker login
-          command: |
-            docker login --username $DOCKER_LOGIN --password $DOCKER_PASSWORD
       - run:
           name: Build docker container
           command: |
@@ -173,8 +206,8 @@ workflows:
             tags:
               only: /.*/
       - deploy_node:
-          # requires:
-          #   - build-and-test
+          requires:
+            - build-and-test
           filters:
             tags:
               only: /.*/
