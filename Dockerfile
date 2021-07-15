@@ -8,7 +8,7 @@ FROM boymaas/rust-build:latest AS cacher
 WORKDIR /source
 
 COPY --from=planner /source/recipe.json recipe.json
-RUN cargo chef cook \
+RUN retry --max 10 --interval 15 -- cargo chef cook \
       --release \
       --recipe-path recipe.json 
 
