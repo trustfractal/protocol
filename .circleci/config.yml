@@ -138,6 +138,7 @@ jobs:
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
             docker build -t $IMAGE .
             docker push $IMAGE
+          no_output_timeout: 30m
 
 
 workflows:
