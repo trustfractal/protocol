@@ -51,8 +51,6 @@ setup_steps:
 jobs:
   build-and-test:
     executor: rust-build
-    docker:
-      - image: circleci/rust
     environment:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
@@ -65,15 +63,15 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build --release
+          command: cargo build
       - *save_cache
       - run:
           name: Run all tests
-          command: cargo test --release
+          command: cargo test
       - persist_to_workspace:
           root: .
           paths:
-            - target/release/node
+            - target/debug/node
 
   security:
     executor: rust-build
@@ -148,6 +146,8 @@ jobs:
           command: |
             docker login --username $DOCKER_LOGIN --password $DOCKER_PASSWORD
 
+      # NOTE: make sure no checkout with
+      #       a .dockerignore file ignoring target
       - run:
           name: Build basic Dockerfile
           command: |
@@ -163,7 +163,7 @@ jobs:
 
             WORKDIR /app
 
-            COPY target/release/node /app
+            COPY target/debug/node /app
             ENTRYPOINT ["/app/node"]
             EOS
 
