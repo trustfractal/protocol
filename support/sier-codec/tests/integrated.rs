@@ -40,6 +40,23 @@ fn some_numbers() {
     assert_eq!(message["bar"].as_u32(), Some(43));
 }
 
+#[test]
+fn construct_numbers() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(MULTIPLE_NUMBERS).unwrap();
+
+    let def = parser.struct_def("Foo").unwrap();
+    let message = def
+        .builder()
+        .set("foo", 42u64)
+        .set("bar", 43u32)
+        .try_build()
+        .unwrap();
+
+    assert_eq!(message["foo"].as_u64(), Some(42));
+    assert_eq!(message["bar"].as_u32(), Some(43));
+}
+
 const STRING: &'static str = r#"
 struct Foo {
     foo :string;
