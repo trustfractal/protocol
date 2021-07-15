@@ -1,19 +1,20 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 
-import WebpageTracker, { Location } from '../../lib/WebpageTracker';
 import type { State } from '../state';
 import { initialState } from '../state';
-import { ADD_WEBPAGE } from '../actionTypes';
+import { ADD_FRACTAL_ID } from '../actionTypes';
 
 const reducers = (
   state: State = initialState,
-  action: PayloadAction<Location>
+  action: PayloadAction<object>
 ) => {
+  const { fractal } = state;
+
   switch (action.type) {
-    case ADD_WEBPAGE:
+    case ADD_FRACTAL_ID:
       return {
         ...state,
-        webpages: WebpageTracker.add(state.webpages, action.payload),
+        fractal: { ...fractal, id: action.payload },
       };
 
     default:
