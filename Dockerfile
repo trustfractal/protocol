@@ -1,10 +1,10 @@
-FROM boymaas/rust-build:latest as planner
+FROM boymaas/rust-build:20210715 as planner
 WORKDIR /source
 COPY . .
 RUN cargo chef prepare  --recipe-path recipe.json
 
 # --- CACHER ---
-FROM boymaas/rust-build:latest AS cacher
+FROM boymaas/rust-build:20210715 AS cacher
 WORKDIR /source
 
 COPY --from=planner /source/recipe.json recipe.json
@@ -13,7 +13,7 @@ RUN retry --max 10 --interval 15 -- cargo chef cook \
       --recipe-path recipe.json 
 
 # --- BUILDER ---
-FROM boymaas/rust-build:latest AS builder
+FROM boymaas/rust-build:20210715 AS builder
 WORKDIR /source
 # Now we copy code, not to influence previous
 # caching layer
