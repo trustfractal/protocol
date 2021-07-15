@@ -3,6 +3,10 @@ import { useDispatch } from 'react-redux';
 import { Form as FinalForm, Field, FormRenderProps } from 'react-final-form';
 import { FormApi } from 'final-form';
 
+import Error from '../../../../components/Error';
+import Section from '../../../../components/Section';
+import Spacing from '../../../../components/Spacing';
+
 import { addFractalID } from '../../../../redux/actions';
 
 type FormData = Record<string, any>;
@@ -36,22 +40,14 @@ const render = ({ handleSubmit }: FormRenderProps) => (
   <form onSubmit={handleSubmit}>
     <Field name="fractalID">
       {({ input, meta }) => (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-          }}
-        >
-          <label style={{ fontWeight: 'bold' }}>Fractal ID</label>
+        <Section>
           <input {...input} type="text" placeholder="Fractal ID" />
-          {meta.error && meta.touched && (
-            <span style={{ color: 'red' }}>{meta.error}</span>
-          )}
-        </div>
+          {meta.error && meta.touched && <Error>{meta.error}</Error>}
+        </Section>
       )}
     </Field>
 
+    <Spacing size="s" />
     <button type="submit">Set ID</button>
   </form>
 );

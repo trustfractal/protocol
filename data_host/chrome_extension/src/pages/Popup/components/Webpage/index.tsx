@@ -1,24 +1,28 @@
 import React from 'react';
 
+import Heading from '../../../../components/Heading';
+import Spacing from '../../../../components/Spacing';
+
 interface Props {
   hostname: string;
   paths: Record<string, number>;
 }
 
 const renderPath = (pathname: string, counter: number, key: number) => (
-  <li key={key}>
+  <p key={key}>
     {pathname} rendered {counter} times
-  </li>
+  </p>
 );
 
 const Webpage = ({ hostname, paths }: Props) => (
   <div>
-    <h3>{hostname}</h3>
-    <ul>
-      {Object.entries(paths).map(([pathname, counter], i) =>
-        renderPath(pathname, counter, i)
-      )}
-    </ul>
+    <Heading level="2">{hostname}</Heading>
+
+    <Spacing size="xs" />
+
+    {Object.entries(paths).map(([pathname, counter], i) =>
+      renderPath(pathname, counter, i)
+    )}
   </div>
 );
 

@@ -25,6 +25,7 @@
     "react-final-form": "^6.5.3",
     "react-hot-loader": "^4.13.0",
     "react-redux": "^7.2.4",
+    "styled-components": "^5.3.0",
     "webext-redux": "^2.1.7"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@babel/plugin-proposal-class-properties": "^7.12.13",
     "@babel/preset-env": "^7.12.17",
     "@babel/preset-react": "^7.12.13",
+    "@types/styled-components": "^5.1.11",
     "@types/webpack-env": "^1.16.2",
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
@@ -63,5 +65,8 @@
     "webpack": "^5.23.0",
     "webpack-cli": "^4.5.0",
     "webpack-dev-server": "^3.11.2"
+  },
+  "resolutions": {
+    "styled-components": "^5"
   }
 }

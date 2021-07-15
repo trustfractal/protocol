@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import styled from 'styled-components';
 
 import { getWebpages, getFractalData } from '../../redux/selectors';
 import { WebpageTracker, FractalData } from '../../redux/state';
@@ -7,48 +8,90 @@ import { WebpageTracker, FractalData } from '../../redux/state';
 import Form from './components/Form';
 import Webpage from './components/Webpage';
 
-import './Popup.css';
+import Heading from '../../components/Heading';
+import Error from '../../components/Error';
+import Section from '../../components/Section';
+import Spacing from '../../components/Spacing';
+import Theme from '../../components/Theme';
 
-const renderWebpages = (webpages: WebpageTracker) =>
-  Object.entries(webpages).map(([hostname, paths], i) => (
-    <div key={i}>
-      <Webpage hostname={hostname} paths={paths} />
-    </div>
-  ));
+const Container = styled.div`
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  padding: ${Theme.Sizes.xl};
+
+  background-color: ${Theme.Pallette.EerieBlack};
+  color: ${Theme.Pallette.Platinum};
+
+  font-size: ${Theme.Sizes.m};
+`;
+
+const renderFractal = (fractal: FractalData) => {
+  const { id } = fractal;
+
+  return id ? renderFractalData(fractal) : renderIDForm();
+};
+
+const renderIDForm = () => (
+  <>
+    <Error>Your Fractal ID hasn't been set.</Error>
+    <Spacing size="xl" />
+    <Form />
+  </>
+);
 
 const renderFractalData = ({ id }: FractalData) => (
-  <ul>
-    <li key="fractal-id">
-      <strong>ID:</strong> {id || 'No ID set'}
-    </li>
-  </ul>
+  <>
+    <Heading>Fractal Data</Heading>
+
+    <Spacing size="m" />
+
+    <p>
+      <strong>ID:</strong> {id}
+    </p>
+  </>
 );
 
-const renderActions = () => (
-  <div style={{ display: 'flex', flexDirection: 'column' }}>
-    <h3>Update ID</h3>
-
-    <Form />
-  </div>
+const renderVisits = (webpages: WebpageTracker) => (
+  <>
+    <Heading>Visited websites</Heading>
+    <Spacing size="l" />
+    {renderWebpages(webpages)}
+  </>
 );
+
+const renderWebpages = (webpages: WebpageTracker) => {
+  const entries = Object.entries(webpages);
+
+  if (entries.length === 0)
+    return <span>You haven't visited anything yet.</span>;
+
+  return entries.map(([hostname, paths], i) => (
+    <div key={i}>
+      <Webpage hostname={hostname} paths={paths} />
+      <Spacing size="l" />
+    </div>
+  ));
+};
 
 const Popup = () => {
   const webpages = useSelector(getWebpages);
   const fractal = useSelector(getFractalData);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h2>Fractal Data</h2>
-        {renderFractalData(fractal)}
+    <Container>
+      <Section>{renderFractal(fractal)}</Section>
 
-        <h2>Visited websites</h2>
-        {renderWebpages(webpages)}
+      <Spacing size="xl" />
 
-        <h2>Actions</h2>
-        {renderActions()}
-      </header>
-    </div>
+      <Section>{renderVisits(webpages)}</Section>
+    </Container>
   );
 };
 
