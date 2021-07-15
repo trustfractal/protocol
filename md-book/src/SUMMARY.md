@@ -1,0 +1,17 @@
+# Summary
+
+- [Welcome](./welcome.md)
+- [The Vision](./vision.md)
+  - [Cast of Characters](./vision/personas.md)
+    - [Edna](./vision/personas/edna.md)
+    - [Ozzy](./vision/personas/ozzy.md)
+    - [Adele](./vision/personas/adele.md)
+    - [Dackson](./vision/personas/dackson.md)
+    - [Dahlia](./vision/personas/dahlia.md)
+    - [Júlio](./vision/personas/júlio.md)
+    - [Manny](./vision/personas/manny.md)
+  - [TODO: How to Help w/ Vision]()
+  - [TODO: Design Tenents]()
+  - [TODO: Status Quo]()
+  - [TODO: Shiny Future]()
+- [TODO: Contributing]()
