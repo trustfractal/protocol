@@ -164,7 +164,7 @@ jobs:
       - run:
           name: Setup custom environment variables
           command: |
-            export BUILD_ID="${CIRCLE_SHA1:0:7}_$(date +'%Y%M%H%M%S')"
+            export BUILD_ID="${CIRCLE_SHA1:0:7}_$(date +'%Y%m%d_%H%M')"
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
 
             echo "export IMAGE=$IMAGE" >> $BASH_ENV
@@ -204,4 +204,6 @@ workflows:
             - build-and-test
           filters:
             branches:
-              only: master
+              only:
+                - master
+                - boymaas-cicd-docker-build
