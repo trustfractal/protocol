@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 # Template steps to be reused in the jobs
 setup_steps:
@@ -130,10 +130,10 @@ jobs:
     docker:
       - image: circleci/rust
     steps:
-      - attach_workspace
+      - attach_workspace:
+          at: /home/circleci/project
       - setup_remote_docker:
           docker_layer_caching: false
-
       - run:
           name: Docker login
           command: |
@@ -144,10 +144,9 @@ jobs:
       - run:
           name: Build basic Dockerfile
           command: |
-            cd backend 
             # We use the artifact of the previous
             # build step which should be in 
-            #    `build/release/streaker`
+            #    `build/release/node`
             # in the backend dir.
 
             # this escape \<< is circeci specific
@@ -159,6 +158,8 @@ jobs:
             COPY target/debug/node /app
             ENTRYPOINT ["/app/node"]
             EOS
+
+            # comment needs to be here
 
       - run:
           name: Setup custom environment variables
