@@ -1,15 +1,4 @@
-version: 2.1
-executors:
-  rust-build:
-    working_directory: /home/circleci/code # directory where steps will run
-    docker:
-      - image: circleci/rust
-
-    environment:
-      # specify cargo target dir to make sure
-      # all deps are compiled into that dir and the whole
-      # workspace can use it
-      CARGO_TARGET_DIR: "/home/circleci/target"
+version: 2
 
 # Template steps to be reused in the jobs
 setup_steps:
@@ -50,7 +39,8 @@ setup_steps:
   
 jobs:
   build-and-test:
-    executor: rust-build
+    docker:
+      - image: circleci/rust
     environment:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
@@ -74,7 +64,8 @@ jobs:
             - target/debug/node
 
   security:
-    executor: rust-build
+    docker:
+      - image: circleci/rust
     steps:
       - *install_deps
       - *setup_rust
@@ -99,7 +90,8 @@ jobs:
           command: cargo audit
 
   format:
-    executor: rust-build
+    docker:
+      - image: circleci/rust
     steps:
       - *install_deps
       - *setup_rust
@@ -116,7 +108,8 @@ jobs:
       - *save_cache
 
   lint:
-    executor: rust-build
+    docker:
+      - image: circleci/rust
     steps:
       - *install_deps
       - *setup_rust
@@ -134,10 +127,10 @@ jobs:
       - *save_cache
 
   deploy_node:
-    executor: rust-build
+    docker:
+      - image: circleci/rust
     steps:
-      - attach_workspace:
-          at: /home/circleci
+      - attach_workspace
       - setup_remote_docker:
           docker_layer_caching: false
 
