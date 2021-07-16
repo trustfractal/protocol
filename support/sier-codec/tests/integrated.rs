@@ -57,6 +57,30 @@ fn construct_numbers() {
     assert_eq!(message["bar"].as_u32(), Some(43));
 }
 
+#[test]
+fn serialize_object() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(MULTIPLE_NUMBERS).unwrap();
+
+    let def = parser.struct_def("Foo").unwrap();
+    let message = def
+        .builder()
+        .set("foo", 42u64)
+        .set("bar", 43u32)
+        .try_build()
+        .unwrap();
+
+    let encoded = message.serialize();
+    let expected = def
+        .id()
+        .iter()
+        .chain(&[42, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0])
+        .cloned()
+        .collect::<Vec<_>>();
+
+    assert_eq!(encoded, expected);
+}
+
 const STRING: &'static str = r#"
 struct Foo {
     foo :string;
