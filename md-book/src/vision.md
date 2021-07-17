@@ -4,9 +4,9 @@
 
 > TODO: formalize purpose and goals of the vision
 
-We believe Fractal Protocol can ...
+We believe Fractal Protocol can ... TODO
 
-This document is ...
+This document is ... TODO
 
 ## Where we are & Where we're going
 

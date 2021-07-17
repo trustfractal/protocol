@@ -6,41 +6,32 @@ We've created seven agile-style personas that we use to guide our thinking. Six 
 
 ## The Characters
 
-[adele]: ./personas/adele.md
-[dackson]: ./personas/dackson.md
-[dahlia]: ./personas/dahlia.md
-[edna]: ./personas/edna.md
-[júlio]: ./personas/júlio.md
-[manny]: ./personas/manny.md
-[dackson]: ./personas/dackson.md
-[ozzy]: ./personas/ozzy
-
-- [Edna]: End user
+- **Edna**: End user
   - Generator of the data that Fractal stores and operates on.
   - Not technically proficient.
   - Wants their data protected from family members, governments, and hackers.
   - Primarily wants better service from the applications they use.
   - Would like to be paid for their data being used.
   - Happy to contribute their data in aggregate to science.
-- [Ozzy]: Application user
+- **Ozzy**: Application user
   - Paid by a business to use an application that uses the Fractal protocol.
   - Slightly technically proficient.
-- [Adele]: Application developer
+- **Adele**: Application developer
   - Builds applications that use Fractal’s protocol.
   - Technically proficient.
   - Wants to easily and powerfully use existing Fractal data.
-- [Dackson]: Data collector
+- **Dackson**: Data collector
   - Develops application that collects user’s data.
   - Technically proficient.
   - Wants to monetize their application by providing data to the Fractal network.
-- [Dahlia]: Data host developer
+- **Dahlia**: Data host developer
   - Builds a data host competing with Fractal’s reference.
   - Technically proficient.
   - Wants to know the details of the protocol to implement it themselves.
-- [Júlio]: Protocol evangelist
+- **Júlio**: Protocol evangelist
   - Wants the protocol to succeed.
   - Will put up coins to incentivize different types of behavior necessary to kickstart different network effects.
-- [Manny]: Malicious user (Antagonist)
+- **Manny**: Malicious user (Antagonist)
   - Incredibly technically competent.
   - Happy to take from others.
   - Wants to get as many tokens as possible.
