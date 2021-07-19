@@ -8,11 +8,11 @@ import { WebpageTracker, FractalData } from '../../redux/state';
 import Form from './components/Form';
 import Webpage from './components/Webpage';
 
-import Heading from '../../components/Heading';
-import Error from '../../components/Error';
-import Section from '../../components/Section';
-import Spacing from '../../components/Spacing';
-import Theme from '../../components/Theme';
+import Heading from '@components/Heading';
+import Error from '@components/Error';
+import Section from '@components/Section';
+import Spacing from '@components/Spacing';
+import Theme from '@components/Theme';
 
 const Container = styled.div`
   position: absolute;

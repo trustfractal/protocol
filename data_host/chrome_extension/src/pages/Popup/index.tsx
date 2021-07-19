@@ -3,7 +3,7 @@ import { render } from 'react-dom';
 import { Provider } from 'react-redux';
 import { Store } from 'webext-redux';
 
-import { REDUX_PORT_NAME } from '../../redux/port';
+import { REDUX_PORT_NAME } from '@redux/port';
 
 import Popup from './Popup';
 

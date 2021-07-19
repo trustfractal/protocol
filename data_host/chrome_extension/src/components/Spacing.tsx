@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
-import { Sizes } from './Theme';
-import type { Size } from './Theme';
+import { Sizes } from '@components/Theme';
+import type { Size } from '@components/Theme';
 
 interface Props {
   size: Size;

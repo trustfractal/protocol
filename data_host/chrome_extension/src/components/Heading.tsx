@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import { Sizes } from './Theme';
+import { Sizes } from '@components/Theme';
 
 type Level = '1' | '2' | '3' | '4' | '5';
 

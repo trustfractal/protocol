@@ -1,7 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 
-import type { FractalData } from '../state';
-import { ADD_FRACTAL_ID } from '../actionTypes';
+import type { FractalData } from '@redux/state';
+import { ADD_FRACTAL_ID } from '@redux/actionTypes';
 
 const initialState = { id: null };
 

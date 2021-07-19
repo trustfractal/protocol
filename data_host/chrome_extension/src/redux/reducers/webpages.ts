@@ -1,9 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 
-import type { WebpageTracker } from '../state';
-
-import Tracker, { Location } from '../../lib/WebpageTracker';
-import { ADD_WEBPAGE } from '../actionTypes';
+import type { WebpageTracker } from '@redux/state';
+import { ADD_WEBPAGE } from '@redux/actionTypes';
+import Tracker, { Location } from '@lib/WebpageTracker';
 
 const initialState = {};
 

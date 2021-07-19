@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import { Pallette } from './Theme';
+import { Pallette } from '@components/Theme';
 
 const Error = styled.span`
   font-weight: bold;

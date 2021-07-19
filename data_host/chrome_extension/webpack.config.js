@@ -11,6 +11,11 @@ const ASSET_PATH = process.env.ASSET_PATH || '/';
 
 var alias = {
   'react-dom': '@hot-loader/react-dom',
+  '@assets': path.resolve(__dirname, 'src/assets/'),
+  '@components': path.resolve(__dirname, 'src/components/'),
+  '@lib': path.resolve(__dirname, 'src/lib/'),
+  '@pages': path.resolve(__dirname, 'src/pages/'),
+  '@redux': path.resolve(__dirname, 'src/redux/'),
 };
 
 // load the secrets

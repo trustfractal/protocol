@@ -1,4 +1,4 @@
-import { WebpageTracker as WebpageTrackerType } from '../lib/WebpageTracker';
+import { WebpageTracker as WebpageTrackerType } from '@lib/WebpageTracker';
 
 export type WebpageTracker = WebpageTrackerType;
 

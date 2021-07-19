@@ -1,7 +1,7 @@
 import React from 'react';
 
-import Heading from '../../../../components/Heading';
-import Spacing from '../../../../components/Spacing';
+import Heading from '@components/Heading';
+import Spacing from '@components/Spacing';
 
 interface Props {
   hostname: string;

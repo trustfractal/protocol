@@ -3,11 +3,11 @@ import { useDispatch } from 'react-redux';
 import { Form as FinalForm, Field, FormRenderProps } from 'react-final-form';
 import { FormApi } from 'final-form';
 
-import Error from '../../../../components/Error';
-import Section from '../../../../components/Section';
-import Spacing from '../../../../components/Spacing';
+import Error from '@components/Error';
+import Section from '@components/Section';
+import Spacing from '@components/Spacing';
 
-import { addFractalID } from '../../../../redux/actions';
+import { addFractalID } from '@redux/actions';
 
 type FormData = Record<string, any>;
 type FormFunction = FormApi<FormData, Partial<Record<string, any>>>;
