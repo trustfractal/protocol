@@ -2,11 +2,7 @@
 
 ## What is this?
 
-> TODO: formalize purpose and goals of the vision
-
-We believe Fractal Protocol can ... TODO
-
-This document is ... TODO
+> TODO: formalize purpose and goals of this vision document
 
 ## Where we are & Where we're going
 
