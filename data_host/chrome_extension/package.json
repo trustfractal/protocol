@@ -9,7 +9,8 @@
   "scripts": {
     "build": "node utils/build.js",
     "start": "node utils/webserver.js",
-    "prettier": "prettier --write '**/*.{js,jsx,css,html}'"
+    "lint": "prettier --check src",
+    "lint-fix": "prettier --write src"
   },
   "dependencies": {
     "@hot-loader/react-dom": "^17.0.1",
@@ -31,6 +32,7 @@
     "@babel/plugin-proposal-class-properties": "^7.12.13",
     "@babel/preset-env": "^7.12.17",
     "@babel/preset-react": "^7.12.13",
+    "@types/webpack-env": "^1.16.2",
     "@typescript-eslint/eslint-plugin": "^4.28.2",
     "@typescript-eslint/parser": "^4.28.2",
     "babel-eslint": "^10.1.0",

@@ -1,7 +1,9 @@
-import type { Location } from './types';
-export * from './types';
-
 export type WebpageTracker = Record<string, Record<string, number>>;
+
+export type Location = {
+  pathname: string;
+  hostname: string;
+};
 
 export const build = (): WebpageTracker => ({});
 
