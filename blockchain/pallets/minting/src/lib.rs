@@ -14,7 +14,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     use blake2::Blake2b;
-    use codec::{Decode, Encode};
+
     use core::convert::TryInto;
     use frame_support::{
         dispatch::Vec,
@@ -23,63 +23,9 @@ pub mod pallet {
     };
     use frame_system::ensure_signed;
     use merklex::MerkleTree;
-    use sp_core::sr25519::{Public, Signature};
-    use sp_runtime::{
-        traits::{CheckedDiv, Verify},
-        AnySignature,
-    };
-
-    #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
-    pub struct Signed<T: Decode> {
-        signature: AnySignature,
-        encoded: Vec<u8>,
-        _value: core::marker::PhantomData<T>,
-    }
-
-    impl<T: Decode> Signed<T> {
-        pub fn new(signature: Signature, encoded: Vec<u8>) -> Self {
-            Signed {
-                signature: signature.into(),
-                encoded,
-                _value: core::marker::PhantomData,
-            }
-        }
-
-        #[cfg(feature = "std")]
-        pub fn with_secret(pair: &sp_core::sr25519::Pair, value: T) -> Signed<T>
-        where
-            T: Encode,
-        {
-            use sp_core::Pair;
-
-            let signature = pair.sign(&value.encode()).into();
-            Signed {
-                signature,
-                encoded: value.encode(),
-                _value: core::marker::PhantomData,
-            }
-        }
-
-        pub fn verify_against(&self, public: &Public) -> Option<T> {
-            let verified = self.signature.verify(self.encoded.as_slice(), public);
-            if !verified {
-                return None;
-            }
-            let decoded = T::decode(&mut self.encoded.as_ref()).ok()?;
-            Some(decoded)
-        }
-    }
+    use sp_runtime::traits::CheckedDiv;
 
     pub type FractalId = u64;
-    pub type Nonce = u32;
-
-    #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
-    pub struct FractalIdentity<A> {
-        pub account: A,
-        pub fractal_id: FractalId,
-        #[codec(compact)]
-        pub nonce: Nonce,
-    }
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -117,25 +63,36 @@ pub mod pallet {
 
     #[pallet::storage]
     pub type IdToAccount<T: Config> =
-        StorageMap<_, Blake2_128Concat, FractalId, (T::AccountId, Nonce), ValueQuery>;
+        StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
 
     #[pallet::storage]
     pub type IdDatasets<T: Config> =
         StorageMap<_, Blake2_128Concat, FractalId, MerkleTree<Blake2b>, OptionQuery>;
 
     #[pallet::storage]
-    pub type FractalPublicKey<T: Config> = StorageValue<_, Public, ValueQuery>;
+    pub type FractalAuthoritativeAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
     #[pallet::genesis_config]
-    #[derive(Default)]
-    pub struct GenesisConfig {
-        pub fractal_public_key: Public,
+    pub struct GenesisConfig<T: Config> {
+        pub fractal_authoritative_account: T::AccountId,
+    }
+
+    #[cfg(feature = "std")]
+    impl<T: Config> Default for GenesisConfig<T> {
+        fn default() -> Self {
+            GenesisConfig {
+                fractal_authoritative_account: T::AccountId::default(),
+            }
+        }
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T>
+    where
+        T::AccountId: Clone,
+    {
         fn build(&self) {
-            FractalPublicKey::<T>::put(self.fractal_public_key);
+            FractalAuthoritativeAccount::<T>::put(self.fractal_authoritative_account.clone());
         }
     }
 
@@ -150,46 +107,37 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        InvalidIdentitySignature,
-        MismatchedFractalIdentity,
-        NonIncreasingNonce,
         NoIdentityRegistered,
         ExtensionDoesNotExtendExistingDataset,
         MustSpecifyFractalIdWithMultipleIds,
         FractalIdNotRegisteredToAccount,
+        MustBeFractal,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Register the provided Fractal ID to the origin account.
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
+        #[pallet::weight(0)]
         pub fn register_identity(
             origin: OriginFor<T>,
-            identity: Signed<FractalIdentity<T::AccountId>>,
-        ) -> DispatchResult {
-            let who = ensure_signed(origin)?;
-            let identity = identity
-                .verify_against(&FractalPublicKey::<T>::get())
-                .ok_or(Error::<T>::InvalidIdentitySignature)?;
-
+            fractal_id: FractalId,
+            account: T::AccountId,
+        ) -> DispatchResult
+        where
+            T::AccountId: Clone,
+        {
+            let should_be_fractal = ensure_signed(origin)?;
             ensure!(
-                identity.account == who,
-                Error::<T>::MismatchedFractalIdentity
+                should_be_fractal == FractalAuthoritativeAccount::<T>::get(),
+                Error::<T>::MustBeFractal
             );
 
-            let fractal_id = identity.fractal_id;
-
-            if let Ok((account, nonce)) = IdToAccount::<T>::try_get(fractal_id) {
-                if identity.nonce <= nonce {
-                    return Err(Error::<T>::NonIncreasingNonce.into());
-                }
-
+            if let Ok(account) = IdToAccount::<T>::try_get(fractal_id) {
                 AccountIds::<T>::remove(account, fractal_id);
             }
             NextMintingRewards::<T>::remove(fractal_id);
 
-            IdToAccount::<T>::insert(fractal_id, (who.clone(), identity.nonce));
-            AccountIds::<T>::insert(who, fractal_id, ());
+            IdToAccount::<T>::insert(fractal_id, account.clone());
+            AccountIds::<T>::insert(account, fractal_id, ());
 
             Ok(())
         }

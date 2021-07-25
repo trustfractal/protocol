@@ -297,7 +297,7 @@ construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config, Event<T>},
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>},
     }
 );
 

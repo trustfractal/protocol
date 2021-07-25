@@ -1,7 +1,7 @@
 use crate as fractal_minting;
 use frame_support::parameter_types;
 use frame_system as system;
-use sp_core::{sr25519::Pair, Pair as _, H256};
+use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -20,7 +20,7 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config, Event<T>},
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>},
     }
 );
 
@@ -83,14 +83,10 @@ impl fractal_minting::Config for Test {
     type MintEveryNBlocks = MintEveryNBlocks;
 }
 
-pub fn fractal_pair() -> Pair {
-    Pair::from_seed(&[65; 32])
-}
-
 pub fn new_test_ext() -> sp_io::TestExternalities {
     GenesisConfig {
         fractal_minting: crate::GenesisConfig {
-            fractal_public_key: fractal_pair().public(),
+            fractal_authoritative_account: 123,
         },
         ..Default::default()
     }
