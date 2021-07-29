@@ -110,6 +110,7 @@ jobs:
   lint:
     docker:
       - image: circleci/rust
+    resource_class: large
     steps:
       - *install_deps
       - *setup_rust
