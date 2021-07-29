@@ -163,10 +163,12 @@ jobs:
             EOS
 
             # comment needs to be here
+            # otherwise the EOS is defunkt
 
       - run:
           name: Setup custom environment variables
           command: |
+            # TODO: change boymaas/... to a fractal/.. docker account
             export BUILD_ID="${CIRCLE_SHA1:0:7}_$(date +'%Y%m%d_%H%M')"
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
 
