@@ -116,7 +116,11 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(0)]
+        #[pallet::weight((
+            10_000 + T::DbWeight::get().reads_writes(2, 4),
+            DispatchClass::Normal,
+            Pays::No
+        ))]
         pub fn register_identity(
             origin: OriginFor<T>,
             fractal_id: FractalId,
@@ -143,7 +147,12 @@ pub mod pallet {
         }
 
         /// Register to receive minting in the next period.
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1, 1))]
+        // TODO(shelbyd): Charge users transaction fees if this isn't their first registration.
+        #[pallet::weight((
+            10_000 + T::DbWeight::get().reads_writes(2, 2),
+            DispatchClass::Normal,
+            Pays::No
+        ))]
         pub fn register_for_minting(
             origin: OriginFor<T>,
             identity: Option<FractalId>,
