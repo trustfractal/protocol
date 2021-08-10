@@ -3592,6 +3592,7 @@ dependencies = [
  "anyhow",
  "blake2",
  "console_error_panic_hook",
+ "hex",
  "merklex",
  "parity-scale-codec",
  "wasm-bindgen",
