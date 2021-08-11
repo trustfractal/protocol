@@ -2,7 +2,7 @@ mod utils;
 
 use blake2::Blake2b;
 use merklex::MerkleTree;
-use parity_scale_codec::Encode;
+use parity_scale_codec::{Decode, Encode};
 
 use wasm_bindgen::prelude::*;
 
@@ -13,25 +13,38 @@ use wasm_bindgen::prelude::*;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-// #[wasm_bindgen]
-// pub fn build(s: &str) -> Option<Vec<u8>> {
-//     let tree = MerkleTree::<Blake2b>::from_iter(&[s])?;
-//     Some(tree.encode())
-// }
-
-#[wasm_bindgen]
 pub fn build(s: &str) -> Option<String> {
     MerkleTree::<Blake2b>::from_iter(&[s]).map(|v| hex::encode(v.encode()))
 }
 
 #[wasm_bindgen]
 pub fn extend(mtree: &str, s: &str) -> Option<String> {
-    hex::decode(mtree)
-        .ok()
-        .map(|b| MerkleTree::<Blake2b>::leaf_bytes(b))
-        .map(|tree| hex::encode(tree.push(s).encode()))
+    decode_hex_mtree(mtree).map(|tree| hex::encode(tree.push(s).encode()))
+}
+
+#[wasm_bindgen]
+pub fn extend_multiple(mtree: &str, leaves: JsValue) -> Option<String> {
+    let mut tree = decode_hex_mtree(mtree)?;
+
+    let leaves: Vec<String> = leaves.into_serde().ok()?;
+    for leave in leaves {
+        tree = tree.push(leave);
+    }
+
+    Some(hex::encode(tree.encode()))
+}
+
+#[wasm_bindgen]
+pub fn strict_extension_proof(mtree_a: &str, mtree_b: &str) -> Option<String> {
+    let mtree_a = decode_hex_mtree(mtree_a)?;
+    let mtree_b = decode_hex_mtree(mtree_b)?;
+
+    let strict_proof = mtree_a.strict_extension_proof(&mtree_b)?;
+
+    Some(hex::encode(strict_proof.encode()))
+}
+
+fn decode_hex_mtree(mtree: &str) -> Option<MerkleTree<Blake2b>> {
+    let buffer = hex::decode(mtree).ok()?;
+    MerkleTree::<Blake2b>::decode(&mut buffer.as_ref()).ok()
 }
