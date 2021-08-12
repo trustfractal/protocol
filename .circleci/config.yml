@@ -186,6 +186,8 @@ jobs:
       - run:
           name: Deploy to devnet
           command: |
+            ssh-keyscan main.devnet.fractalprotocol.com >> ~/.ssh/known_hosts
+
             ssh ubuntu@main.devnet.fractalprotocol.com "bin/deploy $BUILD_ID"
             ssh ubuntu@main.devnet.fractalprotocol.com "echo $BUILD_ID >last_deploy_build_id"
             ssh ubuntu@main.devnet.fractalprotocol.com "echo $BUILD_ID >>deployment_log"
