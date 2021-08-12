@@ -183,6 +183,12 @@ jobs:
           name: Push docker image
           command: |
             docker push $IMAGE
+      - run:
+          name: Deploy to devnet
+          command: |
+            ssh ubuntu@main.devnet.fractalprotocol.com "bin/deploy $BUILD_ID"
+            ssh ubuntu@main.devnet.fractalprotocol.com "echo $BUILD_ID >last_deploy_build_id"
+            ssh ubuntu@main.devnet.fractalprotocol.com "echo $BUILD_ID >>deployment_log"
 
 workflows:
   version: 2
@@ -212,4 +218,4 @@ workflows:
             branches:
               only:
                 - master
-                - boymaas-cicd-docker-build
+                - bmaas/devnet-deploy
