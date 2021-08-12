@@ -266,9 +266,9 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxRewardPerUser: Balance = 1 << 60;
-    pub const MaxMintPerPeriod: Balance = 1 << 64;
-    pub const MintEveryNBlocks: BlockNumber = 10;
+    pub const MaxRewardPerUser: Balance = 1.5e18 as Balance;
+    pub const MaxMintPerPeriod: Balance = 80_000e18 as Balance;
+    pub const MintEveryNBlocks: BlockNumber = DAYS;
 }
 
 impl fractal_minting::Config for Runtime {

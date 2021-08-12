@@ -224,7 +224,7 @@ pub mod pallet {
                 NextMintingRewards::<T>::remove(id);
             }
 
-            let total_minted = mint_per_user * accounts_count.into();
+            let total_minted = reward_per_user * accounts_count.into();
             Self::deposit_event(Event::Minted(total_minted, accounts_count));
         }
     }
