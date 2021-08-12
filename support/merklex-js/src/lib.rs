@@ -44,6 +44,13 @@ pub fn strict_extension_proof(mtree_a: &str, mtree_b: &str) -> Option<String> {
     Some(hex::encode(strict_proof.encode()))
 }
 
+#[wasm_bindgen]
+pub fn prune_balanced(tree: &str) -> Option<String> {
+    let tree = decode_hex_mtree(tree)?;
+    let pruned = tree.prune_balanced();
+    Some(hex::encode(pruned.encode()))
+}
+
 fn decode_hex_mtree(mtree: &str) -> Option<MerkleTree<Blake2b>> {
     let buffer = hex::decode(mtree).ok()?;
     MerkleTree::<Blake2b>::decode(&mut buffer.as_ref()).ok()
