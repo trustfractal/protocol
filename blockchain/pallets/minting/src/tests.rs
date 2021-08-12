@@ -142,6 +142,23 @@ mod register_identity {
     }
 
     #[test]
+    fn new_registration_clears_dataset() {
+        new_test_ext().execute_with(|| {
+            register_id_account(1, 1);
+            register_for_minting_dataset(1, &["1"]);
+            register_id_account(1, 2);
+            register_for_minting_dataset(2, &["2"]);
+
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&2),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
     fn errors_with_invalid_fractal_signature() {
         new_test_ext().execute_with(|| {
             assert_noop!(
