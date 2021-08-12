@@ -139,6 +139,7 @@ pub mod pallet {
                 AccountIds::<T>::remove(account, fractal_id);
             }
             NextMintingRewards::<T>::remove(fractal_id);
+            IdDatasets::<T>::remove(fractal_id);
 
             IdToAccount::<T>::insert(fractal_id, account.clone());
             AccountIds::<T>::insert(account, fractal_id, ());
