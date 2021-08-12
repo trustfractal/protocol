@@ -173,6 +173,7 @@ jobs:
             export BUILD_ID="${CIRCLE_SHA1:0:7}_$(date +'%Y%m%d_%H%M')"
             export IMAGE="boymaas/nodefcl:$BUILD_ID"
 
+            echo "export BUILD_ID=$BUILD_ID" >> $BASH_ENV
             echo "export IMAGE=$IMAGE" >> $BASH_ENV
       - run:
           name: Build docker container
