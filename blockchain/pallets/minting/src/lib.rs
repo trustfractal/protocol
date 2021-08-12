@@ -210,21 +210,22 @@ pub mod pallet {
 
             let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
 
-            let mint_per_user = T::MaxMintPerPeriod::get()
+            let naive_mint_per_user = T::MaxMintPerPeriod::get()
                 .checked_div(&accounts_count.into())
                 .unwrap_or_else(|| 0u32.into());
 
-            let reward_per_user = core::cmp::min(T::MaxRewardPerUser::get(), mint_per_user);
+            let actual_mint_per_user =
+                core::cmp::min(T::MaxRewardPerUser::get(), naive_mint_per_user);
 
             let recipients = accounts
                 .iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
             for (id, account) in recipients {
-                T::Currency::deposit_creating(account, reward_per_user);
+                T::Currency::deposit_creating(account, actual_mint_per_user);
                 NextMintingRewards::<T>::remove(id);
             }
 
-            let total_minted = reward_per_user * accounts_count.into();
+            let total_minted = actual_mint_per_user * accounts_count.into();
             Self::deposit_event(Event::Minted(total_minted, accounts_count));
         }
     }
