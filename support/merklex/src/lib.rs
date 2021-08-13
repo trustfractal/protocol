@@ -190,8 +190,14 @@ impl<D: Digest> MerkleTree<D> {
 
         self.structure_bits_recurse(&mut result);
         result.remove(0);
-        debug_assert_ne!(result.pop(), Some(true));
-        debug_assert_ne!(result.pop(), Some(true));
+
+        // Do not inline these calls. We require the pop to execute, and wasm-bindgen removes the
+        // whole debug_assert statement in release builds.
+        let popped = result.pop();
+        debug_assert_ne!(popped, Some(true));
+
+        let popped = result.pop();
+        debug_assert_ne!(popped, Some(true));
 
         result
     }
