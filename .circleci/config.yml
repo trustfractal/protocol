@@ -32,9 +32,9 @@ setup_steps:
     save_cache:
       paths:
         - /usr/local/cargo/registry
-        - target/debug/.fingerprint
-        - target/debug/build
-        - target/debug/deps
+        - target/release/.fingerprint
+        - target/release/build
+        - target/release/deps
       key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
   
 jobs:
@@ -53,15 +53,15 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build
+          command: cargo build --release
       - *save_cache
       - run:
           name: Run all tests
-          command: cargo test
+          command: cargo test --release
       - persist_to_workspace:
           root: .
           paths:
-            - target/debug/node
+            - target/release/node
 
   security:
     docker:
@@ -159,7 +159,7 @@ jobs:
 
             WORKDIR /app
 
-            COPY target/debug/node /app
+            COPY target/release/node /app
             ENTRYPOINT ["/app/node"]
             EOS
 
