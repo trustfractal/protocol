@@ -152,13 +152,13 @@ pub mod pallet {
         #[pallet::weight((
             10_000 + T::DbWeight::get().reads_writes(2, 2),
             DispatchClass::Normal,
-            Pays::No
+            Pays::Yes
         ))]
         pub fn register_for_minting(
             origin: OriginFor<T>,
             identity: Option<FractalId>,
             extension_proof: MerkleTree<Blake2b>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let id = match identity {
@@ -190,9 +190,18 @@ pub mod pallet {
             }
 
             IdDatasets::<T>::insert(id, extension_proof);
-            NextMintingRewards::<T>::insert(id, who);
 
-            Ok(())
+            // Only first call is free, determined by presence of
+            // entry in NextMintingRewards. This entry will be removed when
+            // minting rewards get dispersed in the on_finalize block. Not present
+            // indicates its the first call.
+            if NextMintingRewards::<T>::try_get(id).is_ok() {
+                // None indicates use pallet::weight annotation
+                Ok(None.into())
+            } else {
+                NextMintingRewards::<T>::insert(id, who);
+                Ok(Some(0).into())
+            }
         }
     }
 

@@ -284,6 +284,8 @@ mod register_identity {
 
     #[cfg(test)]
     mod extension_proofs {
+        use frame_support::dispatch::PostDispatchInfo;
+
         use super::*;
 
         #[test]
@@ -335,6 +337,40 @@ mod register_identity {
                         simple_tree().prune_balanced()
                     ),
                     Error::<Test>::FractalIdNotRegisteredToAccount
+                );
+            });
+        }
+
+        #[test]
+        fn register_for_minting_is_free_for_first_call() {
+            use frame_support::pallet_prelude::Pays;
+
+            fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
+                MerkleTree::from_iter(r).unwrap()
+            }
+
+            new_test_ext().execute_with(|| {
+                register_id_account(42, 1);
+
+                // first call is free, actual_weight set to 0
+                let tree_0 = gen_tree(&["a", "b"]);
+                assert_eq!(
+                    FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
+                    Ok(PostDispatchInfo {
+                        actual_weight: Some(0),
+                        pays_fee: Pays::Yes
+                    })
+                );
+
+                // second is charged, actual_weith None indicates annotation
+                // weight is applied
+                let tree_1 = gen_tree(&["a", "b", "c"]);
+                assert_eq!(
+                    FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1),
+                    Ok(PostDispatchInfo {
+                        actual_weight: None,
+                        pays_fee: Pays::Yes
+                    })
                 );
             });
         }
