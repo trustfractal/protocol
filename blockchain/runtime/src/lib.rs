@@ -270,7 +270,7 @@ impl pallet_sudo::Config for Runtime {
 parameter_types! {
     pub const MaxRewardPerUser: Balance = 1500 * (UNIT_BALANCE / 1000);
     pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
-    #[allow(clippy::identity-op)]
+    #[allow(clippy::identity_op)]
     pub const MintEveryNBlocks: BlockNumber = 1 * DAYS;
 }
 
