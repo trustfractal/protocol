@@ -124,6 +124,8 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
+pub const UNIT_BALANCE: Balance = 1_000_000_000_000;
+
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -266,9 +268,9 @@ impl pallet_sudo::Config for Runtime {
 }
 
 parameter_types! {
-    pub const MaxRewardPerUser: Balance = 1.5e18 as Balance;
-    pub const MaxMintPerPeriod: Balance = 80_000e18 as Balance;
-    pub const MintEveryNBlocks: BlockNumber = DAYS;
+    pub const MaxRewardPerUser: Balance = 1500 * (UNIT_BALANCE / 1000);
+    pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
+    pub const MintEveryNBlocks: BlockNumber = 1 * DAYS;
 }
 
 impl fractal_minting::Config for Runtime {
