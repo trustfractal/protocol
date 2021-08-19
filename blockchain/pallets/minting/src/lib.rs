@@ -10,6 +10,7 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use frame_support::dispatch::PostDispatchInfo;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
@@ -200,7 +201,7 @@ pub mod pallet {
                 Ok(None.into())
             } else {
                 NextMintingRewards::<T>::insert(id, who);
-                Ok(Some(0).into())
+                Ok(Pays::No.into())
             }
         }
     }

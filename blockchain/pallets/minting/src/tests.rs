@@ -9,6 +9,7 @@ use merklex::MerkleTree;
 #[cfg(test)]
 mod register_identity {
     use super::*;
+    use frame_support::dispatch::PostDispatchInfo;
 
     fn run_to_next_minting() {
         let mint_every_n = <Test as crate::Config>::MintEveryNBlocks::get();
@@ -282,10 +283,73 @@ mod register_identity {
         });
     }
 
+    #[test]
+    fn first_call_to_register_for_minting_is_free() {
+        use frame_support::pallet_prelude::Pays;
+
+        fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
+            MerkleTree::from_iter(r).unwrap()
+        }
+
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+
+            // first call is free, actual_weight set to 0
+            let tree_0 = gen_tree(&["a", "b"]);
+            assert_eq!(
+                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
+                Ok(PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Pays::No
+                })
+            );
+
+            // second is charged, actual_weith None indicates annotation
+            // weight is applied
+            let tree_1 = gen_tree(&["a", "b", "c"]);
+            assert_eq!(
+                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1),
+                Ok(PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Pays::Yes
+                })
+            );
+        });
+    }
+
+    #[test]
+    fn first_coll_to_register_for_minting_is_free_logic() {
+        use frame_support::pallet_prelude::Pays;
+
+        fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
+            MerkleTree::from_iter(r).unwrap()
+        }
+
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+
+            // first call is free, actual_weight set to 0
+            let tree_0 = gen_tree(&["a", "b"]);
+            assert_eq!(
+                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
+                Ok(PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Pays::No
+                })
+            );
+
+            run_to_next_minting();
+
+            let tree_1 = gen_tree(&["a", "b", "c"]);
+            let dispatch_info =
+                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1).unwrap();
+
+            assert!(dispatch_info.pays_fee == Pays::No);
+        });
+    }
+
     #[cfg(test)]
     mod extension_proofs {
-        use frame_support::dispatch::PostDispatchInfo;
-
         use super::*;
 
         #[test]
@@ -337,40 +401,6 @@ mod register_identity {
                         simple_tree().prune_balanced()
                     ),
                     Error::<Test>::FractalIdNotRegisteredToAccount
-                );
-            });
-        }
-
-        #[test]
-        fn register_for_minting_is_free_for_first_call() {
-            use frame_support::pallet_prelude::Pays;
-
-            fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
-                MerkleTree::from_iter(r).unwrap()
-            }
-
-            new_test_ext().execute_with(|| {
-                register_id_account(42, 1);
-
-                // first call is free, actual_weight set to 0
-                let tree_0 = gen_tree(&["a", "b"]);
-                assert_eq!(
-                    FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
-                    Ok(PostDispatchInfo {
-                        actual_weight: Some(0),
-                        pays_fee: Pays::Yes
-                    })
-                );
-
-                // second is charged, actual_weith None indicates annotation
-                // weight is applied
-                let tree_1 = gen_tree(&["a", "b", "c"]);
-                assert_eq!(
-                    FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1),
-                    Ok(PostDispatchInfo {
-                        actual_weight: None,
-                        pays_fee: Pays::Yes
-                    })
                 );
             });
         }
