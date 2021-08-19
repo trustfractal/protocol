@@ -1583,7 +1583,7 @@ dependencies = [
 
 [[package]]
 name = "fractal-minting"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "blake2",
  "frame-benchmarking",
@@ -1600,7 +1600,7 @@ dependencies = [
 
 [[package]]
 name = "fractal-protocol-blockchain-node"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "fractal-protocol-blockchain-runtime",
  "frame-benchmarking",
@@ -1637,7 +1637,7 @@ dependencies = [
 
 [[package]]
 name = "fractal-protocol-blockchain-runtime"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "fractal-minting",
  "frame-benchmarking",
