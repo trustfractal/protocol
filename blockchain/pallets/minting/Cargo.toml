@@ -6,7 +6,7 @@ homepage = 'https://trustfractal.com'
 license = 'MIT'
 name = 'fractal-minting'
 repository = 'https://github.com/trustfractal/protocol/'
-version = '0.0.1'
+version = '0.1.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
