@@ -318,7 +318,7 @@ mod register_identity {
     }
 
     #[test]
-    fn first_coll_to_register_for_minting_is_free_logic() {
+    fn first_call_to_register_for_minting_is_free_logic() {
         use frame_support::pallet_prelude::Pays;
 
         fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
@@ -344,7 +344,7 @@ mod register_identity {
             let dispatch_info =
                 FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1).unwrap();
 
-            assert!(dispatch_info.pays_fee == Pays::No);
+            assert!(dispatch_info.pays_fee == Pays::Yes);
         });
     }
 

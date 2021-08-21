@@ -52,6 +52,10 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
 
     #[pallet::storage]
+    pub type CalledRegisterForMinting<T: Config> =
+        StorageMap<_, Blake2_128Concat, FractalId, bool, ValueQuery>;
+
+    #[pallet::storage]
     pub type AccountIds<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
@@ -191,16 +195,16 @@ pub mod pallet {
             }
 
             IdDatasets::<T>::insert(id, extension_proof);
+            NextMintingRewards::<T>::insert(id, who);
 
-            // Only first call is free, determined by presence of
-            // entry in NextMintingRewards. This entry will be removed when
-            // minting rewards get dispersed in the on_finalize block. Not present
-            // indicates its the first call.
-            if NextMintingRewards::<T>::try_get(id).is_ok() {
+            // Only first call is free, determined by not having an
+            // entry in .CalledRegisterForMinting. All subsequent calls
+            // will be Pays::Yes
+            if CalledRegisterForMinting::<T>::try_get(id).is_ok() {
                 // None indicates use pallet::weight annotation
                 Ok(None.into())
             } else {
-                NextMintingRewards::<T>::insert(id, who);
+                CalledRegisterForMinting::<T>::insert(id, true);
                 Ok(Pays::No.into())
             }
         }
