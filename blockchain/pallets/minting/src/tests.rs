@@ -55,6 +55,10 @@ mod register_identity {
         MerkleTree::from_iter(&["test", "values"]).unwrap()
     }
 
+    fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
+        MerkleTree::from_iter(r).unwrap()
+    }
+
     #[test]
     fn receives_portion_of_minting_after_block() {
         new_test_ext().execute_with(|| {
@@ -287,10 +291,6 @@ mod register_identity {
     fn first_call_to_register_for_minting_is_free() {
         use frame_support::pallet_prelude::Pays;
 
-        fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
-            MerkleTree::from_iter(r).unwrap()
-        }
-
         new_test_ext().execute_with(|| {
             register_id_account(42, 1);
 
@@ -320,10 +320,6 @@ mod register_identity {
     #[test]
     fn first_call_to_register_for_minting_is_free_logic() {
         use frame_support::pallet_prelude::Pays;
-
-        fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
-            MerkleTree::from_iter(r).unwrap()
-        }
 
         new_test_ext().execute_with(|| {
             register_id_account(42, 1);
