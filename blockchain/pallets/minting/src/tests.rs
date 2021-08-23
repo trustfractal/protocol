@@ -325,6 +325,27 @@ mod register_identity {
         });
     }
 
+    #[test]
+    fn register_for_minting_allows_bootstrapping_of_account_after_second_call_to_register_id() {
+        use frame_support::pallet_prelude::Pays;
+
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+            register_for_minting_dataset(1, &["a", "b"]);
+
+            register_id_account(42, 2);
+
+            let tree = gen_tree(&["a", "b", "c"]);
+            assert_eq!(
+                FractalMinting::register_for_minting(Origin::signed(2), Some(42), tree),
+                Ok(PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Pays::No
+                })
+            );
+        });
+    }
+
     #[cfg(test)]
     mod extension_proofs {
         use super::*;
