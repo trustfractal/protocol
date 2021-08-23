@@ -294,53 +294,34 @@ mod register_identity {
         new_test_ext().execute_with(|| {
             register_id_account(42, 1);
 
-            // first call is free, actual_weight set to 0
             let tree_0 = gen_tree(&["a", "b"]);
             assert_eq!(
                 FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
                 Ok(PostDispatchInfo {
                     actual_weight: None,
                     pays_fee: Pays::No
-                })
-            );
-
-            // second is charged, actual_weith None indicates annotation
-            // weight is applied
-            let tree_1 = gen_tree(&["a", "b", "c"]);
-            assert_eq!(
-                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1),
-                Ok(PostDispatchInfo {
-                    actual_weight: None,
-                    pays_fee: Pays::Yes
                 })
             );
         });
     }
 
     #[test]
-    fn first_call_to_register_for_minting_is_free_logic() {
+    fn second_call_to_register_for_minting_is_paid() {
         use frame_support::pallet_prelude::Pays;
 
         new_test_ext().execute_with(|| {
             register_id_account(42, 1);
 
-            // first call is free, actual_weight set to 0
-            let tree_0 = gen_tree(&["a", "b"]);
+            register_for_minting_dataset(1, &["a", "b"]);
+
+            let tree = gen_tree(&["a", "b", "c"]);
             assert_eq!(
-                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
+                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree),
                 Ok(PostDispatchInfo {
                     actual_weight: None,
-                    pays_fee: Pays::No
+                    pays_fee: Pays::Yes
                 })
             );
-
-            run_to_next_minting();
-
-            let tree_1 = gen_tree(&["a", "b", "c"]);
-            let dispatch_info =
-                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_1).unwrap();
-
-            assert!(dispatch_info.pays_fee == Pays::Yes);
         });
     }
 

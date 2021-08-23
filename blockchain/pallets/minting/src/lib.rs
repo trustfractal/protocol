@@ -51,10 +51,6 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
 
     #[pallet::storage]
-    pub type CalledRegisterForMinting<T: Config> =
-        StorageMap<_, Blake2_128Concat, FractalId, bool, ValueQuery>;
-
-    #[pallet::storage]
     pub type AccountIds<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
@@ -186,9 +182,10 @@ pub mod pallet {
                 }
             };
 
-            if let Some(existing) = IdDatasets::<T>::get(id) {
+            let id_datasets_entry = IdDatasets::<T>::get(id);
+            if let Some(existing) = &id_datasets_entry {
                 ensure!(
-                    extension_proof.strict_extends(&existing),
+                    extension_proof.strict_extends(existing),
                     Error::<T>::ExtensionDoesNotExtendExistingDataset
                 );
             }
@@ -199,11 +196,10 @@ pub mod pallet {
             // Only first call is free, determined by not having an
             // entry in .CalledRegisterForMinting. All subsequent calls
             // will be Pays::Yes
-            if CalledRegisterForMinting::<T>::try_get(id).is_ok() {
+            if id_datasets_entry.is_some() {
                 // None indicates use pallet::weight annotation
                 Ok(None.into())
             } else {
-                CalledRegisterForMinting::<T>::insert(id, true);
                 Ok(Pays::No.into())
             }
         }
