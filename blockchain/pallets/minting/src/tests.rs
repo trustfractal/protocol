@@ -43,20 +43,19 @@ mod register_identity {
         ));
     }
 
-    fn register_for_minting_dataset(account: u64, dataset: &[&'static str]) {
-        assert_ok!(FractalMinting::register_for_minting(
+    fn register_for_minting_dataset(account: u64, dataset: &[&'static str]) -> PostDispatchInfo {
+        let pd_info = FractalMinting::register_for_minting(
             Origin::signed(account),
             None,
             MerkleTree::from_iter(dataset).expect("dataset with at least one element"),
-        ));
+        );
+        assert_ok!(pd_info);
+
+        pd_info.unwrap()
     }
 
     fn simple_tree() -> MerkleTree<Blake2b> {
         MerkleTree::from_iter(&["test", "values"]).unwrap()
-    }
-
-    fn gen_tree(r: &[&str]) -> MerkleTree<Blake2b> {
-        MerkleTree::from_iter(r).unwrap()
     }
 
     #[test]
@@ -294,14 +293,9 @@ mod register_identity {
         new_test_ext().execute_with(|| {
             register_id_account(42, 1);
 
-            let tree_0 = gen_tree(&["a", "b"]);
-            assert_eq!(
-                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree_0),
-                Ok(PostDispatchInfo {
-                    actual_weight: None,
-                    pays_fee: Pays::No
-                })
-            );
+            let post = register_for_minting_dataset(1, &["a", "b"]);
+            assert_eq!(post.pays_fee, Pays::No);
+            assert_eq!(post.actual_weight, None);
         });
     }
 
@@ -314,14 +308,9 @@ mod register_identity {
 
             register_for_minting_dataset(1, &["a", "b"]);
 
-            let tree = gen_tree(&["a", "b", "c"]);
-            assert_eq!(
-                FractalMinting::register_for_minting(Origin::signed(1), Some(42), tree),
-                Ok(PostDispatchInfo {
-                    actual_weight: None,
-                    pays_fee: Pays::Yes
-                })
-            );
+            let post = register_for_minting_dataset(1, &["a", "b", "c"]);
+            assert_eq!(post.pays_fee, Pays::Yes);
+            assert_eq!(post.actual_weight, None);
         });
     }
 
@@ -335,14 +324,9 @@ mod register_identity {
 
             register_id_account(42, 2);
 
-            let tree = gen_tree(&["a", "b", "c"]);
-            assert_eq!(
-                FractalMinting::register_for_minting(Origin::signed(2), Some(42), tree),
-                Ok(PostDispatchInfo {
-                    actual_weight: None,
-                    pays_fee: Pays::No
-                })
-            );
+            let post = register_for_minting_dataset(2, &["a", "b"]);
+            assert_eq!(post.pays_fee, Pays::No);
+            assert_eq!(post.actual_weight, None);
         });
     }
 

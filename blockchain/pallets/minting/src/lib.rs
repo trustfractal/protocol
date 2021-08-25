@@ -193,11 +193,7 @@ pub mod pallet {
             IdDatasets::<T>::insert(id, extension_proof);
             NextMintingRewards::<T>::insert(id, who);
 
-            // Only first call is free, determined by not having an
-            // entry in .CalledRegisterForMinting. All subsequent calls
-            // will be Pays::Yes
             if id_datasets_entry.is_some() {
-                // None indicates use pallet::weight annotation
                 Ok(None.into())
             } else {
                 Ok(Pays::No.into())
