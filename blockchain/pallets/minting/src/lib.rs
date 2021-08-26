@@ -152,7 +152,7 @@ pub mod pallet {
         #[pallet::weight((
             10_000 + T::DbWeight::get().reads_writes(2, 2),
             DispatchClass::Normal,
-            Pays::Yes
+            Pays::No
         ))]
         pub fn register_for_minting(
             origin: OriginFor<T>,
@@ -194,7 +194,7 @@ pub mod pallet {
             NextMintingRewards::<T>::insert(id, who);
 
             if id_datasets_entry.is_some() {
-                Ok(None.into())
+                Ok(Pays::Yes.into())
             } else {
                 Ok(Pays::No.into())
             }
