@@ -158,7 +158,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             identity: Option<FractalId>,
             extension_proof: MerkleTree<Blake2b>,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let id = match identity {
@@ -182,9 +182,10 @@ pub mod pallet {
                 }
             };
 
-            if let Some(existing) = IdDatasets::<T>::get(id) {
+            let id_datasets_entry = IdDatasets::<T>::get(id);
+            if let Some(existing) = &id_datasets_entry {
                 ensure!(
-                    extension_proof.strict_extends(&existing),
+                    extension_proof.strict_extends(existing),
                     Error::<T>::ExtensionDoesNotExtendExistingDataset
                 );
             }
@@ -192,7 +193,11 @@ pub mod pallet {
             IdDatasets::<T>::insert(id, extension_proof);
             NextMintingRewards::<T>::insert(id, who);
 
-            Ok(())
+            if id_datasets_entry.is_some() {
+                Ok(Pays::Yes.into())
+            } else {
+                Ok(Pays::No.into())
+            }
         }
     }
 

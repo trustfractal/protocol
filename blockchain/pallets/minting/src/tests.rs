@@ -9,6 +9,8 @@ use merklex::MerkleTree;
 #[cfg(test)]
 mod register_identity {
     use super::*;
+    use frame_support::dispatch::PostDispatchInfo;
+    use frame_support::pallet_prelude::Pays;
 
     fn run_to_next_minting() {
         let mint_every_n = <Test as crate::Config>::MintEveryNBlocks::get();
@@ -42,12 +44,15 @@ mod register_identity {
         ));
     }
 
-    fn register_for_minting_dataset(account: u64, dataset: &[&'static str]) {
-        assert_ok!(FractalMinting::register_for_minting(
+    fn register_for_minting_dataset(account: u64, dataset: &[&'static str]) -> PostDispatchInfo {
+        let pd_info = FractalMinting::register_for_minting(
             Origin::signed(account),
             None,
             MerkleTree::from_iter(dataset).expect("dataset with at least one element"),
-        ));
+        );
+        assert_ok!(pd_info);
+
+        pd_info.unwrap()
     }
 
     fn simple_tree() -> MerkleTree<Blake2b> {
@@ -279,6 +284,59 @@ mod register_identity {
                 Balances::free_balance(&1),
                 <Test as crate::Config>::MaxRewardPerUser::get()
             );
+        });
+    }
+
+    #[test]
+    fn first_call_to_register_for_minting_is_free() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+
+            let post = register_for_minting_dataset(1, &["a", "b"]);
+            assert_eq!(post.pays_fee, Pays::No);
+            assert_eq!(post.actual_weight, None);
+        });
+    }
+
+    #[test]
+    fn second_call_to_register_for_minting_is_paid() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+
+            register_for_minting_dataset(1, &["a", "b"]);
+
+            let post = register_for_minting_dataset(1, &["a", "b", "c"]);
+            assert_eq!(post.pays_fee, Pays::Yes);
+            assert_eq!(post.actual_weight, None);
+        });
+    }
+
+    #[test]
+    fn register_for_minting_allows_bootstrapping_of_account_after_second_call_to_register_id() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+            register_for_minting_dataset(1, &["a", "b"]);
+
+            register_id_account(42, 2);
+
+            let post = register_for_minting_dataset(2, &["a", "b"]);
+            assert_eq!(post.pays_fee, Pays::No);
+            assert_eq!(post.actual_weight, None);
+        });
+    }
+
+    #[test]
+    fn register_for_minting_requires_payment_after_next_minting() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+
+            register_for_minting_dataset(1, &["a", "b"]);
+
+            run_to_next_minting();
+
+            let post = register_for_minting_dataset(1, &["a", "b", "c"]);
+            assert_eq!(post.pays_fee, Pays::Yes);
+            assert_eq!(post.actual_weight, None);
         });
     }
 
