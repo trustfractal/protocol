@@ -73,6 +73,8 @@ parameter_types! {
     pub const MaxRewardPerUser: u64 = 42;
     pub const MaxMintPerPeriod: u64 = 200;
     pub const MintEveryNBlocks: u64 = 10;
+
+    pub const ExcessMintingReceiver: u64 = 1234;
 }
 
 impl fractal_minting::Config for Test {
@@ -81,6 +83,7 @@ impl fractal_minting::Config for Test {
     type MaxRewardPerUser = MaxRewardPerUser;
     type MaxMintPerPeriod = MaxMintPerPeriod;
     type MintEveryNBlocks = MintEveryNBlocks;
+    type ExcessMintingReceiver = ExcessMintingReceiver;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

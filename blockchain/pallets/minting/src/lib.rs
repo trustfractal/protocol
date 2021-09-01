@@ -18,7 +18,7 @@ pub mod pallet {
     use core::convert::TryInto;
     use frame_support::{
         dispatch::Vec,
-        traits::{Currency, Get},
+        traits::{Currency, Get, Imbalance},
         weights::Weight,
     };
     use frame_system::ensure_signed;
@@ -40,6 +40,8 @@ pub mod pallet {
         type MaxMintPerPeriod: Get<BalanceOf<Self>>;
 
         type MintEveryNBlocks: Get<Self::BlockNumber>;
+
+        type ExcessMintingReceiver: Get<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -101,8 +103,13 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Some amount of balance was minted among the number of provided accounts.
-        /// [amount, number_of_accounts]
-        Minted(BalanceOf<T>, u32),
+        /// [total, per_user, number_of_accounts, excess]
+        Minted {
+            total: BalanceOf<T>,
+            per_user: BalanceOf<T>,
+            number_of_accounts: u32,
+            excess: BalanceOf<T>,
+        },
     }
 
     #[pallet::error]
@@ -226,13 +233,28 @@ pub mod pallet {
             let recipients = accounts
                 .iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
-            for (id, account) in recipients {
-                T::Currency::deposit_creating(account, actual_mint_per_user);
-                NextMintingRewards::<T>::remove(id);
-            }
+
+            let removed = recipients.inspect(|(id, _)| NextMintingRewards::<T>::remove(id));
+
+            // Dropping the Imbalance resolves it.
+            let _imbalance = removed
+                .map(|(_, account)| T::Currency::deposit_creating(account, actual_mint_per_user))
+                .fold(
+                    <T::Currency as Currency<_>>::PositiveImbalance::zero(),
+                    |acc, v| acc.merge(v),
+                );
 
             let total_minted = actual_mint_per_user * accounts_count.into();
-            Self::deposit_event(Event::Minted(total_minted, accounts_count));
+
+            let unclaimed = T::MaxMintPerPeriod::get() - total_minted;
+            T::Currency::deposit_creating(&T::ExcessMintingReceiver::get(), unclaimed);
+
+            Self::deposit_event(Event::Minted {
+                total: total_minted,
+                per_user: actual_mint_per_user,
+                number_of_accounts: accounts_count,
+                excess: unclaimed,
+            });
         }
     }
 }
