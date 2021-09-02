@@ -16,8 +16,8 @@ setup_steps:
 
         rustup default stable
         rustup update
-        rustup update nightly
-        rustup target add wasm32-unknown-unknown --toolchain nightly
+        rustup update nightly-2021-09-01
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2021-09-01
 
         rustup show
   - checkout
@@ -126,7 +126,7 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Set to nightly
-          command: rustup default nightly
+          command: rustup default nightly-2021-09-01
       - run:
           name: Install formatter
           command: rustup component add rustfmt
