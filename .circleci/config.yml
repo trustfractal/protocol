@@ -10,10 +10,16 @@ setup_steps:
         sudo apt install clang
   - &setup_rust
     run:
-      name: Setup rust stable and targets
+      name: Setup rust stable and nightly targets
       command: |
+        rm -fR ~/.rustup
+
         rustup default stable
-        rustup target install wasm32-unknown-unknown
+        rustup update
+        rustup update nightly
+        rustup target add wasm32-unknown-unknown --toolchain nightly
+
+        rustup show
   - checkout
   - &version_info
     run: 
@@ -27,7 +33,7 @@ setup_steps:
   - &restore_cache
     restore_cache:
       keys:
-        - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+        - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-disabled
   - &save_cache
     save_cache:
       paths:
@@ -118,6 +124,9 @@ jobs:
       - checkout
       - *restore_cache 
       - *cargo_fetch_retry
+      - run:
+          name: Set to nightly
+          command: rustup default nightly
       - run:
           name: Install formatter
           command: rustup component add rustfmt
