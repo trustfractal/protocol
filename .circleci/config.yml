@@ -10,9 +10,9 @@ setup_steps:
         sudo apt install clang
   - &setup_rust
     run:
-      name: Setup rust nightly and targets
+      name: Setup rust stable and targets
       command: |
-        rustup default nightly
+        rustup default stable
         rustup target install wasm32-unknown-unknown
   - checkout
   - &version_info
@@ -221,4 +221,3 @@ workflows:
             branches:
               only:
                 - master
-                - bmaas/devnet-deploy
