@@ -10,10 +10,14 @@ setup_steps:
         sudo apt install clang
   - &setup_rust
     run:
-      name: Setup rust nightly and targets
+      name: Setup rust stable and fixed nightly target
       command: |
-        rustup default nightly
-        rustup target install wasm32-unknown-unknown
+        rustup default stable
+        rustup update
+        rustup update nightly-2021-09-01
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2021-09-01
+
+        rustup show
   - checkout
   - &version_info
     run: 
@@ -119,6 +123,9 @@ jobs:
       - *restore_cache 
       - *cargo_fetch_retry
       - run:
+          name: Set to a fixed working version of nightly
+          command: rustup default nightly-2021-09-01
+      - run:
           name: Install formatter
           command: rustup component add rustfmt
       - run:
@@ -221,4 +228,3 @@ workflows:
             branches:
               only:
                 - master
-                - bmaas/devnet-deploy
