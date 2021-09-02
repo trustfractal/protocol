@@ -272,8 +272,8 @@ parameter_types! {
     pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
     pub const MintEveryNBlocks: BlockNumber = DAYS;
 
-    // Charlie development account. Seed: "//Charlie"
-    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22"]);
+    // 5F6Tgor2L4kyiS8PdWFucjMTRteufiqxSFxBzELn9kRA3wUy
+    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["860b7d9d3e03cbd6a4fcec790f42260a64cb8673c318c4884046ca4c76cc3841"]);
 }
 
 impl fractal_minting::Config for Runtime {
