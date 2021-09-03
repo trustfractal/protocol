@@ -87,6 +87,13 @@ where
 }
 
 impl Value {
+    pub fn as_unit(&self) -> Option<()> {
+        match self {
+            Value::Unit => Some(()),
+            _ => None,
+        }
+    }
+
     pub fn as_u8(&self) -> Option<u8> {
         match self {
             Value::U8(v) => Some(*v),
@@ -115,10 +122,9 @@ impl Value {
         }
     }
 
-    // TODO(shelbyd+melatron): Handle all types.
-    pub fn as_list(&self) -> Option<Vec<u8>> {
+    pub fn as_list(&self) -> Option<&[Value]> {
         match self {
-            Value::List(items) => Some(items.iter().map(|i| i.as_u8()).collect::<Option<_>>()?),
+            Value::List(items) => Some(items),
             _ => None,
         }
     }

@@ -173,6 +173,6 @@ mod tests {
         assert!(obj.is_ok());
         let obj = obj.unwrap();
 
-        assert_eq!(obj["bar"].as_list(), Some(vec![42]));
+        assert_eq!(obj["bar"].as_list(), Some(&[Value::U8(42)][..]));
     }
 }

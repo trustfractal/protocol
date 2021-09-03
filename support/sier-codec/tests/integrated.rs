@@ -128,5 +128,13 @@ fn list() {
 
     let message = parser.parse(encoded.as_ref()).unwrap();
 
-    assert_eq!(message["foo"].as_list(), Some(vec![4, 2]));
+    assert_eq!(
+        message["foo"]
+            .as_list()
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_u8().unwrap())
+            .collect::<Vec<_>>(),
+        vec![4, 2]
+    );
 }
