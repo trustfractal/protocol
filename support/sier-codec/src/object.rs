@@ -48,7 +48,7 @@ pub enum Value {
 }
 
 impl From<()> for Value {
-    fn from(v: ()) -> Value {
+    fn from(_: ()) -> Value {
         Value::Unit
     }
 }
