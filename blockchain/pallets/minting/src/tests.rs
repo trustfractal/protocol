@@ -147,6 +147,35 @@ mod register_identity {
     }
 
     #[test]
+    fn unclaimed_minting_goes_to_excess_receiver() {
+        new_test_ext().execute_with(|| {
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get()),
+                <Test as crate::Config>::MaxMintPerPeriod::get()
+            );
+        });
+    }
+
+    #[test]
+    fn only_unclaimed_minting_goes_to_excess_receiver() {
+        new_test_ext().execute_with(|| {
+            register_id_account(1, 1);
+            register_for_minting(1);
+
+            run_to_next_minting();
+
+            let expected = <Test as crate::Config>::MaxMintPerPeriod::get()
+                - <Test as crate::Config>::MaxRewardPerUser::get();
+            assert_eq!(
+                Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get()),
+                expected
+            );
+        });
+    }
+
+    #[test]
     fn new_registration_clears_dataset() {
         new_test_ext().execute_with(|| {
             register_id_account(1, 1);

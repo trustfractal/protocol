@@ -271,6 +271,9 @@ parameter_types! {
     pub const MaxRewardPerUser: Balance = 3 * UNIT_BALANCE;
     pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
     pub const MintEveryNBlocks: BlockNumber = DAYS;
+
+    // 5F6Tgor2L4kyiS8PdWFucjMTRteufiqxSFxBzELn9kRA3wUy
+    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["860b7d9d3e03cbd6a4fcec790f42260a64cb8673c318c4884046ca4c76cc3841"]);
 }
 
 impl fractal_minting::Config for Runtime {
@@ -281,6 +284,8 @@ impl fractal_minting::Config for Runtime {
     type MaxRewardPerUser = MaxRewardPerUser;
     type MaxMintPerPeriod = MaxMintPerPeriod;
     type MintEveryNBlocks = MintEveryNBlocks;
+
+    type ExcessMintingReceiver = ExcessMintingReceiver;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
