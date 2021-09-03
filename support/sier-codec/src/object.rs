@@ -107,7 +107,13 @@ impl Value {
             Value::U32(v) => Vec::from(v.to_le_bytes()),
             Value::U64(v) => Vec::from(v.to_le_bytes()),
             Value::String(v) => var_int(v.len()).into_iter().chain(v.bytes()).collect(),
-            Value::List(_) => unimplemented!(),
+            Value::List(items) => {
+                let item_bytes = items.iter().flat_map(|i| i.serialize()).collect::<Vec<_>>();
+                var_int(item_bytes.len())
+                    .into_iter()
+                    .chain(item_bytes)
+                    .collect()
+            }
         }
     }
 
@@ -173,6 +179,31 @@ mod tests {
             assert_eq!(
                 Value::String(String::from("foo")).serialize(),
                 vec![3, 102, 111, 111]
+            );
+        }
+
+        #[test]
+        fn string_is_byte_length_prefixed() {
+            let s = "⡌⠁⠧⠑";
+            assert_eq!(
+                Value::String(String::from(s)).serialize()[0],
+                s.as_bytes().len() as u8
+            );
+        }
+
+        #[test]
+        fn list_is_length_prefixed() {
+            assert_eq!(
+                Value::List(vec![Value::U8(4), Value::U8(2)]).serialize(),
+                vec![2, 4, 2]
+            );
+        }
+
+        #[test]
+        fn list_is_byte_length_prefixed() {
+            assert_eq!(
+                Value::List(vec![Value::U32(4), Value::U32(2)]).serialize(),
+                vec![8, 4, 0, 0, 0, 2, 0, 0, 0]
             );
         }
     }

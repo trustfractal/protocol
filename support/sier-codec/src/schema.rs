@@ -312,6 +312,26 @@ mod tests {
 
             assert_eq!(struct_a.id(), struct_b.id());
         }
+
+        #[test]
+        fn is_different_with_different_list_types() {
+            let struct_a = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::List(Box::new(Type::U8)),
+                }],
+            };
+            let struct_b = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::List(Box::new(Type::U32)),
+                }],
+            };
+
+            assert_ne!(struct_a.id(), struct_b.id());
+        }
     }
 
     #[cfg(test)]
