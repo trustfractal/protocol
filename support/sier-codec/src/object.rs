@@ -153,10 +153,9 @@ impl Value {
             (Value::U32(_), Type::U32) => Ok(()),
             (Value::U64(_), Type::U64) => Ok(()),
             (Value::String(_), Type::String) => Ok(()),
-            (Value::List(items), Type::List(inner)) => items
-                .iter()
-                .map(|i| i.assignable(inner))
-                .collect::<Result<(), _>>(),
+            (Value::List(items), Type::List(inner)) => {
+                items.iter().try_for_each(|i| i.assignable(inner))
+            }
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
