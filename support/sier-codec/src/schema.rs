@@ -115,6 +115,7 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type {
+    Unit,
     U8,
     U32,
     U64,
@@ -125,6 +126,7 @@ pub enum Type {
 impl Type {
     fn id(&self) -> Vec<u8> {
         match self {
+            Type::Unit => unimplemented!(),
             Type::U8 => vec![0],
             Type::U32 => vec![1],
             Type::U64 => vec![2],
@@ -141,6 +143,7 @@ impl Type {
         use nom::number::complete;
 
         match self {
+            Type::Unit => unimplemented!(),
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),

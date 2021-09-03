@@ -37,32 +37,47 @@ impl<'s> Index<&'_ str> for Object<'s> {
     }
 }
 
-macro_rules! impl_value_for_types {
-    ($({$rust_type:ty, $variant:ident},)*) => {
-        #[derive(Debug, PartialEq, Eq)]
-        pub enum Value {
-            $(
-                $variant($rust_type),
-            )*
-        }
+#[derive(Debug, PartialEq)]
+pub enum Value {
+    U8(u8),
+    U32(u32),
+    U64(u64),
+    String(String),
+    List(Vec<Value>),
+}
 
-        $(
-            impl From<$rust_type> for self::Value {
-                fn from(v: $rust_type) -> Self {
-                    Self::$variant(v)
-                }
-            }
-        )*
+impl From<u8> for Value {
+    fn from(v: u8) -> Value {
+        Value::U8(v)
     }
 }
 
-impl_value_for_types!(
-    {u8, U8},
-    {u32, U32},
-    {u64, U64},
-    {String, String},
-    {Vec<Value>, List},
-);
+impl From<u32> for Value {
+    fn from(v: u32) -> Value {
+        Value::U32(v)
+    }
+}
+
+impl From<u64> for Value {
+    fn from(v: u64) -> Value {
+        Value::U64(v)
+    }
+}
+
+impl From<String> for Value {
+    fn from(v: String) -> Value {
+        Value::String(v)
+    }
+}
+
+impl<T> From<Vec<T>> for Value
+where
+    T: Into<Value>,
+{
+    fn from(items: Vec<T>) -> Value {
+        Value::List(items.into_iter().map(Into::into).collect())
+    }
+}
 
 impl Value {
     pub fn as_u8(&self) -> Option<u8> {
@@ -117,13 +132,33 @@ impl Value {
         }
     }
 
-    pub fn type_(&self) -> Type {
+    pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type)> {
+        match (self, type_) {
+            (Value::U8(_), Type::U8) => Ok(()),
+            (Value::U32(_), Type::U32) => Ok(()),
+            (Value::U64(_), Type::U64) => Ok(()),
+            (Value::String(_), Type::String) => Ok(()),
+            (Value::List(items), Type::List(inner)) => items
+                .iter()
+                .map(|i| i.assignable(inner))
+                .collect::<Result<(), _>>(),
+            (v, t) => Err((t.clone(), v.type_())),
+        }
+    }
+
+    fn type_(&self) -> Type {
         match self {
             Value::U8(_) => Type::U8,
             Value::U32(_) => Type::U32,
             Value::U64(_) => Type::U64,
             Value::String(_) => Type::String,
-            Value::List(_) => unimplemented!(),
+            Value::List(items) => {
+                let item_type = items
+                    .first()
+                    .map(|i| i.type_())
+                    .unwrap_or_else(|| Type::Unit);
+                Type::List(Box::new(item_type))
+            }
         }
     }
 }
@@ -204,6 +239,29 @@ mod tests {
             assert_eq!(
                 Value::List(vec![Value::U32(4), Value::U32(2)]).serialize(),
                 vec![8, 4, 0, 0, 0, 2, 0, 0, 0]
+            );
+        }
+    }
+
+    #[cfg(test)]
+    mod assignable {
+        use super::*;
+
+        #[test]
+        fn list_with_different_types() {
+            let list = Value::List(vec![Value::U8(4), Value::U32(32)]);
+            assert_eq!(
+                list.assignable(&Type::List(Box::new(Type::U8))),
+                Err((Type::U8, Type::U32))
+            );
+        }
+
+        #[test]
+        fn empty_list_expected_against_primitive() {
+            let list = Value::List(vec![]);
+            assert_eq!(
+                list.assignable(&Type::U8),
+                Err((Type::U8, Type::List(Box::new(Type::Unit))))
             );
         }
     }
