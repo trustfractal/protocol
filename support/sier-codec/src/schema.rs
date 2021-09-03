@@ -124,9 +124,10 @@ pub enum Type {
 }
 
 impl Type {
+    // Needs to be stable across versions of the code.
     fn id(&self) -> Vec<u8> {
         match self {
-            Type::Unit => unimplemented!(),
+            Type::Unit => vec![5],
             Type::U8 => vec![0],
             Type::U32 => vec![1],
             Type::U64 => vec![2],
@@ -143,7 +144,7 @@ impl Type {
         use nom::number::complete;
 
         match self {
-            Type::Unit => unimplemented!(),
+            Type::Unit => Ok((bytes, Value::Unit)),
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),

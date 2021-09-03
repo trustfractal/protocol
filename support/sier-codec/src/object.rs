@@ -39,11 +39,18 @@ impl<'s> Index<&'_ str> for Object<'s> {
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
+    Unit,
     U8(u8),
     U32(u32),
     U64(u64),
     String(String),
     List(Vec<Value>),
+}
+
+impl From<()> for Value {
+    fn from(v: ()) -> Value {
+        Value::Unit
+    }
 }
 
 impl From<u8> for Value {
@@ -118,6 +125,7 @@ impl Value {
 
     pub fn serialize(&self) -> Vec<u8> {
         match self {
+            Value::Unit => Vec::new(),
             Value::U8(v) => Vec::from(v.to_le_bytes()),
             Value::U32(v) => Vec::from(v.to_le_bytes()),
             Value::U64(v) => Vec::from(v.to_le_bytes()),
@@ -134,6 +142,7 @@ impl Value {
 
     pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type)> {
         match (self, type_) {
+            (Value::Unit, Type::Unit) => Ok(()),
             (Value::U8(_), Type::U8) => Ok(()),
             (Value::U32(_), Type::U32) => Ok(()),
             (Value::U64(_), Type::U64) => Ok(()),
@@ -148,6 +157,7 @@ impl Value {
 
     fn type_(&self) -> Type {
         match self {
+            Value::Unit => Type::Unit,
             Value::U8(_) => Type::U8,
             Value::U32(_) => Type::U32,
             Value::U64(_) => Type::U64,
