@@ -105,3 +105,28 @@ fn string() {
 
     assert_eq!(message["foo"].as_string(), Some("abc"));
 }
+
+const LIST: &'static str = r#"
+struct Foo {
+    foo :List<u8>;
+}
+"#;
+
+#[test]
+fn list() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(LIST).unwrap();
+
+    let id = parser.struct_def("Foo").unwrap().id();
+    let encoded_list = [4, 2];
+    let encoded = id
+        .iter()
+        .chain(&[encoded_list.len() as u8])
+        .chain(&encoded_list)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let message = parser.parse(encoded.as_ref()).unwrap();
+
+    assert_eq!(message["foo"].as_list(), Some(vec![4, 2]));
+}

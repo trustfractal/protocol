@@ -43,7 +43,7 @@ impl<'s> Builder<'s> {
         if value.type_() != field.type_ {
             return Err(BuildError::IncorrectType {
                 field: self.field_name(field),
-                expected: field.type_,
+                expected: field.type_.clone(),
                 got: value.type_(),
             });
         }

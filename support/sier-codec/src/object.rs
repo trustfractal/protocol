@@ -2,6 +2,7 @@ use core::ops::Index;
 
 use crate::schema::{StructDef, Type};
 
+#[derive(Debug)]
 pub struct Object<'s> {
     pub(crate) schema: &'s StructDef,
     pub(crate) values: Vec<Value>,
@@ -52,16 +53,6 @@ macro_rules! impl_value_for_types {
                 }
             }
         )*
-
-        impl self::Value {
-            pub fn type_(&self) -> Type {
-                match self {
-                    $(
-                        self::Value::$variant(_) => crate::Type::$variant,
-                    )*
-                }
-            }
-        }
     }
 }
 
@@ -70,6 +61,7 @@ impl_value_for_types!(
     {u32, U32},
     {u64, U64},
     {String, String},
+    {Vec<Value>, List},
 );
 
 impl Value {
@@ -101,12 +93,31 @@ impl Value {
         }
     }
 
+    // TODO(shelbyd+melatron): Handle all types.
+    pub fn as_list(&self) -> Option<Vec<u8>> {
+        match self {
+            Value::List(items) => Some(items.iter().map(|i| i.as_u8()).collect::<Option<_>>()?),
+            _ => None,
+        }
+    }
+
     pub fn serialize(&self) -> Vec<u8> {
         match self {
             Value::U8(v) => Vec::from(v.to_le_bytes()),
             Value::U32(v) => Vec::from(v.to_le_bytes()),
             Value::U64(v) => Vec::from(v.to_le_bytes()),
             Value::String(v) => var_int(v.len()).into_iter().chain(v.bytes()).collect(),
+            Value::List(_) => unimplemented!(),
+        }
+    }
+
+    pub fn type_(&self) -> Type {
+        match self {
+            Value::U8(_) => Type::U8,
+            Value::U32(_) => Type::U32,
+            Value::U64(_) => Type::U64,
+            Value::String(_) => Type::String,
+            Value::List(_) => unimplemented!(),
         }
     }
 }

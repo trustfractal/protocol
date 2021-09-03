@@ -4,12 +4,14 @@ use crate::{
 };
 
 use nom::{
+    branch::alt,
     bytes::complete::tag,
     character::complete::{alphanumeric1, multispace0, multispace1},
     multi::{many0, separated_list0},
     IResult,
 };
 
+#[derive(Debug)]
 struct ParsedStruct<'i> {
     type_name: &'i str,
     fields: Vec<ParsedField<'i>>,
@@ -24,6 +26,7 @@ struct ParsedField<'i> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum TypeDef<'i> {
     Primitive(Type),
+    Generic(&'i str, Box<TypeDef<'i>>),
     Unresolved(&'i str),
 }
 
@@ -59,7 +62,10 @@ impl<'i> TypeDef<'i> {
     fn resolve(self) -> Result<Type, Error<'i>> {
         match self {
             TypeDef::Primitive(t) => Ok(t),
-            TypeDef::Unresolved(name) => Err(Error::UnresolvedType(name.to_string())),
+            TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
+            TypeDef::Unresolved(name) | TypeDef::Generic(name, _) => {
+                Err(Error::UnresolvedType(name.to_string()))
+            }
         }
     }
 }
@@ -109,6 +115,18 @@ fn field(s: &str) -> IResult<&str, ParsedField> {
 }
 
 fn type_(s: &str) -> IResult<&str, TypeDef> {
+    alt((generic_type, leaf_type))(s)
+}
+
+fn generic_type(s: &str) -> IResult<&str, TypeDef> {
+    let (s, outer_type) = ident(s)?;
+    let (s, _) = tag("<")(s)?;
+    let (s, inner_type) = type_(s)?;
+    let (s, _) = tag(">")(s)?;
+    Ok((s, TypeDef::Generic(outer_type, Box::new(inner_type))))
+}
+
+fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
     let (s, type_str) = ident(s)?;
     let as_type = match type_str {
         "u8" => TypeDef::Primitive(Type::U8),
