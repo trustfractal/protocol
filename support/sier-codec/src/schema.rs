@@ -5,6 +5,7 @@ use crate::{Builder, Error, Object, Value};
 
 pub type Id = [u8; 8];
 
+#[derive(Debug)]
 pub struct StructDef {
     pub(crate) type_name: String,
     pub(crate) fields: Vec<FieldDef>,
@@ -58,6 +59,7 @@ impl StructDef {
     }
 }
 
+#[derive(Debug)]
 pub struct FieldDef {
     pub(crate) name: String,
     pub(crate) type_: Type,
@@ -73,20 +75,7 @@ impl FieldDef {
     }
 
     fn parse<'i>(&self, bytes: &'i [u8]) -> Result<(&'i [u8], Value), Error<'i>> {
-        use nom::number::complete;
-
-        match &self.type_ {
-            Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
-            Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
-            Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),
-            Type::String => {
-                let (bytes, str_bytes) = length_prefixed(bytes).map_err(Error::ValueParsing)?;
-                let s = std::str::from_utf8(str_bytes).map_err(Error::InvalidUtf8)?;
-
-                Ok((bytes, Value::String(String::from(s))))
-            }
-        }
-        .map_err(Error::ValueParsing)
+        self.type_.parse(bytes)
     }
 }
 
@@ -124,22 +113,61 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
     Ok((new_b, result))
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type {
+    Unit,
     U8,
     U32,
     U64,
     String,
+    List(Box<Type>),
 }
 
 impl Type {
-    fn id(&self) -> &[u8] {
+    // Needs to be stable across versions of the code.
+    fn id(&self) -> Vec<u8> {
         match self {
-            Type::U8 => &[0],
-            Type::U32 => &[1],
-            Type::U64 => &[2],
-            Type::String => &[3],
+            Type::Unit => vec![5],
+            Type::U8 => vec![0],
+            Type::U32 => vec![1],
+            Type::U64 => vec![2],
+            Type::String => vec![3],
+            Type::List(t) => {
+                let mut res = vec![4];
+                res.extend(t.id());
+                res
+            }
         }
+    }
+
+    fn parse<'i>(&self, bytes: &'i [u8]) -> Result<(&'i [u8], Value), Error<'i>> {
+        use nom::number::complete;
+
+        match self {
+            Type::Unit => Ok((bytes, Value::Unit)),
+            Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
+            Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
+            Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),
+            Type::String => {
+                let (bytes, str_bytes) = length_prefixed(bytes).map_err(Error::ValueParsing)?;
+                let s = std::str::from_utf8(str_bytes).map_err(Error::InvalidUtf8)?;
+
+                Ok((bytes, Value::String(String::from(s))))
+            }
+            Type::List(t) => {
+                let (bytes, mut list_bytes) =
+                    length_prefixed(bytes).map_err(Error::ValueParsing)?;
+
+                let mut items = Vec::new();
+                while !list_bytes.is_empty() {
+                    let (b, item) = t.parse(list_bytes)?;
+                    list_bytes = b;
+                    items.push(item);
+                }
+                Ok((bytes, Value::List(items)))
+            }
+        }
+        .map_err(Error::ValueParsing)
     }
 }
 
@@ -287,6 +315,26 @@ mod tests {
             };
 
             assert_eq!(struct_a.id(), struct_b.id());
+        }
+
+        #[test]
+        fn is_different_with_different_list_types() {
+            let struct_a = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::List(Box::new(Type::U8)),
+                }],
+            };
+            let struct_b = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::List(Box::new(Type::U32)),
+                }],
+            };
+
+            assert_ne!(struct_a.id(), struct_b.id());
         }
     }
 

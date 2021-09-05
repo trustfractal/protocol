@@ -40,11 +40,11 @@ impl<'s> Builder<'s> {
             .remove(&field.name)
             .ok_or_else(|| BuildError::MissingField(self.field_name(field)))?;
 
-        if value.type_() != field.type_ {
+        if let Err((expected, got)) = value.assignable(&field.type_) {
             return Err(BuildError::IncorrectType {
                 field: self.field_name(field),
-                expected: field.type_,
-                got: value.type_(),
+                expected,
+                got,
             });
         }
 
@@ -156,5 +156,23 @@ mod tests {
         let obj = obj.unwrap();
 
         assert_eq!(obj["bar"].as_u8(), Some(43));
+    }
+
+    #[test]
+    fn setting_a_list() {
+        let def = StructDef {
+            type_name: "Foo".to_string(),
+            fields: vec![FieldDef {
+                name: "bar".to_string(),
+                type_: Type::List(Box::new(Type::U8)),
+            }],
+        };
+
+        let obj = def.builder().set("bar", vec![42u8]).try_build();
+
+        assert!(obj.is_ok());
+        let obj = obj.unwrap();
+
+        assert_eq!(obj["bar"].as_list(), Some(&[Value::U8(42)][..]));
     }
 }
