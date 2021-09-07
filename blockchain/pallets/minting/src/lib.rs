@@ -64,12 +64,15 @@ pub mod pallet {
     >;
 
     #[pallet::storage]
-    pub type IdToAccount<T: Config> =
-        StorageMap<_, Blake2_128Concat, FractalId, T::AccountId, ValueQuery>;
-
-    #[pallet::storage]
-    pub type IdDatasets<T: Config> =
-        StorageMap<_, Blake2_128Concat, FractalId, MerkleTree<Blake2b>, OptionQuery>;
+    pub type IdDatasets<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Blake2_128Concat,
+        FractalId,
+        MerkleTree<Blake2b>,
+        OptionQuery,
+    >;
 
     #[pallet::storage]
     pub type FractalAuthoritativeAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
@@ -142,13 +145,6 @@ pub mod pallet {
                 Error::<T>::MustBeFractal
             );
 
-            if let Ok(account) = IdToAccount::<T>::try_get(fractal_id) {
-                AccountIds::<T>::remove(account, fractal_id);
-            }
-            NextMintingRewards::<T>::remove(fractal_id);
-            IdDatasets::<T>::remove(fractal_id);
-
-            IdToAccount::<T>::insert(fractal_id, account.clone());
             AccountIds::<T>::insert(account, fractal_id, ());
 
             Ok(())
@@ -189,7 +185,7 @@ pub mod pallet {
                 }
             };
 
-            let id_datasets_entry = IdDatasets::<T>::get(id);
+            let id_datasets_entry = IdDatasets::<T>::get(who.clone(), id);
             if let Some(existing) = &id_datasets_entry {
                 ensure!(
                     extension_proof.strict_extends(existing),
@@ -197,14 +193,13 @@ pub mod pallet {
                 );
             }
 
-            IdDatasets::<T>::insert(id, extension_proof);
+            IdDatasets::<T>::insert(who.clone(), id, extension_proof);
             NextMintingRewards::<T>::insert(id, who);
 
-            if id_datasets_entry.is_some() {
-                Ok(Pays::Yes.into())
-            } else {
-                Ok(Pays::No.into())
-            }
+            Ok(match id_datasets_entry {
+                Some(_) => Pays::Yes.into(),
+                None => Pays::No.into(),
+            })
         }
     }
 
