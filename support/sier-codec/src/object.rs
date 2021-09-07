@@ -157,9 +157,7 @@ impl<'s> Value<'s> {
                     .chain(item_bytes)
                     .collect()
             },
-            Value::Struct(obj) => {
-                unimplemented!()
-            }
+            Value::Struct(obj) => obj.serialize()
         }
     }
 
@@ -173,9 +171,7 @@ impl<'s> Value<'s> {
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
             },
-            (Value::Struct(obj), Type::Struct) => {
-                unimplemented!()
-            }
+            (Value::Struct(_), Type::Struct) => Ok(()),
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
@@ -194,9 +190,7 @@ impl<'s> Value<'s> {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             },
-            Value::Struct(obj) => {
-                unimplemented!()
-            }
+            Value::Struct(_) => Type::Struct
         }
     }
 }

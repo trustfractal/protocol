@@ -37,7 +37,6 @@ impl Parser {
     }
 
     pub fn struct_def(&self, name: &str) -> Option<&StructDef> {
-        dbg!(self);
         self.structs.values().find(|s| s.type_name() == name)
     }
 }

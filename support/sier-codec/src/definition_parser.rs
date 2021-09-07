@@ -6,7 +6,7 @@ use crate::{
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alphanumeric1, multispace0, multispace1},
+    character::complete::{alpha1, alphanumeric1, multispace0, multispace1},
     multi::{many0, separated_list0},
     IResult,
 };
@@ -64,7 +64,8 @@ impl<'i> TypeDef<'i> {
         match self {
             TypeDef::Primitive(t) => Ok(t),
             TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
-            TypeDef::Struct(name) => Ok(Type::Struct),
+            // TODO (melatron): Not sure if we need to store the str inside the Type enum. Ask Shelby
+            TypeDef::Struct(_name) => Ok(Type::Struct),
             TypeDef::Unresolved(name) | TypeDef::Generic(name, _) => {
                 Err(Error::UnresolvedType(name.to_string()))
             }
@@ -120,6 +121,12 @@ fn type_(s: &str) -> IResult<&str, TypeDef> {
     alt((generic_type, leaf_type))(s)
 }
 
+fn struct_type(s: &str) -> IResult<&str, TypeDef> {
+    let (s, struct_str) = alpha1(s)?;
+
+    Ok((s, TypeDef::Struct(struct_str)))
+}
+
 fn generic_type(s: &str) -> IResult<&str, TypeDef> {
     let (s, outer_type) = ident(s)?;
     let (s, _) = tag("<")(s)?;
@@ -135,7 +142,7 @@ fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
         "string" => TypeDef::Primitive(Type::String),
-        v => TypeDef::Struct(v),
+        v => struct_type(v).ok().map_or(TypeDef::Unresolved(v), |(_, type_)| type_),
     };
     Ok((s, as_type))
 }
