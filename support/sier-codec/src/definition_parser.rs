@@ -27,6 +27,7 @@ struct ParsedField<'i> {
 pub enum TypeDef<'i> {
     Primitive(Type),
     Generic(&'i str, Box<TypeDef<'i>>),
+    Struct(&'i str),
     Unresolved(&'i str),
 }
 
@@ -63,6 +64,7 @@ impl<'i> TypeDef<'i> {
         match self {
             TypeDef::Primitive(t) => Ok(t),
             TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
+            TypeDef::Struct(name) => Ok(Type::Struct),
             TypeDef::Unresolved(name) | TypeDef::Generic(name, _) => {
                 Err(Error::UnresolvedType(name.to_string()))
             }
@@ -133,7 +135,7 @@ fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
         "string" => TypeDef::Primitive(Type::String),
-        v => TypeDef::Unresolved(v),
+        v => TypeDef::Struct(v),
     };
     Ok((s, as_type))
 }

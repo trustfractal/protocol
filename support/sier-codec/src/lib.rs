@@ -12,6 +12,7 @@ use object::{Object, Value};
 mod schema;
 use schema::{FieldDef, Id, StructDef, Type};
 
+#[derive(Debug)]
 pub struct Parser {
     structs: HashMap<Id, StructDef>,
 }
@@ -36,6 +37,7 @@ impl Parser {
     }
 
     pub fn struct_def(&self, name: &str) -> Option<&StructDef> {
+        dbg!(self);
         self.structs.values().find(|s| s.type_name() == name)
     }
 }

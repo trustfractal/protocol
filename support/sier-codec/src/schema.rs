@@ -5,7 +5,7 @@ use crate::{Builder, Error, Object, Value};
 
 pub type Id = [u8; 8];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct StructDef {
     pub(crate) type_name: String,
     pub(crate) fields: Vec<FieldDef>,
@@ -59,7 +59,7 @@ impl StructDef {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FieldDef {
     pub(crate) name: String,
     pub(crate) type_: Type,
@@ -121,6 +121,7 @@ pub enum Type {
     U64,
     String,
     List(Box<Type>),
+    Struct,
 }
 
 impl Type {
@@ -136,7 +137,8 @@ impl Type {
                 let mut res = vec![4];
                 res.extend(t.id());
                 res
-            }
+            },
+            Type::Struct => vec![6]
         }
     }
 
@@ -165,6 +167,9 @@ impl Type {
                     items.push(item);
                 }
                 Ok((bytes, Value::List(items)))
+            },
+            Type::Struct => {
+                unimplemented!()
             }
         }
         .map_err(Error::ValueParsing)
