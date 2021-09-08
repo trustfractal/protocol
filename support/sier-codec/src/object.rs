@@ -45,7 +45,7 @@ pub enum Value<'s> {
     U64(u64),
     String(String),
     List(Vec<Value<'s>>),
-    Struct(Object<'s>)
+    Struct(Object<'s>),
 }
 
 impl<'s> From<()> for Value<'s> {
@@ -156,8 +156,8 @@ impl<'s> Value<'s> {
                     .into_iter()
                     .chain(item_bytes)
                     .collect()
-            },
-            Value::Struct(obj) => obj.serialize()
+            }
+            Value::Struct(obj) => obj.serialize(),
         }
     }
 
@@ -170,7 +170,7 @@ impl<'s> Value<'s> {
             (Value::String(_), Type::String) => Ok(()),
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
-            },
+            }
             (Value::Struct(_), Type::Struct) => Ok(()), // TODO (melatron): Chceck if the two structure definitions for Object and Type::Struct(&Object) are the same
             (v, t) => Err((t.clone(), v.type_())),
         }
@@ -189,8 +189,8 @@ impl<'s> Value<'s> {
                     .map(|i| i.type_())
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
-            },
-            Value::Struct(_) => Type::Struct // TODO (melatron): provide the obj to the Type::Struct
+            }
+            Value::Struct(_) => Type::Struct, // TODO (melatron): provide the obj to the Type::Struct
         }
     }
 }

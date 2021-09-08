@@ -143,7 +143,9 @@ fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
         "string" => TypeDef::Primitive(Type::String),
-        v => struct_type(v).ok().map_or(TypeDef::Unresolved(v), |(_, type_)| type_),
+        v => struct_type(v)
+            .ok()
+            .map_or(TypeDef::Unresolved(v), |(_, type_)| type_),
     };
     Ok((s, as_type))
 }

@@ -137,8 +137,8 @@ impl Type {
                 let mut res = vec![4];
                 res.extend(t.id());
                 res
-            },
-            Type::Struct => vec![6]
+            }
+            Type::Struct => vec![6],
         }
     }
 
@@ -167,7 +167,7 @@ impl Type {
                     items.push(item);
                 }
                 Ok((bytes, Value::List(items)))
-            },
+            }
             Type::Struct => {
                 unimplemented!()
             }

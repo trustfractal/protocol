@@ -159,24 +159,12 @@ fn struct_() {
     parser.add_file_defs(STRUCT_BAR).unwrap();
 
     let def = parser.struct_def("Foo").unwrap();
-    let message = def
-        .builder()
-        .set("foo", 42u8)
-        .try_build()
-        .unwrap();
-
+    let message = def.builder().set("foo", 42u8).try_build().unwrap();
 
     let bar_def = parser.struct_def("Bar").unwrap();
-    let bar_message = bar_def
-        .builder()
-        .set("bar", message)
-        .try_build()
-        .unwrap();
-
+    let bar_message = bar_def.builder().set("bar", message).try_build().unwrap();
 
     let obj = bar_message["bar"].as_object().unwrap();
 
-    assert_eq!(
-        obj["foo"].as_u8(), Some(42)
-    );
+    assert_eq!(obj["foo"].as_u8(), Some(42));
 }
