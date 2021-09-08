@@ -121,6 +121,7 @@ fn type_(s: &str) -> IResult<&str, TypeDef> {
     alt((generic_type, leaf_type))(s)
 }
 
+// TODO (melatron): Remove this, structs can have digits
 fn struct_type(s: &str) -> IResult<&str, TypeDef> {
     let (s, struct_str) = alpha1(s)?;
 

@@ -151,6 +151,7 @@ struct Bar {
 }
 "#;
 
+//TODO (melatron): Fail compiling when defining a structure field which doesn't exist
 #[test]
 fn struct_() {
     let mut parser = Parser::default();

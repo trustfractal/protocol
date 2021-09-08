@@ -121,7 +121,7 @@ pub enum Type {
     U64,
     String,
     List(Box<Type>),
-    Struct,
+    Struct, // TODO (melatron): add ref to the Object for different ids
 }
 
 impl Type {

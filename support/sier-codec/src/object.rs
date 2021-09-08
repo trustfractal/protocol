@@ -171,7 +171,7 @@ impl<'s> Value<'s> {
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
             },
-            (Value::Struct(_), Type::Struct) => Ok(()),
+            (Value::Struct(_), Type::Struct) => Ok(()), // TODO (melatron): Chceck if the two structure definitions for Object and Type::Struct(&Object) are the same
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
@@ -190,7 +190,7 @@ impl<'s> Value<'s> {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             },
-            Value::Struct(_) => Type::Struct
+            Value::Struct(_) => Type::Struct // TODO (melatron): provide the obj to the Type::Struct
         }
     }
 }
