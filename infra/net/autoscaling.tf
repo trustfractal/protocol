@@ -214,11 +214,18 @@ resource "aws_elb" "nodes_elb" {
 
 }
 
+resource "aws_lb_cookie_stickiness_policy" "nodes_elb_stickiness" {
+  name                     = "nodes-elb-stickiness-policy"
+  load_balancer            = aws_elb.nodes_elb.id
+  lb_port                  = 443
+  cookie_expiration_period = 3600
+}
+
 resource "aws_autoscaling_group" "fcl_mainnet_nodes" {
   name = "${aws_launch_configuration.fcl_mainnet_node.name}-asg"
 
-  min_size             = 2
-  desired_capacity     = 3
+  min_size             = 1
+  desired_capacity     = 2
   max_size             = 8
   
   health_check_type    = "ELB"
