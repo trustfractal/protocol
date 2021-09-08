@@ -3,10 +3,12 @@ use crate::{
     Error,
 };
 
+use std::collections::HashSet;
+
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, multispace0, multispace1},
+    character::complete::{alphanumeric1, multispace0, multispace1},
     multi::{many0, separated_list0},
     IResult,
 };
@@ -28,15 +30,22 @@ pub enum TypeDef<'i> {
     Primitive(Type),
     Generic(&'i str, Box<TypeDef<'i>>),
     Struct(&'i str),
-    Unresolved(&'i str),
 }
 
 impl<'i> ParsedStruct<'i> {
-    fn compile(self) -> Result<StructDef, Error<'i>> {
-        use std::collections::HashSet;
+    fn compile(self, struct_names: &'_ mut HashSet<String>) -> Result<StructDef, Error<'i>> {
+        if !struct_names.insert(self.type_name.to_string()) {
+            return Err(Error::DuplicateStruct(self.type_name.to_string()));
+        }
 
         let mut seen = HashSet::with_capacity(self.fields.len());
         for field in &self.fields {
+            if let TypeDef::Struct(str) = field.type_ {
+                if !struct_names.contains(str) {
+                    return Err(Error::UndeclaredStructField(str.to_string()));
+                }
+            };
+
             if seen.contains(field.name) {
                 return Err(Error::DuplicateField(field.name.to_string()));
             }
@@ -64,23 +73,23 @@ impl<'i> TypeDef<'i> {
         match self {
             TypeDef::Primitive(t) => Ok(t),
             TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
-            // TODO (melatron): Not sure if we need to store the str inside the Type enum. Ask Shelby
-            TypeDef::Struct(_name) => Ok(Type::Struct),
-            TypeDef::Unresolved(name) | TypeDef::Generic(name, _) => {
-                Err(Error::UnresolvedType(name.to_string()))
-            }
+            TypeDef::Struct(_name) => Ok(Type::Struct(_name.to_string())),
+            TypeDef::Generic(name, _) => Err(Error::UnresolvedType(name.to_string()))
         }
     }
 }
 
-pub fn parse(s: &str) -> Result<Vec<StructDef>, Error> {
+pub fn parse<'a>(
+    s: &'a str,
+    struct_names: &'_ mut HashSet<String>,
+) -> Result<Vec<StructDef>, Error<'a>> {
     let (s, _) = multispace0(s).map_err(Error::DefinitionParsing)?;
     let (_, structs) =
         separated_list0(multispace0, struct_def)(s).map_err(Error::DefinitionParsing)?;
 
     structs
         .into_iter()
-        .map(ParsedStruct::compile)
+        .map(|st| st.compile(struct_names))
         .collect::<Result<_, _>>()
 }
 
@@ -121,13 +130,6 @@ fn type_(s: &str) -> IResult<&str, TypeDef> {
     alt((generic_type, leaf_type))(s)
 }
 
-// TODO (melatron): Remove this, structs can have digits
-fn struct_type(s: &str) -> IResult<&str, TypeDef> {
-    let (s, struct_str) = alpha1(s)?;
-
-    Ok((s, TypeDef::Struct(struct_str)))
-}
-
 fn generic_type(s: &str) -> IResult<&str, TypeDef> {
     let (s, outer_type) = ident(s)?;
     let (s, _) = tag("<")(s)?;
@@ -143,9 +145,7 @@ fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
         "string" => TypeDef::Primitive(Type::String),
-        v => struct_type(v)
-            .ok()
-            .map_or(TypeDef::Unresolved(v), |(_, type_)| type_),
+        v => TypeDef::Struct(v),
     };
     Ok((s, as_type))
 }
@@ -174,7 +174,8 @@ mod tests {
 
     #[test]
     fn duplicate_fields() {
-        let result = parse("struct Foo { bar :u64; bar :u64; }");
+        let mut seen = HashSet::new();
+        let result = parse("struct Foo { bar :u64; bar :u64; }", &mut seen);
         assert!(result.is_err());
     }
 }

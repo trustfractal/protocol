@@ -139,24 +139,20 @@ fn list() {
     );
 }
 
-const STRUCT_FOO: &'static str = r#"
+const STRUCT: &'static str = r#"
 struct Foo {
     foo :u8;
 }
-"#;
 
-const STRUCT_BAR: &'static str = r#"
 struct Bar {
     bar :Foo;
 }
 "#;
 
-//TODO (melatron): Fail compiling when defining a structure field which doesn't exist
 #[test]
 fn struct_() {
     let mut parser = Parser::default();
-    parser.add_file_defs(STRUCT_FOO).unwrap();
-    parser.add_file_defs(STRUCT_BAR).unwrap();
+    parser.add_file_defs(STRUCT).unwrap();
 
     let def = parser.struct_def("Foo").unwrap();
     let message = def.builder().set("foo", 42u8).try_build().unwrap();

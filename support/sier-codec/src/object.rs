@@ -1,4 +1,5 @@
 use core::ops::Index;
+use std::hash::Hash;
 
 use crate::schema::{StructDef, Type};
 
@@ -8,7 +9,14 @@ pub struct Object<'s> {
     pub(crate) values: Vec<Value<'s>>,
 }
 
-impl Object<'_> {
+impl<'s> Object<'s> {
+    pub fn new(schema: &'s StructDef, values: Vec<Value<'s>>) -> Self {
+        Self {
+            schema,
+            values,
+        }
+    }
+
     pub fn schema(&self) -> &StructDef {
         self.schema
     }
@@ -171,7 +179,13 @@ impl<'s> Value<'s> {
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
             }
-            (Value::Struct(_), Type::Struct) => Ok(()), // TODO (melatron): Chceck if the two structure definitions for Object and Type::Struct(&Object) are the same
+            (Value::Struct(obj), Type::Struct(p)) => {
+                if obj.schema().type_name == *p {
+                    Ok(())
+                } else {
+                    Err((Type::Struct(p.clone()), Type::Struct(obj.schema().type_name.clone())))
+                }
+            },
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
@@ -190,7 +204,7 @@ impl<'s> Value<'s> {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             }
-            Value::Struct(_) => Type::Struct, // TODO (melatron): provide the obj to the Type::Struct
+            Value::Struct(obj) => Type::Struct(obj.schema().type_name.clone()),
         }
     }
 }

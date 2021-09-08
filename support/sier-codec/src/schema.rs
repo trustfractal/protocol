@@ -48,10 +48,7 @@ impl StructDef {
             return Err(Error::TooManyBytes);
         }
 
-        Ok(Object {
-            schema: self,
-            values,
-        })
+        Ok(Object::new(self, values))
     }
 
     pub fn builder(&self) -> Builder {
@@ -121,7 +118,7 @@ pub enum Type {
     U64,
     String,
     List(Box<Type>),
-    Struct, // TODO (melatron): add ref to the Object for different ids
+    Struct(String), // TODO (melatron): change to &str or &Object
 }
 
 impl Type {
@@ -138,7 +135,11 @@ impl Type {
                 res.extend(t.id());
                 res
             }
-            Type::Struct => vec![6],
+            Type::Struct(u) => {
+                let mut res = vec![6];
+                res.extend(u.clone().into_bytes());
+                res
+            },
         }
     }
 
@@ -168,7 +169,8 @@ impl Type {
                 }
                 Ok((bytes, Value::List(items)))
             }
-            Type::Struct => {
+            Type::Struct(u) => {
+                // TODO (melatron): Implement
                 unimplemented!()
             }
         }
