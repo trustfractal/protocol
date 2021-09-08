@@ -92,7 +92,7 @@ where
 }
 
 impl<'s> From<Object<'s>> for Value<'s> {
-    fn from(v: Object) -> Value {
+    fn from(v: Object<'s>) -> Value<'s> {
         Value::Struct(v)
     }
 }
@@ -175,16 +175,7 @@ impl<'s> Value<'s> {
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
             }
-            (Value::Struct(obj), Type::Struct(p)) => {
-                if obj.schema().type_name == *p {
-                    Ok(())
-                } else {
-                    Err((
-                        Type::Struct(p.clone()),
-                        Type::Struct(obj.schema().type_name.clone()),
-                    ))
-                }
-            }
+            (Value::Struct(obj), Type::Struct(def)) if obj.schema() == def.as_ref() => Ok(()),
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
@@ -203,7 +194,7 @@ impl<'s> Value<'s> {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             }
-            Value::Struct(obj) => Type::Struct(obj.schema().type_name.clone()),
+            Value::Struct(obj) => unimplemented!(),
         }
     }
 }

@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 mod builder;
 use builder::Builder;
@@ -14,14 +17,19 @@ use schema::{FieldDef, Id, StructDef, Type};
 
 #[derive(Debug)]
 pub struct Parser {
-    struct_names: HashSet<String>,
-    structs: HashMap<Id, StructDef>,
+    structs: HashMap<Id, Arc<StructDef>>,
 }
 
 impl Parser {
     pub fn add_file_defs<'i>(&mut self, file_contents: &'i str) -> Result<(), Error<'i>> {
-        for schema in parse(file_contents, &mut self.struct_names)? {
-            self.structs.insert(schema.id(), schema);
+        let mut remaining_contents = file_contents;
+
+        while let (c, Some(def)) = definition_parser::next_def(remaining_contents, self)? {
+            let existing = self.structs.insert(def.id(), Arc::new(def));
+            if let Some(s) = existing {
+                return Err(Error::DuplicateStructDef(s.type_name().to_string()));
+            }
+            remaining_contents = c;
         }
 
         Ok(())
@@ -37,7 +45,7 @@ impl Parser {
         schema.parse(bytes)
     }
 
-    pub fn struct_def(&self, name: &str) -> Option<&StructDef> {
+    pub fn struct_def(&self, name: &str) -> Option<&Arc<StructDef>> {
         self.structs.values().find(|s| s.type_name() == name)
     }
 }
@@ -45,7 +53,6 @@ impl Parser {
 impl Default for Parser {
     fn default() -> Self {
         Parser {
-            struct_names: HashSet::new(),
             structs: HashMap::new(),
         }
     }
@@ -58,8 +65,8 @@ pub enum Error<'i> {
     ValueParsing(nom::Err<nom::error::Error<&'i [u8]>>),
     UnresolvedType(String),
     DuplicateField(String),
-    DuplicateStruct(String),
-    UndeclaredStructField(String),
+    DuplicateStructDef(String),
+    UnrecognizedType(String),
     TooFewBytes,
     TooManyBytes,
     InvalidUtf8(std::str::Utf8Error),
@@ -83,7 +90,7 @@ mod tests {
         let result = parser.add_file_defs(DUPLICATE_STRUCT);
         assert_eq!(
             result.unwrap_err(),
-            Error::DuplicateStruct("Foo".to_string())
+            Error::DuplicateStructDef("Foo".to_string())
         );
     }
 
@@ -98,7 +105,7 @@ mod tests {
         let result = parser.add_file_defs(UNDECLARED_STRUCT);
         assert_eq!(
             result.unwrap_err(),
-            Error::UndeclaredStructField("Bar".to_string())
+            Error::UnrecognizedType("Bar".to_string())
         );
     }
 }

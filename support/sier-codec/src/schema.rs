@@ -1,11 +1,12 @@
 use blake2::{Blake2b, Digest};
 use core::convert::TryInto;
+use std::sync::Arc;
 
 use crate::{Builder, Error, Object, Value};
 
 pub type Id = [u8; 8];
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct StructDef {
     pub(crate) type_name: String,
     pub(crate) fields: Vec<FieldDef>,
@@ -56,7 +57,7 @@ impl StructDef {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FieldDef {
     pub(crate) name: String,
     pub(crate) type_: Type,
@@ -118,7 +119,7 @@ pub enum Type {
     U64,
     String,
     List(Box<Type>),
-    Struct(String), // TODO (melatron): change to &str or &Object
+    Struct(Arc<StructDef>),
 }
 
 impl Type {
@@ -135,11 +136,7 @@ impl Type {
                 res.extend(t.id());
                 res
             }
-            Type::Struct(u) => {
-                let mut res = vec![6];
-                res.extend(u.clone().into_bytes());
-                res
-            }
+            Type::Struct(def) => vec![6],
         }
     }
 
@@ -343,6 +340,8 @@ mod tests {
 
             assert_ne!(struct_a.id(), struct_b.id());
         }
+
+        // TODO(shelbyd): Different with different struct types.
     }
 
     #[cfg(test)]
