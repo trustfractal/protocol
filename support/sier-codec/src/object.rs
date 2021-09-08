@@ -1,5 +1,4 @@
 use core::ops::Index;
-use std::hash::Hash;
 
 use crate::schema::{StructDef, Type};
 
@@ -11,10 +10,7 @@ pub struct Object<'s> {
 
 impl<'s> Object<'s> {
     pub fn new(schema: &'s StructDef, values: Vec<Value<'s>>) -> Self {
-        Self {
-            schema,
-            values,
-        }
+        Self { schema, values }
     }
 
     pub fn schema(&self) -> &StructDef {
@@ -183,9 +179,12 @@ impl<'s> Value<'s> {
                 if obj.schema().type_name == *p {
                     Ok(())
                 } else {
-                    Err((Type::Struct(p.clone()), Type::Struct(obj.schema().type_name.clone())))
+                    Err((
+                        Type::Struct(p.clone()),
+                        Type::Struct(obj.schema().type_name.clone()),
+                    ))
                 }
-            },
+            }
             (v, t) => Err((t.clone(), v.type_())),
         }
     }

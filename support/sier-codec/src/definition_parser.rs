@@ -74,7 +74,7 @@ impl<'i> TypeDef<'i> {
             TypeDef::Primitive(t) => Ok(t),
             TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
             TypeDef::Struct(_name) => Ok(Type::Struct(_name.to_string())),
-            TypeDef::Generic(name, _) => Err(Error::UnresolvedType(name.to_string()))
+            TypeDef::Generic(name, _) => Err(Error::UnresolvedType(name.to_string())),
         }
     }
 }

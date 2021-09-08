@@ -139,7 +139,7 @@ impl Type {
                 let mut res = vec![6];
                 res.extend(u.clone().into_bytes());
                 res
-            },
+            }
         }
     }
 
@@ -169,7 +169,7 @@ impl Type {
                 }
                 Ok((bytes, Value::List(items)))
             }
-            Type::Struct(u) => {
+            Type::Struct(_) => {
                 // TODO (melatron): Implement
                 unimplemented!()
             }
