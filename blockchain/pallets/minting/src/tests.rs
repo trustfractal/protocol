@@ -176,59 +176,11 @@ mod register_identity {
     }
 
     #[test]
-    fn new_registration_clears_dataset() {
-        new_test_ext().execute_with(|| {
-            register_id_account(1, 1);
-            register_for_minting_dataset(1, &["1"]);
-            register_id_account(1, 2);
-            register_for_minting_dataset(2, &["2"]);
-
-            run_to_next_minting();
-
-            assert_eq!(
-                Balances::free_balance(&2),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
-        });
-    }
-
-    #[test]
     fn errors_with_invalid_fractal_signature() {
         new_test_ext().execute_with(|| {
             assert_noop!(
                 FractalMinting::register_identity(Origin::signed(124), 1, 2),
                 Error::<Test>::MustBeFractal
-            );
-        });
-    }
-
-    #[test]
-    fn later_fractal_id_replaces_previous() {
-        new_test_ext().execute_with(|| {
-            register_id_account(42, 1);
-            register_for_minting(1);
-
-            register_id_account(42, 2);
-
-            run_to_next_minting();
-
-            assert_eq!(Balances::free_balance(&1), 0);
-        });
-    }
-
-    #[test]
-    fn overridden_account_disallows_minting() {
-        new_test_ext().execute_with(|| {
-            register_id_account(42, 1);
-            register_id_account(42, 2);
-
-            assert_noop!(
-                FractalMinting::register_for_minting(
-                    Origin::signed(1),
-                    None,
-                    simple_tree().prune_balanced()
-                ),
-                Error::<Test>::NoIdentityRegistered
             );
         });
     }
@@ -244,6 +196,56 @@ mod register_identity {
                 ),
                 Error::<Test>::NoIdentityRegistered
             );
+        });
+    }
+
+    #[test]
+    fn second_address_allows_registering_with_first() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+            register_id_account(42, 2);
+
+            register_for_minting(1);
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&1),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
+    fn second_address_does_not_clear_minting() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+            register_for_minting(1);
+
+            register_id_account(42, 2);
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&1),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+        });
+    }
+
+    #[test]
+    fn user_can_extend_either_dataset() {
+        new_test_ext().execute_with(|| {
+            register_id_account(42, 1);
+            register_id_account(42, 2);
+
+            register_for_minting(1);
+            register_for_minting(2);
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&2),
+                <Test as crate::Config>::MaxRewardPerUser::get()
+            );
+            assert_eq!(Balances::free_balance(&1), 0);
         });
     }
 
@@ -268,50 +270,6 @@ mod register_identity {
             assert_eq!(
                 Balances::free_balance(&1),
                 2 * <Test as crate::Config>::MaxRewardPerUser::get()
-            );
-        });
-    }
-
-    #[test]
-    fn second_identity_to_same_account_overridden() {
-        new_test_ext().execute_with(|| {
-            register_id_account(42, 1);
-            register_id_account(43, 1);
-            register_id_account(43, 2);
-
-            register_for_minting(1);
-            run_to_next_minting();
-
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
-        });
-    }
-
-    #[test]
-    fn second_identity_after_registered_for_minting() {
-        new_test_ext().execute_with(|| {
-            register_id_account(42, 1);
-            register_id_account(43, 1);
-            assert_ok!(FractalMinting::register_for_minting(
-                Origin::signed(1),
-                Some(42),
-                simple_tree().prune_balanced()
-            ));
-            assert_ok!(FractalMinting::register_for_minting(
-                Origin::signed(1),
-                Some(43),
-                simple_tree().prune_balanced()
-            ));
-
-            register_id_account(43, 2);
-
-            run_to_next_minting();
-
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
             );
         });
     }
