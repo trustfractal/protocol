@@ -133,7 +133,11 @@ impl Type {
                 res.extend(t.id());
                 res
             }
-            Type::Struct(def) => vec![6],
+            Type::Struct(def) => {
+                let mut res = vec![6];
+                res.extend(def.id());
+                res
+            },
         }
     }
 
@@ -324,7 +328,31 @@ mod tests {
             assert_ne!(struct_a.id(), struct_b.id());
         }
 
-        // TODO(shelbyd): Different with different struct types.
+        #[test]
+        fn is_different_with_different_struct_types() {
+            let struct_a = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::Struct(Arc::new(StructDef {
+                        type_name: "Bar".to_string(),
+                        fields: vec![],
+                    })),
+                }],
+            };
+            let struct_b = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::Struct(Arc::new(StructDef {
+                        type_name: "Baz".to_string(),
+                        fields: vec![],
+                    })),
+                }],
+            };
+
+            assert_ne!(struct_a.id(), struct_b.id());
+        }
     }
 
     #[cfg(test)]
@@ -414,12 +442,10 @@ mod tests {
             fn struct_field() {
                 let struct_ = Arc::new(StructDef {
                     type_name: "Foo".to_string(),
-                    fields: vec![
-                        FieldDef {
-                            name: "bar".to_string(),
-                            type_: Type::U8,
-                        },
-                    ],
+                    fields: vec![FieldDef {
+                        name: "bar".to_string(),
+                        type_: Type::U8,
+                    }],
                 });
 
                 let field = FieldDef {
