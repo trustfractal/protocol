@@ -175,10 +175,10 @@ resource "aws_security_group" "elb_sg" {
   vpc_id      = aws_vpc.main.id
 
 ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
-    description = "HTTP"
+    description = "HTTPS"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -204,10 +204,28 @@ resource "aws_security_group" "fclnode" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-      from_port   = 80
-      to_port     = 80
+      from_port   = 9933
+      to_port     = 9933
       protocol    = "tcp"
-      description = "HTTP"
+      description = "RPC"
+      cidr_blocks = ["0.0.0.0/0"]
+
+   }
+
+  ingress {
+      from_port   = 9944
+      to_port     = 9944
+      protocol    = "tcp"
+      description = "Websocket"
+      cidr_blocks = ["0.0.0.0/0"]
+
+   }
+
+  ingress {
+      from_port   = 30333
+      to_port     = 30333
+      protocol    = "tcp"
+      description = "p2p"
       cidr_blocks = ["0.0.0.0/0"]
 
    }
@@ -277,16 +295,16 @@ resource "aws_autoscaling_group" "FclNet-ASG-tf" {
 resource "aws_lb_target_group" "TG-tf" {
   name     = "FclNet-TargetGroup-tf"
   depends_on = [aws_vpc.main]
-  port     = 80
+  port     = 9944
   protocol = "HTTP"
   vpc_id   = "${aws_vpc.main.id}"
   health_check {
-    interval            = 70
-    path                = "/index.html"
-    port                = 80
+    interval            = 30
+    path                = "/health"
+    port                = 9933
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    timeout             = 60 
+    timeout             = 5 
     protocol            = "HTTP"
     matcher             = "200,202"
   }
@@ -306,11 +324,21 @@ resource "aws_lb" "ALB-tf" {
   }
 }
 
+
+# Reference to certificate
+resource "aws_acm_certificate" "fcl_mainnet_cert" {
+  domain_name       = "nodes.mainnet.fractalprotocol.com"
+  validation_method = "DNS"
+}
+
 # Create ALB Listener 
 resource "aws_lb_listener" "front_end" {
   load_balancer_arn = aws_lb.ALB-tf.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.fcl_mainnet_cert.arn
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.TG-tf.arn
