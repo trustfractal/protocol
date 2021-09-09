@@ -37,7 +37,7 @@ impl StructDef {
         self.fields.as_ref()
     }
 
-    pub fn parse<'i>(&self, mut bytes: &'i [u8]) -> Result<Object, Error<'i>> {
+    pub fn parse<'i>(&self, mut bytes: &'i [u8]) -> Result<(&'i [u8], Object), Error<'i>> {
         let mut values = Vec::with_capacity(self.fields.len());
 
         for field in &self.fields {
@@ -45,11 +45,8 @@ impl StructDef {
             bytes = new_bytes;
             values.push(value);
         }
-        if !bytes.is_empty() {
-            return Err(Error::TooManyBytes);
-        }
 
-        Ok(Object::new(self, values))
+        Ok((bytes, Object::new(self, values)))
     }
 
     pub fn builder(&self) -> Builder {
@@ -166,9 +163,9 @@ impl Type {
                 }
                 Ok((bytes, Value::List(items)))
             }
-            Type::Struct(_) => {
-                // TODO (melatron): Implement
-                unimplemented!()
+            Type::Struct(def) => {
+                let (bytes, obj) = def.parse(bytes)?;
+                Ok((bytes, Value::Struct(obj)))
             }
         }
         .map_err(Error::ValueParsing)
@@ -199,7 +196,7 @@ mod tests {
             }],
         };
 
-        let parsed = struct_def.parse(&[42, 0, 0, 0, 0, 0, 0, 0]).unwrap();
+        let parsed = struct_def.parse(&[42, 0, 0, 0, 0, 0, 0, 0]).unwrap().1;
         assert_eq!(parsed["bar"], Value::U64(42));
     }
 
@@ -223,7 +220,7 @@ mod tests {
             ],
         };
 
-        let parsed = struct_def.parse(&[42, 43, 44]).unwrap();
+        let parsed = struct_def.parse(&[42, 43, 44]).unwrap().1;
         assert_eq!(parsed["bar"], Value::U8(42));
         assert_eq!(parsed["baz"], Value::U8(43));
         assert_eq!(parsed["qux"], Value::U8(44));
@@ -241,20 +238,6 @@ mod tests {
 
         let result = struct_def.parse(&[42, 0]);
         assert!(matches!(result, Err(Error::ValueParsing(_))));
-    }
-
-    #[test]
-    fn too_many_bytes() {
-        let struct_def = StructDef {
-            type_name: "Foo".to_string(),
-            fields: vec![FieldDef {
-                name: "bar".to_string(),
-                type_: Type::U8,
-            }],
-        };
-
-        let result = struct_def.parse(&[42, 0]);
-        assert!(matches!(result, Err(Error::TooManyBytes)));
     }
 
     #[cfg(test)]
@@ -425,6 +408,28 @@ mod tests {
                     field.parse(&[3, 65, 66]),
                     Err(Error::ValueParsing(_))
                 ));
+            }
+
+            #[test]
+            fn struct_field() {
+                let struct_ = Arc::new(StructDef {
+                    type_name: "Foo".to_string(),
+                    fields: vec![
+                        FieldDef {
+                            name: "bar".to_string(),
+                            type_: Type::U8,
+                        },
+                    ],
+                });
+
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::Struct(struct_),
+                };
+
+                let value = field.parse(&[42]).unwrap().1;
+                let obj = value.as_object().unwrap();
+                assert_eq!(obj["bar"].as_u8(), Some(42));
             }
         }
 

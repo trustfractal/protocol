@@ -42,7 +42,11 @@ impl Parser {
         let schema = self.structs.get(&id).ok_or(Error::MissingId(id))?;
 
         let bytes = &bytes[8..];
-        schema.parse(bytes)
+        let (bytes, obj) = schema.parse(bytes)?;
+        if !bytes.is_empty() {
+            return Err(Error::TooManyBytes);
+        }
+        Ok(obj)
     }
 
     pub fn struct_def(&self, name: &str) -> Option<&Arc<StructDef>> {
