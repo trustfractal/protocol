@@ -62,7 +62,7 @@ pub enum BuildError {
     IncorrectType {
         field: String,
         expected: Type,
-        got: Type,
+        got: Type<String>,
     },
 }
 

@@ -112,14 +112,14 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Type {
+pub enum Type<StructType = Arc<StructDef>> {
     Unit,
     U8,
     U32,
     U64,
     String,
-    List(Box<Type>),
-    Struct(Arc<StructDef>),
+    List(Box<Type<StructType>>),
+    Struct(StructType),
 }
 
 impl Type {

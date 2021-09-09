@@ -165,7 +165,7 @@ impl<'s> Value<'s> {
         }
     }
 
-    pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type)> {
+    pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type<String>)> {
         match (self, type_) {
             (Value::Unit, Type::Unit) => Ok(()),
             (Value::U8(_), Type::U8) => Ok(()),
@@ -180,7 +180,7 @@ impl<'s> Value<'s> {
         }
     }
 
-    fn type_(&self) -> Type {
+    fn type_(&self) -> Type<String> {
         match self {
             Value::Unit => Type::Unit,
             Value::U8(_) => Type::U8,
@@ -194,7 +194,7 @@ impl<'s> Value<'s> {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             }
-            Value::Struct(obj) => unimplemented!(),
+            Value::Struct(obj) => Type::Struct(obj.schema().type_name().to_string()),
         }
     }
 }
@@ -298,6 +298,21 @@ mod tests {
             assert_eq!(
                 list.assignable(&Type::U8),
                 Err((Type::U8, Type::List(Box::new(Type::Unit))))
+            );
+        }
+
+        #[test]
+        fn struct_expected_against_primitive() {
+            let def = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![],
+            };
+            let obj = def.builder().try_build().unwrap();
+
+            let struct_ = Value::Struct(obj);
+            assert_eq!(
+                struct_.assignable(&Type::U8),
+                Err((Type::U8, Type::Struct(def.type_name().to_string())))
             );
         }
     }
