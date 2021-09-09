@@ -137,7 +137,7 @@ impl Type {
                 let mut res = vec![6];
                 res.extend(def.id());
                 res
-            },
+            }
         }
     }
 

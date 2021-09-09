@@ -10,7 +10,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{alphanumeric1, multispace0, multispace1},
     combinator::opt,
-    multi::{many0, separated_list0},
+    multi::many0,
     IResult,
 };
 
@@ -83,17 +83,6 @@ pub fn next_def<'a>(
 
     let compiled = struct_.map(|st| st.compile(parser)).transpose()?;
     Ok((s, compiled))
-}
-
-pub fn parse<'a>(s: &'a str, parser: &Parser) -> Result<Vec<StructDef>, Error<'a>> {
-    let (s, _) = multispace0(s).map_err(Error::DefinitionParsing)?;
-    let (_, structs) =
-        separated_list0(multispace0, struct_def)(s).map_err(Error::DefinitionParsing)?;
-
-    structs
-        .into_iter()
-        .map(|st| st.compile(parser))
-        .collect::<Result<_, _>>()
 }
 
 fn struct_def(s: &str) -> IResult<&str, ParsedStruct> {
@@ -178,7 +167,7 @@ mod tests {
     #[test]
     fn duplicate_fields() {
         let parser = Parser::default();
-        let result = parse("struct Foo { bar :u64; bar :u64; }", &parser);
+        let result = next_def("struct Foo { bar :u64; bar :u64; }", &parser);
         assert!(result.is_err());
     }
 }

@@ -1,13 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 mod builder;
 use builder::Builder;
 
 mod definition_parser;
-use definition_parser::parse;
 
 mod object;
 use object::{Object, Value};
