@@ -36,6 +36,45 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
+pub fn live_config() -> Result<ChainSpec, String> {
+    let wasm_binary = WASM_BINARY.ok_or_else(|| "Main wasm not available".to_string())?;
+
+    Ok(ChainSpec::from_genesis(
+        // Name
+        "Live",
+        // ID
+        "live",
+        ChainType::Live,
+        move || {
+            testnet_genesis(
+                wasm_binary,
+                // Initial PoA authorities
+                vec![unimplemented!()],
+                // Sudo account
+                unimplemented!(),
+                // Pre-funded accounts
+                vec![],
+                FractalMintingConfig {
+                    // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
+                    fractal_authoritative_account: AccountId::new(hex_literal::hex![
+                        "8a8781412df00f8be33f7428dfdcd467957a5142f1308b45036126443fc42635"
+                    ]),
+                },
+            )
+        },
+        // Bootnodes
+        vec![],
+        // Telemetry
+        None,
+        // Protocol ID
+        None,
+        // Properties
+        None,
+        // Extensions
+        None,
+    ))
+}
+
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -59,7 +98,11 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
                 ],
-                true,
+                FractalMintingConfig {
+                    fractal_authoritative_account: get_account_id_from_seed::<sr25519::Public>(
+                        "Ferdie",
+                    ),
+                },
             )
         },
         // Bootnodes
@@ -109,7 +152,11 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
-                true,
+                FractalMintingConfig {
+                    fractal_authoritative_account: get_account_id_from_seed::<sr25519::Public>(
+                        "Ferdie",
+                    ),
+                },
             )
         },
         // Bootnodes
@@ -131,7 +178,7 @@ fn testnet_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
-    _enable_println: bool,
+    fractal_minting: FractalMintingConfig,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: SystemConfig {
@@ -160,8 +207,6 @@ fn testnet_genesis(
             // Assign network admin rights.
             key: root_key,
         },
-        fractal_minting: FractalMintingConfig {
-            fractal_authoritative_account: get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-        },
+        fractal_minting,
     }
 }
