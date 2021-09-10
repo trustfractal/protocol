@@ -272,8 +272,8 @@ parameter_types! {
     pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
     pub const MintEveryNBlocks: BlockNumber = DAYS;
 
-    // 5F6Tgor2L4kyiS8PdWFucjMTRteufiqxSFxBzELn9kRA3wUy
-    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["860b7d9d3e03cbd6a4fcec790f42260a64cb8673c318c4884046ca4c76cc3841"]);
+    // 5FCLexq3tEnxfqp68ZKeoRgRJx2TUFdGMu7Z7LEpy5kdZWiK
+    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["8a874abb06513a14773e18e5a86559bffdc93600125118a4680a82d93c641f44"]);
 }
 
 impl fractal_minting::Config for Runtime {
