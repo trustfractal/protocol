@@ -64,7 +64,7 @@ pub mod pallet {
     >;
 
     #[pallet::storage]
-    pub type IdDatasets<T: Config> = StorageDoubleMap<
+    pub type AccountIdDatasets<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::AccountId,
@@ -185,7 +185,7 @@ pub mod pallet {
                 }
             };
 
-            let id_datasets_entry = IdDatasets::<T>::get(who.clone(), id);
+            let id_datasets_entry = AccountIdDatasets::<T>::get(who.clone(), id);
             if let Some(existing) = &id_datasets_entry {
                 ensure!(
                     extension_proof.strict_extends(existing),
@@ -193,7 +193,7 @@ pub mod pallet {
                 );
             }
 
-            IdDatasets::<T>::insert(who.clone(), id, extension_proof);
+            AccountIdDatasets::<T>::insert(who.clone(), id, extension_proof);
             NextMintingRewards::<T>::insert(id, who);
 
             Ok(match id_datasets_entry {
