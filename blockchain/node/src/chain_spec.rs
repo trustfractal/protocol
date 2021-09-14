@@ -49,14 +49,28 @@ pub fn live_config() -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                vec![unimplemented!()],
+                vec![
+                    (
+                        AuraId::from_slice(&hex_literal::hex![
+                            // 5FCLaubL8NeerKq8LPVYJPJe6Z8JP9ayCT5LSNUXaStmjShw
+                            "8a870e7805780fe7e2d499a679c3465da86b04a2ec7e51379391a8d81326b467"
+                        ]),
+                        GrandpaId::from_slice(&hex_literal::hex![
+                            // 5D8jfFQ7WZXTCyYLCRdojFMfztDq9qri4ZPAEZZRH22KhoCP
+                            "2f4f48eda1a0e8dec6f2d5c4396d6565bda97c419b12af112183fe25e7d8fd43"
+                        ]),
+                    ),
+                ],
                 // Sudo account
-                unimplemented!(),
+                AccountId::new(hex_literal::hex![
+                    // 5FCLsu6FTwi9cafruqVbEo8uUEqPHaf6oqNLhSTn5CkbrQ3o
+                    "8a880aedd15c00bfa62220f014d12ff818534e99bd298c5c1a68ac221fc2471e"
+                ]),
                 // Pre-funded accounts
                 vec![],
                 FractalMintingConfig {
-                    // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
                     fractal_authoritative_account: AccountId::new(hex_literal::hex![
+                        // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
                         "8a8781412df00f8be33f7428dfdcd467957a5142f1308b45036126443fc42635"
                     ]),
                 },
