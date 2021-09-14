@@ -1,13 +1,16 @@
 use crate::{
     schema::{FieldDef, StructDef, Type},
-    Error,
+    Error, Parser,
 };
+
+use std::collections::HashSet;
 
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{alphanumeric1, multispace0, multispace1},
-    multi::{many0, separated_list0},
+    combinator::opt,
+    multi::many0,
     IResult,
 };
 
@@ -27,13 +30,11 @@ struct ParsedField<'i> {
 pub enum TypeDef<'i> {
     Primitive(Type),
     Generic(&'i str, Box<TypeDef<'i>>),
-    Unresolved(&'i str),
+    Struct(&'i str),
 }
 
 impl<'i> ParsedStruct<'i> {
-    fn compile(self) -> Result<StructDef, Error<'i>> {
-        use std::collections::HashSet;
-
+    fn compile(self, parser: &Parser) -> Result<StructDef, Error<'i>> {
         let mut seen = HashSet::with_capacity(self.fields.len());
         for field in &self.fields {
             if seen.contains(field.name) {
@@ -50,7 +51,7 @@ impl<'i> ParsedStruct<'i> {
                 .map(|f| {
                     Ok(FieldDef {
                         name: f.name.to_string(),
-                        type_: f.type_.resolve()?,
+                        type_: f.type_.resolve(parser)?,
                     })
                 })
                 .collect::<Result<_, _>>()?,
@@ -59,26 +60,29 @@ impl<'i> ParsedStruct<'i> {
 }
 
 impl<'i> TypeDef<'i> {
-    fn resolve(self) -> Result<Type, Error<'i>> {
+    fn resolve(self, parser: &Parser) -> Result<Type, Error<'i>> {
         match self {
             TypeDef::Primitive(t) => Ok(t),
-            TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve()?))),
-            TypeDef::Unresolved(name) | TypeDef::Generic(name, _) => {
-                Err(Error::UnresolvedType(name.to_string()))
-            }
+            TypeDef::Generic("List", t) => Ok(Type::List(Box::new(t.resolve(parser)?))),
+            TypeDef::Struct(name) => parser
+                .struct_def(name)
+                .cloned()
+                .map(Type::Struct)
+                .ok_or_else(|| Error::UnrecognizedType(name.to_string())),
+            TypeDef::Generic(name, _) => Err(Error::UnresolvedType(name.to_string())),
         }
     }
 }
 
-pub fn parse(s: &str) -> Result<Vec<StructDef>, Error> {
+pub fn next_def<'a>(
+    s: &'a str,
+    parser: &Parser,
+) -> Result<(&'a str, Option<StructDef>), Error<'a>> {
     let (s, _) = multispace0(s).map_err(Error::DefinitionParsing)?;
-    let (_, structs) =
-        separated_list0(multispace0, struct_def)(s).map_err(Error::DefinitionParsing)?;
+    let (s, struct_) = opt(struct_def)(s).map_err(Error::DefinitionParsing)?;
 
-    structs
-        .into_iter()
-        .map(ParsedStruct::compile)
-        .collect::<Result<_, _>>()
+    let compiled = struct_.map(|st| st.compile(parser)).transpose()?;
+    Ok((s, compiled))
 }
 
 fn struct_def(s: &str) -> IResult<&str, ParsedStruct> {
@@ -133,7 +137,7 @@ fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),
         "string" => TypeDef::Primitive(Type::String),
-        v => TypeDef::Unresolved(v),
+        v => TypeDef::Struct(v),
     };
     Ok((s, as_type))
 }
@@ -162,7 +166,8 @@ mod tests {
 
     #[test]
     fn duplicate_fields() {
-        let result = parse("struct Foo { bar :u64; bar :u64; }");
+        let parser = Parser::default();
+        let result = next_def("struct Foo { bar :u64; bar :u64; }", &parser);
         assert!(result.is_err());
     }
 }

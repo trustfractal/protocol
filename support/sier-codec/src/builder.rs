@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub struct Builder<'s> {
     struct_def: &'s StructDef,
-    field_values: HashMap<String, Value>,
+    field_values: HashMap<String, Value<'s>>,
 }
 
 impl<'s> Builder<'s> {
@@ -15,7 +15,7 @@ impl<'s> Builder<'s> {
         }
     }
 
-    pub fn set(mut self, field_name: &str, value: impl Into<Value>) -> Self {
+    pub fn set(mut self, field_name: &str, value: impl Into<Value<'s>>) -> Self {
         self.field_values
             .insert(field_name.to_string(), value.into());
         self
@@ -34,7 +34,7 @@ impl<'s> Builder<'s> {
         })
     }
 
-    fn value_for_field(&mut self, field: &FieldDef) -> Result<Value, BuildError> {
+    fn value_for_field(&mut self, field: &FieldDef) -> Result<Value<'s>, BuildError> {
         let value = self
             .field_values
             .remove(&field.name)
@@ -62,7 +62,7 @@ pub enum BuildError {
     IncorrectType {
         field: String,
         expected: Type,
-        got: Type,
+        got: Type<String>,
     },
 }
 

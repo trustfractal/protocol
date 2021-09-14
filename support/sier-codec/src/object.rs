@@ -2,13 +2,17 @@ use core::ops::Index;
 
 use crate::schema::{StructDef, Type};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Object<'s> {
     pub(crate) schema: &'s StructDef,
-    pub(crate) values: Vec<Value>,
+    pub(crate) values: Vec<Value<'s>>,
 }
 
-impl Object<'_> {
+impl<'s> Object<'s> {
+    pub fn new(schema: &'s StructDef, values: Vec<Value<'s>>) -> Self {
+        Self { schema, values }
+    }
+
     pub fn schema(&self) -> &StructDef {
         self.schema
     }
@@ -24,7 +28,7 @@ impl Object<'_> {
 }
 
 impl<'s> Index<&'_ str> for Object<'s> {
-    type Output = Value;
+    type Output = Value<'s>;
 
     fn index(&self, field_name: &str) -> &Self::Output {
         let index = self
@@ -38,55 +42,62 @@ impl<'s> Index<&'_ str> for Object<'s> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Value {
+pub enum Value<'s> {
     Unit,
     U8(u8),
     U32(u32),
     U64(u64),
     String(String),
-    List(Vec<Value>),
+    List(Vec<Value<'s>>),
+    Struct(Object<'s>),
 }
 
-impl From<()> for Value {
-    fn from(_: ()) -> Value {
+impl<'s> From<()> for Value<'s> {
+    fn from(_: ()) -> Value<'s> {
         Value::Unit
     }
 }
 
-impl From<u8> for Value {
-    fn from(v: u8) -> Value {
+impl<'s> From<u8> for Value<'s> {
+    fn from(v: u8) -> Value<'s> {
         Value::U8(v)
     }
 }
 
-impl From<u32> for Value {
-    fn from(v: u32) -> Value {
+impl<'s> From<u32> for Value<'s> {
+    fn from(v: u32) -> Value<'s> {
         Value::U32(v)
     }
 }
 
-impl From<u64> for Value {
-    fn from(v: u64) -> Value {
+impl<'s> From<u64> for Value<'s> {
+    fn from(v: u64) -> Value<'s> {
         Value::U64(v)
     }
 }
 
-impl From<String> for Value {
-    fn from(v: String) -> Value {
+impl<'s> From<String> for Value<'s> {
+    fn from(v: String) -> Value<'s> {
         Value::String(v)
     }
 }
 
-impl<T> From<Vec<T>> for Value
+impl<'s, T> From<Vec<T>> for Value<'s>
 where
-    T: Into<Value>,
+    T: Into<Value<'s>>,
 {
-    fn from(items: Vec<T>) -> Value {
+    fn from(items: Vec<T>) -> Value<'s> {
         Value::List(items.into_iter().map(Into::into).collect())
     }
 }
 
-impl Value {
+impl<'s> From<Object<'s>> for Value<'s> {
+    fn from(v: Object<'s>) -> Value<'s> {
+        Value::Struct(v)
+    }
+}
+
+impl<'s> Value<'s> {
     pub fn as_unit(&self) -> Option<()> {
         match self {
             Value::Unit => Some(()),
@@ -129,6 +140,13 @@ impl Value {
         }
     }
 
+    pub fn as_object(&self) -> Option<&Object> {
+        match self {
+            Value::Struct(obj) => Some(obj),
+            _ => None,
+        }
+    }
+
     pub fn serialize(&self) -> Vec<u8> {
         match self {
             Value::Unit => Vec::new(),
@@ -143,10 +161,11 @@ impl Value {
                     .chain(item_bytes)
                     .collect()
             }
+            Value::Struct(obj) => obj.serialize(),
         }
     }
 
-    pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type)> {
+    pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type<String>)> {
         match (self, type_) {
             (Value::Unit, Type::Unit) => Ok(()),
             (Value::U8(_), Type::U8) => Ok(()),
@@ -156,11 +175,12 @@ impl Value {
             (Value::List(items), Type::List(inner)) => {
                 items.iter().try_for_each(|i| i.assignable(inner))
             }
+            (Value::Struct(obj), Type::Struct(def)) if obj.schema() == def.as_ref() => Ok(()),
             (v, t) => Err((t.clone(), v.type_())),
         }
     }
 
-    fn type_(&self) -> Type {
+    fn type_(&self) -> Type<String> {
         match self {
             Value::Unit => Type::Unit,
             Value::U8(_) => Type::U8,
@@ -174,6 +194,7 @@ impl Value {
                     .unwrap_or_else(|| Type::Unit);
                 Type::List(Box::new(item_type))
             }
+            Value::Struct(obj) => Type::Struct(obj.schema().type_name().to_string()),
         }
     }
 }
@@ -277,6 +298,21 @@ mod tests {
             assert_eq!(
                 list.assignable(&Type::U8),
                 Err((Type::U8, Type::List(Box::new(Type::Unit))))
+            );
+        }
+
+        #[test]
+        fn struct_expected_against_primitive() {
+            let def = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![],
+            };
+            let obj = def.builder().try_build().unwrap();
+
+            let struct_ = Value::Struct(obj);
+            assert_eq!(
+                struct_.assignable(&Type::U8),
+                Err((Type::U8, Type::Struct(def.type_name().to_string())))
             );
         }
     }

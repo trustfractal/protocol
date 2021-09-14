@@ -1,11 +1,12 @@
 use blake2::{Blake2b, Digest};
 use core::convert::TryInto;
+use std::sync::Arc;
 
 use crate::{Builder, Error, Object, Value};
 
 pub type Id = [u8; 8];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct StructDef {
     pub(crate) type_name: String,
     pub(crate) fields: Vec<FieldDef>,
@@ -36,7 +37,7 @@ impl StructDef {
         self.fields.as_ref()
     }
 
-    pub fn parse<'i>(&self, mut bytes: &'i [u8]) -> Result<Object, Error<'i>> {
+    pub fn parse<'i>(&self, mut bytes: &'i [u8]) -> Result<(&'i [u8], Object), Error<'i>> {
         let mut values = Vec::with_capacity(self.fields.len());
 
         for field in &self.fields {
@@ -44,14 +45,8 @@ impl StructDef {
             bytes = new_bytes;
             values.push(value);
         }
-        if !bytes.is_empty() {
-            return Err(Error::TooManyBytes);
-        }
 
-        Ok(Object {
-            schema: self,
-            values,
-        })
+        Ok((bytes, Object::new(self, values)))
     }
 
     pub fn builder(&self) -> Builder {
@@ -59,7 +54,7 @@ impl StructDef {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct FieldDef {
     pub(crate) name: String,
     pub(crate) type_: Type,
@@ -114,13 +109,14 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Type {
+pub enum Type<StructType = Arc<StructDef>> {
     Unit,
     U8,
     U32,
     U64,
     String,
-    List(Box<Type>),
+    List(Box<Type<StructType>>),
+    Struct(StructType),
 }
 
 impl Type {
@@ -135,6 +131,11 @@ impl Type {
             Type::List(t) => {
                 let mut res = vec![4];
                 res.extend(t.id());
+                res
+            }
+            Type::Struct(def) => {
+                let mut res = vec![6];
+                res.extend(def.id());
                 res
             }
         }
@@ -166,6 +167,10 @@ impl Type {
                 }
                 Ok((bytes, Value::List(items)))
             }
+            Type::Struct(def) => {
+                let (bytes, obj) = def.parse(bytes)?;
+                Ok((bytes, Value::Struct(obj)))
+            }
         }
         .map_err(Error::ValueParsing)
     }
@@ -195,7 +200,7 @@ mod tests {
             }],
         };
 
-        let parsed = struct_def.parse(&[42, 0, 0, 0, 0, 0, 0, 0]).unwrap();
+        let parsed = struct_def.parse(&[42, 0, 0, 0, 0, 0, 0, 0]).unwrap().1;
         assert_eq!(parsed["bar"], Value::U64(42));
     }
 
@@ -219,7 +224,7 @@ mod tests {
             ],
         };
 
-        let parsed = struct_def.parse(&[42, 43, 44]).unwrap();
+        let parsed = struct_def.parse(&[42, 43, 44]).unwrap().1;
         assert_eq!(parsed["bar"], Value::U8(42));
         assert_eq!(parsed["baz"], Value::U8(43));
         assert_eq!(parsed["qux"], Value::U8(44));
@@ -237,20 +242,6 @@ mod tests {
 
         let result = struct_def.parse(&[42, 0]);
         assert!(matches!(result, Err(Error::ValueParsing(_))));
-    }
-
-    #[test]
-    fn too_many_bytes() {
-        let struct_def = StructDef {
-            type_name: "Foo".to_string(),
-            fields: vec![FieldDef {
-                name: "bar".to_string(),
-                type_: Type::U8,
-            }],
-        };
-
-        let result = struct_def.parse(&[42, 0]);
-        assert!(matches!(result, Err(Error::TooManyBytes)));
     }
 
     #[cfg(test)]
@@ -331,6 +322,32 @@ mod tests {
                 fields: vec![FieldDef {
                     name: "bar".to_string(),
                     type_: Type::List(Box::new(Type::U32)),
+                }],
+            };
+
+            assert_ne!(struct_a.id(), struct_b.id());
+        }
+
+        #[test]
+        fn is_different_with_different_struct_types() {
+            let struct_a = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::Struct(Arc::new(StructDef {
+                        type_name: "Bar".to_string(),
+                        fields: vec![],
+                    })),
+                }],
+            };
+            let struct_b = StructDef {
+                type_name: "Foo".to_string(),
+                fields: vec![FieldDef {
+                    name: "bar".to_string(),
+                    type_: Type::Struct(Arc::new(StructDef {
+                        type_name: "Baz".to_string(),
+                        fields: vec![],
+                    })),
                 }],
             };
 
@@ -419,6 +436,26 @@ mod tests {
                     field.parse(&[3, 65, 66]),
                     Err(Error::ValueParsing(_))
                 ));
+            }
+
+            #[test]
+            fn struct_field() {
+                let struct_ = Arc::new(StructDef {
+                    type_name: "Foo".to_string(),
+                    fields: vec![FieldDef {
+                        name: "bar".to_string(),
+                        type_: Type::U8,
+                    }],
+                });
+
+                let field = FieldDef {
+                    name: "foo".to_string(),
+                    type_: Type::Struct(struct_),
+                };
+
+                let value = field.parse(&[42]).unwrap().1;
+                let obj = value.as_object().unwrap();
+                assert_eq!(obj["bar"].as_u8(), Some(42));
             }
         }
 
