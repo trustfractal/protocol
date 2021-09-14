@@ -272,7 +272,7 @@ resource "aws_launch_configuration" "nodefcl-launch-config" {
 # Create Auto Scaling Group
 resource "aws_autoscaling_group" "FclNet-ASG-tf" {
   name		             = "FclNet-ASG-tf"
-  desired_capacity     = 3
+  desired_capacity     = 2
   max_size             = 10
   min_size             = 1
   force_delete         = true
@@ -317,6 +317,8 @@ resource "aws_lb" "ALB-tf" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.elb_sg.id]
   subnets            = [aws_subnet.pub_sub1.id,aws_subnet.pub_sub2.id]
+
+  idle_timeout = 3600
 
   tags = {
       name  = "FclNet-AppLoadBalancer-tf"
