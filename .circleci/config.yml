@@ -228,4 +228,3 @@ workflows:
             branches:
               only:
                 - master
-                - bmaas/infra/net

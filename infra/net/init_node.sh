@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# Make sure we are root
-  sudo su - root
+# Start this node
+sudo su - ubuntu
+cd /home/ubuntu
+docker-compose up -d
 
-# Install & Start nginx server
-  apt-get install -y nginx
-  systemctl start nginx
-  systemctl enable nginx
   
