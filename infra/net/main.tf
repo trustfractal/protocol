@@ -283,6 +283,16 @@ resource "aws_autoscaling_group" "FclNet-ASG-tf" {
 
   # change pub_sub{id} in prv_sub{id} to shield nodes from public traffic
   vpc_zone_identifier = ["${aws_subnet.pub_sub1.id}","${aws_subnet.pub_sub2.id}"]
+
+  enabled_metrics = [
+    "GroupMinSize",
+    "GroupMaxSize",
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupTotalInstances"
+  ]
+
+  metrics_granularity = "1Minute"
   
   tag {
     key                 = "Name"
@@ -290,6 +300,64 @@ resource "aws_autoscaling_group" "FclNet-ASG-tf" {
     propagate_at_launch = true
   }
 } 
+
+
+# The alarms to trigger new nodes
+resource "aws_autoscaling_policy" "nodes_policy_up" {
+  name = "nodes_policy_up"
+  scaling_adjustment = 1
+  adjustment_type = "ChangeInCapacity"
+  cooldown = 300
+  autoscaling_group_name = aws_autoscaling_group.FclNet-ASG-tf.name
+}
+
+resource "aws_cloudwatch_metric_alarm" "nodes_cpu_alarm_up" {
+  alarm_name = "nodes_cpu_alarm_up"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  evaluation_periods = var.scale_evaluation_periods
+  period = "${var.scale_period_in_seconds}"
+
+  metric_name = "CPUUtilization"
+  namespace = "AWS/EC2"
+  statistic = "Average"
+  threshold = "60"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.FclNet-ASG-tf.name
+  }
+
+  alarm_description = "This metric monitor EC2 instance CPU utilization"
+  alarm_actions = [ aws_autoscaling_policy.nodes_policy_up.arn ]
+}
+
+resource "aws_autoscaling_policy" "nodes_policy_down" {
+  name = "nodes_policy_down"
+  scaling_adjustment = -1
+  adjustment_type = "ChangeInCapacity"
+  cooldown = 300
+  autoscaling_group_name = aws_autoscaling_group.FclNet-ASG-tf.name
+}
+
+resource "aws_cloudwatch_metric_alarm" "nodes_cpu_alarm_down" {
+  alarm_name = "nodes_cpu_alarm_down"
+  comparison_operator = "LessThanOrEqualToThreshold"
+
+  evaluation_periods = var.scale_evaluation_periods
+  period = "${var.scale_period_in_seconds}"
+
+  metric_name = "CPUUtilization"
+  namespace = "AWS/EC2"
+  statistic = "Average"
+  threshold = "10"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.FclNet-ASG-tf.name
+  }
+
+  alarm_description = "This metric monitor EC2 instance CPU utilization"
+  alarm_actions = [ aws_autoscaling_policy.nodes_policy_down.arn ]
+}
 
 # Create Target group
 resource "aws_lb_target_group" "TG-tf" {

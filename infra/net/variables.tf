@@ -1,3 +1,13 @@
+variable "scale_period_in_seconds" {
+   type = string
+   default = 60
+}
+
+variable "scale_evaluation_periods" {
+   type = string
+   default = 2
+}
+
 variable "ami"{
  type = string
   default = "ami-05d47ff02376b216e"
