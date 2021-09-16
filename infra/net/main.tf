@@ -322,6 +322,36 @@ resource "aws_autoscaling_policy" "nodes_policy_up" {
   autoscaling_group_name = aws_autoscaling_group.FclNet-ASG-tf.name
 }
 
+module "healthy-hosts-topic" {
+  source  = "terraform-aws-modules/sns/aws"
+  version = "~> 3.0"
+
+  name  = "FclNet-healthy-hosts-topic"
+}
+
+resource "aws_cloudwatch_metric_alarm" "alb_healthyhosts" {
+  alarm_name = "nodes_healthy_check"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  evaluation_periods = "1"
+  # We should be alarmed only if a node is unhealthy for more that 10 minutes
+  period = "600"
+
+  metric_name = "UnHealthyHostCount"
+  namespace = "AWS/ApplicationELB"
+  statistic = "Average"
+  threshold = "1"
+  alarm_description   = "Number of healthy nodes in Target Group"
+  actions_enabled     = "true"
+  dimensions = {
+    TargetGroup = aws_lb_target_group.TG-tf.arn_suffix
+    LoadBalancer = aws_lb.ALB-tf.arn_suffix
+  }
+
+  alarm_actions       = [module.healthy-hosts-topic.sns_topic_arn]
+#   ok_actions          = [module.healthy-hosts-topic.sns_topic_arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "nodes_cpu_alarm_up" {
   alarm_name = "nodes_cpu_alarm_up"
   comparison_operator = "GreaterThanOrEqualToThreshold"
