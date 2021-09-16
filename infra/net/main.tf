@@ -1,6 +1,17 @@
+
+
 # Configure the AWS Provider
 provider "aws" {
    region  = var.region
+}
+
+# Configure terraform backend
+# Set your aws keys as env variables
+terraform {
+  backend "s3" {
+    bucket = "fractal-protocol"
+    region = "eu-central-1"
+  }
 }
 
 # Create VPC
@@ -22,7 +33,7 @@ resource "aws_subnet" "pub_sub1" {
   tags = {
     Project = "fclnet-provisioning"
      Name = "public_subnet1"
- 
+
  }
 }
 
@@ -34,7 +45,7 @@ resource "aws_subnet" "pub_sub2" {
   map_public_ip_on_launch = true
   tags = {
     Project = "fclnet-provisioning"
-    Name = "public_subnet2" 
+    Name = "public_subnet2"
  }
 }
 
@@ -47,7 +58,7 @@ resource "aws_subnet" "prv_sub1" {
 
   tags = {
     Project = "fclnet-provisioning"
-    Name = "private_subnet1" 
+    Name = "private_subnet1"
  }
 }
 
@@ -70,7 +81,7 @@ resource "aws_internet_gateway" "igw" {
 
   tags = {
     Project = "fclnet-provisioning"
-    Name = "internet gateway" 
+    Name = "internet gateway"
  }
 }
 
@@ -85,7 +96,7 @@ resource "aws_route_table" "pub_sub1_rt" {
 
   tags = {
     Project = "fclnet-provisioning"
-    Name = "public subnet route table" 
+    Name = "public subnet route table"
  }
 }
 
@@ -135,7 +146,7 @@ resource "aws_route_table" "prv_sub1_rt" {
   }
   tags = {
     Project = "fclnet-provisioning"
-    Name = "private subnet1 route table" 
+    Name = "private subnet1 route table"
  }
 }
 
@@ -189,11 +200,11 @@ egress {
     cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
- 
+
  tags = {
     Name = var.sg_tagname
-    Project = "fclnet-provisioning" 
-  }	
+    Project = "fclnet-provisioning"
+  }
 }
 
 # Create security group for nodefcl
@@ -247,7 +258,7 @@ resource "aws_security_group" "fclnode" {
   }
 
   tags = {
-      Name = var.sg_ws_tagname 
+      Name = var.sg_ws_tagname
       Project = "fclnet-provisioning"
   }
 }
@@ -261,7 +272,7 @@ resource "aws_launch_configuration" "nodefcl-launch-config" {
   security_groups = ["${aws_security_group.fclnode.id}"]
 
   associate_public_ip_address = true
-  
+
   lifecycle {
     create_before_destroy = true
   }
@@ -293,13 +304,13 @@ resource "aws_autoscaling_group" "FclNet-ASG-tf" {
   ]
 
   metrics_granularity = "1Minute"
-  
+
   tag {
     key                 = "Name"
     value               = "FclNet-ASG-tf"
     propagate_at_launch = true
   }
-} 
+}
 
 
 # The alarms to trigger new nodes
@@ -372,7 +383,7 @@ resource "aws_lb_target_group" "TG-tf" {
     port                = 9933
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    timeout             = 5 
+    timeout             = 5
     protocol            = "HTTP"
     matcher             = "200,202"
   }
@@ -401,7 +412,7 @@ resource "aws_acm_certificate" "fcl_mainnet_cert" {
   validation_method = "DNS"
 }
 
-# Create ALB Listener 
+# Create ALB Listener
 resource "aws_lb_listener" "front_end" {
   load_balancer_arn = aws_lb.ALB-tf.arn
   port              = "443"
