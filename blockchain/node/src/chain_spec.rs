@@ -178,7 +178,8 @@ fn testnet_genesis(
 /// FCL
 fn mainnet_genesis(
     wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId, GrandpaId)>,
+    initial_aura_authorities: Vec<AuraId>,
+    initial_grandpa_authorities: Vec<(GrandpaId, u64)>,
     root_key: AccountId,
     fractal_authoritative_account: AccountId,
 ) -> GenesisConfig {
@@ -193,13 +194,10 @@ fn mainnet_genesis(
             balances: vec![],
         },
         pallet_aura: AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+            authorities: initial_aura_authorities,
         },
         pallet_grandpa: GrandpaConfig {
-            authorities: initial_authorities
-                .iter()
-                .map(|x| (x.1.clone(), 1))
-                .collect(),
+            authorities: initial_grandpa_authorities,
         },
         pallet_sudo: SudoConfig {
             // Assign network admin rights.
@@ -224,31 +222,35 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
             mainnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                // https://www.shawntabrizi.com/substrate-js-utilities/
                 vec![
+                    // 5FCLaubL8NeerKq8LPVYJPJe6Z8JP9ayCT5LSNUXaStmjShw
+                    hex!["8a870e7805780fe7e2d499a679c3465da86b04a2ec7e51379391a8d81326b467"]
+                        .unchecked_into(),
+                    // 5FCLauianC9jJitTqpWmNDMp677FkirT4xojK7GLQ6YERgQX
+                    hex!["8a870e8038d0504ea60a980c72e89896252b969e98d769002a01bf00e26b1212"]
+                        .unchecked_into(),
+                    // 5FCLauc7k38LpiA6JJKid2n7r3JjkH2EFC2FqmEXi7tLhUBP
+                    hex!["8a870e78e91e6ba9a8068a6e04c65bae0b9469cae549c5ad9d1fb91813fdb235"]
+                        .unchecked_into(),
+                ],
+                vec![
+                    // 5FCLgrPgkUbrCEnvdCCrkNNExsQyznTyuVrheQhpdPbSs29j
                     (
-                        // 5FCLaubL8NeerKq8LPVYJPJe6Z8JP9ayCT5LSNUXaStmjShw
-                        hex!["8a870e7805780fe7e2d499a679c3465da86b04a2ec7e51379391a8d81326b467"]
-                            .unchecked_into(),
-                        // 5FCLgrPgkUbrCEnvdCCrkNNExsQyznTyuVrheQhpdPbSs29j
                         hex!["8a8766cc3bece48c8e014f896a6d60183b2db6d41896d590ff0e4c004b10bb9c"]
                             .unchecked_into(),
+                        1,
                     ),
+                    // 5FCLgrr1N9HWMJnLicNyUoKCrGE99csRwDYyyUD6C9xwzjm4
                     (
-                        // 5FCLauianC9jJitTqpWmNDMp677FkirT4xojK7GLQ6YERgQX
-                        hex!["8a870e8038d0504ea60a980c72e89896252b969e98d769002a01bf00e26b1212"]
-                            .unchecked_into(),
-                        // 5FCLgrr1N9HWMJnLicNyUoKCrGE99csRwDYyyUD6C9xwzjm4
                         hex!["8a8766e9feca3ed817e8355b967a7e151489e67011b0204ba3d96bb23dd609d3"]
                             .unchecked_into(),
+                        1,
                     ),
+                    // 5FCLgr3aRRHCJLXeoH5vbz7NGuQ3E3hLg44KPn4LaRMb7ub9
                     (
-                        // 5FCLauc7k38LpiA6JJKid2n7r3JjkH2EFC2FqmEXi7tLhUBP
-                        hex!["8a870e78e91e6ba9a8068a6e04c65bae0b9469cae549c5ad9d1fb91813fdb235"]
-                            .unchecked_into(),
-                        // 5FCLgr3aRRHCJLXeoH5vbz7NGuQ3E3hLg44KPn4LaRMb7ub9
                         hex!["8a8766b57f2391f4f6e2fed09b1ea8fde72948f988494ec39e91562812c5dee5"]
                             .unchecked_into(),
+                        1,
                     ),
                 ],
                 // Sudo account
