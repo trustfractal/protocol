@@ -28,7 +28,7 @@ async function main() {
 
         totalBlockTime += blockTime
         count += 1
-        console.log("average block time: ", all_block_time / count)
+        console.log("average block time: ", totalBlockTime / count)
     });
 }
 

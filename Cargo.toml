@@ -5,4 +5,4 @@ members = [
   'blockchain/runtime',
   'support/*',
 ]
-exclude = ["support/utils"]
+exclude = ["support/dev-tools"]
