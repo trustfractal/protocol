@@ -256,6 +256,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
                 // Sudo account
                 // 5FCLsu6FTwi9cafruqVbEo8uUEqPHaf6oqNLhSTn5CkbrQ3o
                 hex!["8a880aedd15c00bfa62220f014d12ff818534e99bd298c5c1a68ac221fc2471e"].into(),
+                // Fractal authoritative account
                 // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
                 hex!["8a8781412df00f8be33f7428dfdcd467957a5142f1308b45036126443fc42635"].into(),
             )
