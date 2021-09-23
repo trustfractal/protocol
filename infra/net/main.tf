@@ -23,7 +23,8 @@ resource "aws_vpc" "main" {
     Name = "FclNet VPC"
  }
 }
-
+# For ALB we need at least two subnets -
+# https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer
 # Create Public Subnet1
 resource "aws_subnet" "pub_sub1" {
   vpc_id                  = aws_vpc.main.id
