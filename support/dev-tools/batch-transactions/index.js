@@ -10,7 +10,6 @@ async function createPromiseApi(nodeAddress, types) {
 }
 
 async function main() {
-    // const nodeAddress = 'wss://rpc.polkadot.io';
     const nodeAddress = 'ws://127.0.0.1:9944'
     const types = {
         FractalId: "u64",
@@ -18,19 +17,18 @@ async function main() {
     };
 
     const fractalId = 1;
+    const transactionsAmount = 100;
     const api = await createPromiseApi(nodeAddress, types)
     const keyring = new Keyring({ type: "sr25519" });
     const signer = keyring.createFromUri('//Alice');
     const address = keyring.createFromUri('//Bob').address;
     let txs = [];
     // construct a list of transactions we want to batch
-    for (let i = 0; i < 100; i++) {
-        // const nonce = await api.rpc.system.accountNextIndex(signer.address);
+    for (let i = 0; i < transactionsAmount; i++) {
         txs.push(api.tx.fractalMinting
             .registerIdentity(fractalId, address));
     }
     // construct the batch and send the transactions
-    console.log(api.tx.utility);
     let result = await api.tx.utility
         .batch(txs)
         .signAndSend(signer, ({ status }) => {
@@ -38,9 +36,7 @@ async function main() {
                 console.log(`included in ${status.asInBlock}`);
             }
         });
-    console.log('======================================================')
     console.log(result)
-    console.log('======================================================')
     return result;
 }
 
