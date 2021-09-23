@@ -302,18 +302,22 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         // System
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Aura: pallet_aura::{Pallet, Config<T>},
-        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 1,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
+        Aura: pallet_aura::{Pallet, Config<T>} = 3,
+        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event} = 4,
+
+        // Monetary
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 6,
+
         // Handy utilities.
-        Utility: pallet_utility::{Pallet, Call, Event},
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Utility: pallet_utility::{Pallet, Call, Event} = 7,
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 8,
+
         // Fractal pallets
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>},
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 9,
     }
 );
 
