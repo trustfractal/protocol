@@ -53,6 +53,7 @@ sp-transaction-pool = {version = '3.0.0', git = 'https://github.com/paritytech/s
 substrate-frame-rpc-system = {version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
 fractal-protocol-blockchain-runtime = { path = '../runtime' }
+hex-literal = "0.3.3"
 
 [features]
 default = []
