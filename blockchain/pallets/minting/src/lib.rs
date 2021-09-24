@@ -127,7 +127,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight((
-            10_000 + T::DbWeight::get().reads_writes(2, 4),
+            10_000 + T::DbWeight::get().reads_writes(1, 1),
             DispatchClass::Normal,
             Pays::No
         ))]
@@ -153,7 +153,7 @@ pub mod pallet {
         /// Register to receive minting in the next period.
         // TODO(shelbyd): Charge users transaction fees if this isn't their first registration.
         #[pallet::weight((
-            10_000 + T::DbWeight::get().reads_writes(2, 2),
+            10_000 + T::DbWeight::get().reads_writes(3, 2),
             DispatchClass::Normal,
             Pays::No
         ))]
