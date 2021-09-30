@@ -182,6 +182,7 @@ fn mainnet_genesis(
     initial_grandpa_authorities: Vec<(GrandpaId, u64)>,
     root_key: AccountId,
     fractal_authoritative_account: AccountId,
+    seeded_accounts: Vec<(AccountId, Balance)>,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: SystemConfig {
@@ -190,8 +191,7 @@ fn mainnet_genesis(
             changes_trie_config: Default::default(),
         },
         pallet_balances: BalancesConfig {
-            // Configure endowed accounts with initial balance of 1 << 60.
-            balances: vec![],
+            balances: seeded_accounts,
         },
         pallet_aura: AuraConfig {
             authorities: initial_aura_authorities,
@@ -208,6 +208,10 @@ fn mainnet_genesis(
         },
     }
 }
+
+/// Balance of an account.
+pub type Balance = u128;
+pub const UNIT_BALANCE: Balance = 1_000_000_000_000;
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Mainnet wasm not available".to_string())?;
@@ -259,6 +263,12 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
                 // Fractal authoritative account
                 // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
                 hex!["8a8781412df00f8be33f7428dfdcd467957a5142f1308b45036126443fc42635"].into(),
+                vec![(
+                    // Fractal bridge account seeded with the 5 million units burned from ERC-20.
+                    // 5FCLbrtNGk7gQ8YUHkmXc5vA3hLtknq72nBUCMDt5ipfrpve
+                    hex!["8a871ca23ac8d23d00150248b11b90aa485518b10128c3a1a8588e3ca7d21e63"].into(),
+                    5_000_000 * UNIT_BALANCE,
+                )],
             )
         },
         // Bootnodes
