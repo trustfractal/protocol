@@ -21,6 +21,9 @@ substrate-build-script-utils = {version = '3.0.0', git = 'https://github.com/par
 
 [dependencies]
 jsonrpc-core = '15.1.0'
+jsonrpc-core-client = "15.1.0"
+jsonrpc-derive = "15.1.0"
+
 structopt = '0.3.8'
 
 # Substrate dependencies

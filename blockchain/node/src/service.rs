@@ -203,12 +203,14 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let rpc_extensions_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
+        let network = network.clone();
 
         Box::new(move |deny_unsafe, _| {
             let deps = crate::rpc::FullDeps {
                 client: client.clone(),
                 pool: pool.clone(),
                 deny_unsafe,
+                network: network.clone(),
             };
 
             crate::rpc::create_full(deps)
