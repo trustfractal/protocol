@@ -9,6 +9,7 @@ authors = ["Boy Maas <boy.maas@gmail.com>", "Antoni Dikov <antoni@fractal.id>"]
 [dependencies]
 reqwest = "0.11.4"
 serde = "1.0.130"
+structopt = "0.3.23"
 # TODO: figure out specific features of tokio
 tokio = { version =  "1.12.0", features = ["full"]}
 warp = "0.3.1"
