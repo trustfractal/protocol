@@ -45,6 +45,10 @@ struct Opt {
     #[structopt(short = "i", default_value = "5")]
     poll_interval: u64,
 
+    /// Set minimum peers
+    #[structopt(default_value = "2")]
+    min_peers: usize,
+
     /// Node rpc endpoint
     #[structopt(short, long, env, default_value = "http://localhost:9933/health")]
     node_rpc_endpoint: String,
@@ -66,10 +70,8 @@ async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
 
         match resp.await {
             Ok(health) => {
-                // we consider this node healthy when its
-                // connected to peers and its not synchronizing
-                let node_is_healthy =
-                    !health.is_syncing && health.peers >= 2 && health.should_have_peers;
+                let node_is_healthy = !health.is_syncing
+                    && (!health.should_have_peers || health.peers >= opts.min_peers);
 
                 if opts.debug {
                     eprintln!("Response = {:?}", health);
