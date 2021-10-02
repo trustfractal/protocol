@@ -1607,8 +1607,6 @@ dependencies = [
  "frame-benchmarking-cli",
  "hex-literal",
  "jsonrpc-core",
- "jsonrpc-core-client",
- "jsonrpc-derive",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",

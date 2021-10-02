@@ -15,20 +15,17 @@ use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_transaction_pool::TransactionPool;
 
 /// Full client dependencies.
-pub struct FullDeps<C, P, N> {
+pub struct FullDeps<C, P> {
     /// The client instance to use.
     pub client: Arc<C>,
     /// Transaction pool instance.
     pub pool: Arc<P>,
     /// Whether to deny unsafe calls
     pub deny_unsafe: DenyUnsafe,
-    /// We need access to the Network Future for
-    /// health information
-    pub network: Arc<N>,
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P, N>(deps: FullDeps<C, P, N>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
 where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
@@ -38,7 +35,6 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
-    use crate::rpc_health::{Health, HealthApi};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
@@ -47,7 +43,6 @@ where
         client,
         pool,
         deny_unsafe,
-        network,
     } = deps;
 
     io.extend_with(SystemApi::to_delegate(FullSystem::new(
@@ -59,8 +54,6 @@ where
     io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
         client,
     )));
-
-    io.extend_with(HealthApi::to_delegate(Health {}));
 
     // Extend this RPC with a custom API by using the following syntax.
     // `YourRpcStruct` should have a reference to a client, which is needed
