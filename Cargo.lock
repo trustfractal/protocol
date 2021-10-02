@@ -136,9 +136,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.42"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
+checksum = "61604a8f862e1d5c3229fdd78f8b02c68dcf73a4c4b05fd636d12240aaa242c1"
 
 [[package]]
 name = "approx"
@@ -4068,6 +4068,7 @@ dependencies = [
 name = "node-health-check"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "reqwest",
  "serde",
  "structopt",
@@ -5425,6 +5426,7 @@ dependencies = [
  "percent-encoding 2.1.0",
  "pin-project-lite 0.2.6",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "tokio 1.12.0",
  "tokio-native-tls",
