@@ -13,7 +13,7 @@ pub struct Health;
 impl HealthApi for Health {
     fn ready(&self) -> Result<u64> {
         Err(jsonrpc_core::Error {
-            code: jsonrpc_core::ErrorCode::InternalError,
+            code: jsonrpc_core::ErrorCode::ServerError(400),
             data: None,
             message: "Node is synchronizing".to_string(),
         })

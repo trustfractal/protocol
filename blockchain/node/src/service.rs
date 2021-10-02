@@ -193,15 +193,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         );
     }
 
-    // custom health function
-    use warp::Filter;
-
-    // let hello = warp::path!("hello" / String).map(|name| format!("Hello, {}!", name));
-    // let health_service = warp::serve(hello).run(([0, 0, 0, 0], 9922));
-    // task_manager
-    //     .spawn_handle()
-    //     .spawn("health_service", health_service);
-
     let role = config.role.clone();
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
