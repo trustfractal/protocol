@@ -1,16 +1,13 @@
-use reqwest::StatusCode;
-use warp::Filter;
-
-use anyhow::Result;
 use std::convert::Infallible;
-use std::{sync::Arc, time::Duration};
-
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::{sync::Arc, time::Duration};
 
-use structopt::StructOpt;
-
+use anyhow::Result;
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use structopt::StructOpt;
+use warp::Filter;
 
 /// Health struct returned by the RPC
 #[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
@@ -21,7 +18,6 @@ pub struct Health {
     /// Is the node syncing
     pub is_syncing: bool,
     /// Should this node have any peers
-    ///
     /// Might be false for local chains or when running without discovery.
     pub should_have_peers: bool,
 }
@@ -55,7 +51,6 @@ struct Opt {
 
 async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
     loop {
-        // poll the services here
         let resp = async {
             reqwest::get(&opts.node_rpc_endpoint)
                 .await?
@@ -104,10 +99,8 @@ async fn main() {
             .and_then(return_health_status)
     };
 
-    // start background poller
     tokio::spawn(poller(opts.clone(), healthy));
 
-    // server the health_check
     warp::serve(health_check)
         .run(([0, 0, 0, 0], opts.port))
         .await;
