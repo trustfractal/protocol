@@ -4,15 +4,10 @@ use warp::Filter;
 use anyhow::Result;
 use std::convert::Infallible;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::Mutex;
-use warp::header;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
-use std::collections::HashMap;
-
-use std::path::PathBuf;
 use structopt::StructOpt;
 
 use serde::{Deserialize, Serialize};
