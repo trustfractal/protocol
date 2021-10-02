@@ -80,7 +80,7 @@ async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
                 healthy.store(node_is_healthy, Ordering::Relaxed);
             }
             Err(error) => {
-                eprint!("{:?}", error);
+                eprintln!("{:?}", error);
                 healthy.store(false, Ordering::Relaxed);
             }
         }
