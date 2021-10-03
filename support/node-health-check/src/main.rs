@@ -30,7 +30,7 @@ impl Health {
         if self.should_have_peers {
             return self.peers >= required_peers;
         }
-        return true;
+        true
     }
 }
 
