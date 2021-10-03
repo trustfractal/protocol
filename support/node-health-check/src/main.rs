@@ -5,12 +5,12 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use structopt::StructOpt;
 use warp::Filter;
 
 /// Health struct returned by the RPC
-#[derive(Debug, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Health {
     /// Number of connected peers
@@ -20,6 +20,18 @@ pub struct Health {
     /// Should this node have any peers
     /// Might be false for local chains or when running without discovery.
     pub should_have_peers: bool,
+}
+
+impl Health {
+    fn is_healthy(&self, required_peers: usize) -> bool {
+        if self.is_syncing {
+            return false;
+        }
+        if self.should_have_peers {
+            return self.peers >= required_peers;
+        }
+        return true;
+    }
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -34,9 +46,9 @@ struct Opt {
 
     /// Set poll_interval
     #[structopt(short = "i", default_value = "5")]
-    poll_interval: u64,
+    poll_interval_in_secs: u64,
 
-    /// Set minimum peers
+    /// Set minimum peers to be connected for this node for it to be considered healthy
     #[structopt(default_value = "2")]
     min_peers: usize,
 
@@ -60,14 +72,11 @@ async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
 
         match resp.await {
             Ok(health) => {
-                let node_is_healthy = !health.is_syncing
-                    && (!health.should_have_peers || health.peers >= opts.min_peers);
-
                 if opts.debug {
                     eprintln!("Response = {:?}", health);
-                    eprintln!("Healthy  = {:?}", node_is_healthy);
+                    eprintln!("Healthy  = {:?}", health.is_healthy(opts.min_peers));
                 }
-                healthy.store(node_is_healthy, Ordering::Relaxed);
+                healthy.store(health.is_healthy(opts.min_peers), Ordering::Relaxed);
             }
             Err(error) => {
                 eprintln!("{:?}", error);
@@ -75,7 +84,7 @@ async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
             }
         }
 
-        tokio::time::sleep(Duration::from_secs(opts.poll_interval)).await;
+        tokio::time::sleep(Duration::from_secs(opts.poll_interval_in_secs)).await;
     }
 }
 
@@ -83,7 +92,7 @@ async fn return_health_status(healthy: Arc<AtomicBool>) -> Result<impl warp::Rep
     if healthy.load(Ordering::Relaxed) {
         Ok(StatusCode::OK)
     } else {
-        Ok(StatusCode::NOT_FOUND)
+        Ok(StatusCode::SERVICE_UNAVAILABLE)
     }
 }
 
@@ -99,9 +108,6 @@ async fn main() {
             .and_then(return_health_status)
     };
 
-    tokio::spawn(poller(opts.clone(), healthy));
-
-    warp::serve(health_check)
-        .run(([0, 0, 0, 0], opts.port))
-        .await;
+    tokio::spawn(warp::serve(health_check).run(([0, 0, 0, 0], opts.port)));
+    poller(opts, healthy).await;
 }
