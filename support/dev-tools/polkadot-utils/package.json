@@ -1,0 +1,23 @@
+{
+    "name": "polkadot-utils",
+    "version": "1.0.0",
+    "main": "index.js",
+    "author": "Antoni Dikov(antoni@fractal.id)",
+    "license": "MIT",
+    "scripts": {
+        "test": "jest"
+    },
+    "type": "module",
+    "dependencies": {
+        "@babel/core": "^7.15.5",
+        "@polkadot/api": "^6.2.1",
+        "@polkadot/dev": "^0.62.69",
+        "@polkadot/keyring": "^7.4.1",
+        "@polkadot/ts": "^0.4.8",
+        "@polkadot/types": "^6.2.1",
+        "@types/jest": "^27.0.2",
+        "@types/node": "^16.10.2",
+        "jest-config": "^27.2.4",
+        "typescript": "^4.4.3"
+    }
+}
