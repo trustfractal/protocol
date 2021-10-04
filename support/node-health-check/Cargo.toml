@@ -1,0 +1,15 @@
+[package]
+name = "node-health-check"
+version = "0.1.0"
+edition = "2018"
+authors = ["Boy Maas <boy.maas@gmail.com>", "Antoni Dikov <antoni@fractal.id>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.44"
+reqwest = { version = "0.11.4", features = ["json"] }
+serde = {  version = "1.0.130", features = ["derive"] }
+structopt = "0.3.23"
+tokio = { version =  "1.12", features = ["macros", "time", "rt-multi-thread"]}
+warp = "0.3.1"
