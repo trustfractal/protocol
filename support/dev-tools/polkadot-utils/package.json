@@ -5,9 +5,8 @@
     "author": "Antoni Dikov(antoni@fractal.id)",
     "license": "MIT",
     "scripts": {
-        "test": "jest"
+        "test": "jest --forceExit"
     },
-    "type": "module",
     "dependencies": {
         "@babel/core": "^7.15.5",
         "@polkadot/api": "^6.2.1",
