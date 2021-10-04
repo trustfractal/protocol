@@ -61,7 +61,7 @@ struct Opt {
     port: u16,
 }
 
-async fn poller(opts: Opt, healthy: Arc<AtomicBool>) {
+async fn poller(opts: Opt, healthy: Arc<AtomicBool>) -> ! {
     loop {
         let resp = async {
             reqwest::get(&opts.node_rpc_endpoint)
