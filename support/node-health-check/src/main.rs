@@ -48,7 +48,7 @@ struct Opt {
     #[structopt(short = "i", default_value = "5")]
     poll_interval_in_secs: u64,
 
-    /// Set minimum peers to be connected for this node for it to be considered healthy
+    /// The inspected node must have at least this many peers to be considered healthy
     #[structopt(default_value = "2")]
     min_peers: usize,
 
