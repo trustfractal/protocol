@@ -40,20 +40,20 @@ describe('TxnBatcher', () => {
         expect(spy).toBeCalledTimes(2)
       });
 
-      it('sends second transaction after first finishes', async () => {
-        const fractalId = 1
-        const api = await createPromiseApi(settings.nodeAddress, settings.types)
-        const batcher = new TxnBatcher(api)
-        const spy = jest.spyOn<any, any>(batcher, 'sendQueued')
+    //   it('sends second transaction after first finishes', async () => {
+    //     const fractalId = 1
+    //     const api = await createPromiseApi(settings.nodeAddress, settings.types)
+    //     const batcher = new TxnBatcher(api)
+    //     const spy = jest.spyOn<any, any>(batcher, 'sendQueued')
 
-        const keyring = new Keyring({ type: 'sr25519' })
-        const signer = keyring.createFromUri('//Alice')
-        const address = keyring.createFromUri('//Bob').address
-        batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
-        batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
-        batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
-        batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
+    //     const keyring = new Keyring({ type: 'sr25519' })
+    //     const signer = keyring.createFromUri('//Alice')
+    //     const address = keyring.createFromUri('//Bob').address
+    //     batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
+    //     batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
+    //     batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
+    //     batcher.send(api.tx.fractalMinting.registerIdentity(fractalId, address), signer)
 
-        expect(spy).toBeCalledTimes(2)
-      });
+    //     expect(spy).toBeCalledTimes(2)
+    //   });
 });
