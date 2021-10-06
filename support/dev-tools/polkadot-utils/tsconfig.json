@@ -1,3 +1,12 @@
 {
     "extends": "@polkadot/dev/config/tsconfig.json",
+        "compilerOptions": {
+          "module": "es2020",
+        },
+        "ts-node": {
+          "compilerOptions": {
+            "module": "commonjs",
+            "resolveJsonModule": true,
+          }
+        }
 }
