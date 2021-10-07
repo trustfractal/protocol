@@ -3,5 +3,5 @@ members = [
   'blockchain/node',
   'blockchain/pallets/*',
   'blockchain/runtime',
-  'support/*',
+  'support/merklex',
 ]
