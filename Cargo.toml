@@ -3,5 +3,9 @@ members = [
   'blockchain/node',
   'blockchain/pallets/*',
   'blockchain/runtime',
-  'support/merklex',
+  'support/*',
+]
+
+exclude = [
+  'support/@fractal',
 ]
