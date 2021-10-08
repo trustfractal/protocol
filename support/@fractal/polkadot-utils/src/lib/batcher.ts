@@ -1,24 +1,43 @@
 import {ApiPromise} from '@polkadot/api';
+import {SubmittableExtrinsic} from '@polkadot/api/types';
+import {KeyringPair} from '@polkadot/keyring/types';
+
+import {TxnWatcher} from './watcher';
 
 export class TxnBatcher {
   private readonly nextNonces = new Map<string, number|Promise<number>>();
 
   constructor(private readonly api: ApiPromise) { this.api; }
 
-  signAndSend(txn: any, signer: any, watcher = new TxnWatcher()): TxnWatcher {
+  signAndSend(txn: SubmittableExtrinsic<"promise">, signer: KeyringPair,
+              watcher = new TxnWatcher()): TxnWatcher {
     (async () => {
+      const retry = () => {
+        console.warn('Retrying nonce', nonce);
+        this.clearNextNonce(signer);
+        this.signAndSend(txn, signer, watcher);
+      };
+
       const nonce = await this.nextNonce(signer);
-      console.log('nonce', nonce);
       try {
         const unsub =
             await txn.signAndSend(signer, {nonce}, watcher.signAndSendCb());
         watcher.unsub = unsub;
+        watcher.handleInvalid = retry;
+        await watcher.ready();
       } catch (e) {
-        if (e instanceof Error && e.message.includes('Priority is too low')) {
-          console.log('Conflicting nonce', nonce, 'retrying');
-          this.clearNextNonce(signer);
-          this.signAndSend(txn, signer, watcher);
+        if (!(e instanceof Error)) {
+          throw e;
+        }
+
+        const retryable = [
+          'Priority is too low',
+          'Transaction is outdated',
+        ].some(m => (e as Error).message.includes(m));
+        if (retryable) {
+          retry();
         } else {
+          console.log('Throwing unhandled error', e);
           throw e;
         }
       }
@@ -27,48 +46,30 @@ export class TxnBatcher {
     return watcher;
   }
 
-  private async nextNonce(signer: any): Promise<number> {
+  private async nextNonce(signer: KeyringPair): Promise<number> {
+    const address = signer.address;
     while (true) {
-      const already = this.nextNonces.get(signer.address);
+      const already = this.nextNonces.get(address);
       if (already instanceof Promise) {
         await already;
       } else if (already == null) {
-        const promise = this.api.rpc.system.accountNextIndex(signer.address)
-                            .then(n => n.toNumber());
-        this.nextNonces.set(signer.address, promise);
+        const promise = this.api.rpc.system.accountNextIndex(address).then(
+            n => n.toNumber());
+        this.nextNonces.set(address, promise);
         const nonce = await promise;
-        this.nextNonces.set(signer.address, nonce + 1);
+        this.nextNonces.set(address, nonce + 1);
         return nonce;
       } else {
-        this.nextNonces.set(signer.address, already + 1);
+        this.nextNonces.set(address, already + 1);
         return already;
       }
     }
   }
 
-  private clearNextNonce(signer: any) {
-    this.nextNonces.delete(signer.address);
-  }
-}
-
-export class TxnWatcher {
-  unsub?: () => void;
-
-  onInBlock: Array<() => void> = [];
-
-  signAndSendCb(): (result: any) => void {
-    return (result: any) => {
-      if (result.status.isInBlock) {
-        for (const cb of this.onInBlock) {
-          cb();
-        }
-      } else {
-        console.log('result.status.toHuman()', result.status.toHuman());
-      }
-    };
-  }
-
-  async inBlock() {
-    return new Promise<void>(resolve => { this.onInBlock.push(resolve); });
+  private clearNextNonce(signer: KeyringPair) {
+    const already = this.nextNonces.get(signer.address);
+    if (typeof already === 'number') {
+      this.nextNonces.delete(signer.address);
+    }
   }
 }
