@@ -1,5 +1,5 @@
 {
-  "name": "@fractal/polkadot-utils",
+  "name": "@trustfractal/polkadot-utils",
   "version": "0.1.1",
   "description": "Utilities to make interacting with Substrate nodes robust and efficient.",
   "main": "build/main/index.js",
