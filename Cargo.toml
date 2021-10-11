@@ -7,5 +7,5 @@ members = [
 ]
 
 exclude = [
-  'support/@fractal',
+  'support/@trustfractal',
 ]
