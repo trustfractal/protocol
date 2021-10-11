@@ -48,6 +48,7 @@ export class TxnBatcher {
 
   private async nextNonce(signer: KeyringPair): Promise<number> {
     const address = signer.address;
+    /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
     while (true) {
       const already = this.nextNonces.get(address);
       if (already instanceof Promise) {
