@@ -5,3 +5,7 @@ members = [
   'blockchain/runtime',
   'support/*',
 ]
+
+exclude = [
+  'support/@fractal',
+]
