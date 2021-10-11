@@ -1,16 +1,21 @@
-import {ApiPromise} from '@polkadot/api';
-import {SubmittableExtrinsic} from '@polkadot/api/types';
-import {KeyringPair} from '@polkadot/keyring/types';
+import { ApiPromise } from '@polkadot/api';
+import { SubmittableExtrinsic } from '@polkadot/api/types';
+import { KeyringPair } from '@polkadot/keyring/types';
 
-import {TxnWatcher} from './watcher';
+import { TxnWatcher } from './watcher';
 
 export class TxnBatcher {
-  private readonly nextNonces = new Map<string, number|Promise<number>>();
+  private readonly nextNonces = new Map<string, number | Promise<number>>();
 
-  constructor(private readonly api: ApiPromise) { this.api; }
+  constructor(private readonly api: ApiPromise) {
+    this.api;
+  }
 
-  signAndSend(txn: SubmittableExtrinsic<"promise">, signer: KeyringPair,
-              watcher = new TxnWatcher()): TxnWatcher {
+  signAndSend(
+    txn: SubmittableExtrinsic<'promise'>,
+    signer: KeyringPair,
+    watcher = new TxnWatcher()
+  ): TxnWatcher {
     (async () => {
       const retry = () => {
         console.warn('Retrying nonce', nonce);
@@ -20,8 +25,11 @@ export class TxnBatcher {
 
       const nonce = await this.nextNonce(signer);
       try {
-        const unsub =
-            await txn.signAndSend(signer, {nonce}, watcher.signAndSendCb());
+        const unsub = await txn.signAndSend(
+          signer,
+          { nonce },
+          watcher.signAndSendCb()
+        );
         watcher.unsub = unsub;
         watcher.handleInvalid = retry;
         await watcher.ready();
@@ -33,7 +41,7 @@ export class TxnBatcher {
         const retryable = [
           'Priority is too low',
           'Transaction is outdated',
-        ].some(m => (e as Error).message.includes(m));
+        ].some((m) => (e as Error).message.includes(m));
         if (retryable) {
           retry();
         } else {
@@ -54,8 +62,9 @@ export class TxnBatcher {
       if (already instanceof Promise) {
         await already;
       } else if (already == null) {
-        const promise = this.api.rpc.system.accountNextIndex(address).then(
-            n => n.toNumber());
+        const promise = this.api.rpc.system
+          .accountNextIndex(address)
+          .then((n) => n.toNumber());
         this.nextNonces.set(address, promise);
         const nonce = await promise;
         this.nextNonces.set(address, nonce + 1);

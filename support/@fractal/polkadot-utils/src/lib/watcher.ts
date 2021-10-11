@@ -1,12 +1,12 @@
-import {DispatchError} from '@polkadot/types/interfaces';
-import {AnyJson, ISubmittableResult} from '@polkadot/types/types';
+import { DispatchError } from '@polkadot/types/interfaces';
+import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
-export type TxnError = Error|DispatchError;
+export type TxnError = Error | DispatchError;
 
 export class TxnWatcher {
   unsub?: () => void;
 
-  status: AnyJson|string = "Unsubmitted";
+  status: AnyJson | string = 'Unsubmitted';
 
   onReady = new MultiCallback<void>();
   onInBlock = new OnceMultiCallback<void>('onInBlock');
@@ -19,25 +19,25 @@ export class TxnWatcher {
   signAndSendCb(): (result: ISubmittableResult) => void {
     return (result: ISubmittableResult) => {
       if (result.dispatchError) {
-        this.status = "Error";
+        this.status = 'Error';
         this.onError(result.dispatchError);
         return;
       }
 
       if (result.status.isReady) {
-        this.status = "Ready";
+        this.status = 'Ready';
         this.onReady.callAll();
       } else if (result.status.isInBlock) {
-        this.status = "InBlock";
+        this.status = 'InBlock';
         this.onInBlock.callAll();
       } else if (result.status.isFinalized) {
         this.onInBlock.callIfUncalled();
 
-        this.status = "Finalized";
+        this.status = 'Finalized';
         this.onFinalized.callAll();
         this.unsub!();
       } else if (result.status.isFuture) {
-        this.status = "Future";
+        this.status = 'Future';
         // Future means we submitted a TXN with too high of a nonce. Since
         // we probably submitted the previous nonce about the same time, this
         // doesn't end up being a problem.
@@ -59,11 +59,14 @@ export class TxnWatcher {
   }
 
   async ready(): Promise<void> {
-    return this.promise(resolve => { this.onReady.push(resolve); });
+    return this.promise((resolve) => {
+      this.onReady.push(resolve);
+    });
   }
 
-  private promise<T>(withResolve: (resolve: (t: T) => void) => void):
-      Promise<T> {
+  private promise<T>(
+    withResolve: (resolve: (t: T) => void) => void
+  ): Promise<T> {
     return new Promise((resolve, reject) => {
       withResolve(resolve);
       this.onUnhandledError.push(reject);
@@ -71,11 +74,15 @@ export class TxnWatcher {
   }
 
   async inBlock(): Promise<void> {
-    return this.promise(resolve => { this.onInBlock.push(resolve); });
+    return this.promise((resolve) => {
+      this.onInBlock.push(resolve);
+    });
   }
 
   async finalized(): Promise<void> {
-    return this.promise(resolve => { this.onFinalized.push(resolve); });
+    return this.promise((resolve) => {
+      this.onFinalized.push(resolve);
+    });
   }
 }
 
@@ -97,7 +104,7 @@ class MultiCallback<T> {
 // Will call new callbacks with the value if added after callAll.
 class OnceMultiCallback<T> {
   private value?: T;
-  private willBeCalled: Array<(t: T) => void>|null = [];
+  private willBeCalled: Array<(t: T) => void> | null = [];
 
   constructor(private readonly name: string) {}
 
@@ -123,11 +130,12 @@ class OnceMultiCallback<T> {
     }
   }
 
-  hasBeenCalled() { return this.willBeCalled == null; }
+  hasBeenCalled() {
+    return this.willBeCalled == null;
+  }
 
   callIfUncalled(t: T) {
-    if (this.hasBeenCalled())
-      return;
+    if (this.hasBeenCalled()) return;
     console.warn('Calling uncalled callbacks');
     this.callAll(t);
   }
