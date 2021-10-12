@@ -1,0 +1,9 @@
+{
+    "nodeAddress": "ws://127.0.0.1:9944",
+    "latestBlockHash": "",
+    "region": "eu-central-1",
+    "awsApiVersion": "2010-03-31",
+    "cronTime": "*/30 * * * * *",
+    "message": "Block production has stopped.",
+    "topicName": "block-production-topic"
+}

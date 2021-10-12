@@ -456,3 +456,10 @@ resource "aws_lb_listener" "front_end" {
     target_group_arn = aws_lb_target_group.TG-tf.arn
   }
 }
+
+module "block-production-topic" {
+  source  = "terraform-aws-modules/sns/aws"
+  version = "~> 3.0"
+
+  name  = "FclNet-block-production-topic"
+}
