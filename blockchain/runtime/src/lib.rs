@@ -301,6 +301,7 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
+        // System
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 1,
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
@@ -308,9 +309,13 @@ construct_runtime!(
         Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event} = 4,
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
         TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 6,
+
+        // Handy utilities
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 7,
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
         Utility: pallet_utility::{Pallet, Call, Event} = 9,
+
+        // Fractal pallets
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
     }
 );
 
