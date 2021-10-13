@@ -1,4 +1,4 @@
-name: data-host CI
+name: Data Host CI
 
 # Controls when the workflow will run
 
@@ -33,7 +33,8 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - name: Install packages
-        run: yarn install
+      - run: yarn install
+      - name: Run tests
       - run: yarn test
-      - run: yarn run cov:send
-      - run: yarn run cov:check
+      # - run: yarn run cov:send
+      # - run: yarn run cov:check
