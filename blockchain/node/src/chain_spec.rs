@@ -227,46 +227,46 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
                 wasm_binary,
                 // Initial PoA authorities
                 vec![
-                    // 5FCLaubL8NeerKq8LPVYJPJe6Z8JP9ayCT5LSNUXaStmjShw
-                    hex!["8a870e7805780fe7e2d499a679c3465da86b04a2ec7e51379391a8d81326b467"]
+                    // 5FCLauyC2GbRz1WLANFLYuUvfS4RoRqeBFgDFxUTpZ2Ek61d
+                    hex!["8a870e90bd2411e7a734680ebda3ddb2b9c9432c77766cf2cf8b9e999e433543"]
                         .unchecked_into(),
-                    // 5FCLauianC9jJitTqpWmNDMp677FkirT4xojK7GLQ6YERgQX
-                    hex!["8a870e8038d0504ea60a980c72e89896252b969e98d769002a01bf00e26b1212"]
+                    // 5FCLauYR7adiBYHXjV9KFCNSFcVhYJfgrAuhwtK3iFDgwBHm
+                    hex!["8a870e74b9f94bf5d055c9fec5ec95f589be647ad3da500a39fbdc95a452042e"]
                         .unchecked_into(),
-                    // 5FCLauc7k38LpiA6JJKid2n7r3JjkH2EFC2FqmEXi7tLhUBP
-                    hex!["8a870e78e91e6ba9a8068a6e04c65bae0b9469cae549c5ad9d1fb91813fdb235"]
+                    // 5FCLauXLWS1pvawBGyRSn8ymmdrGfc7bYLEJcfEkrGPWQojQ
+                    hex!["8a870e738186c9ab6bdad0982569dcf91fc54ecd764cf5fe94e599b4da6b3b79"]
                         .unchecked_into(),
                 ],
                 vec![
-                    // 5FCLgrPgkUbrCEnvdCCrkNNExsQyznTyuVrheQhpdPbSs29j
+                    // 5FCLgrebZjCAhqCsYSf8sFjHaYMLHw1zhZQKGK4zZPCm7ZSp
                     (
-                        hex!["8a8766cc3bece48c8e014f896a6d60183b2db6d41896d590ff0e4c004b10bb9c"]
+                        hex!["8a8766dd17f2e9fd00d27767b43aae9279934f36b9a76320a6bc0841c614cc9a"]
                             .unchecked_into(),
                         1,
                     ),
-                    // 5FCLgrr1N9HWMJnLicNyUoKCrGE99csRwDYyyUD6C9xwzjm4
+                    // 5FCLgrungfcxZyHPQbn2s5V8twDJ8oGGVKiSDWjeXG3SHfXz
                     (
-                        hex!["8a8766e9feca3ed817e8355b967a7e151489e67011b0204ba3d96bb23dd609d3"]
+                        hex!["8a8766ee45586978246297444a92beb0d5cfae8b92351766db869666bc0c8538"]
                             .unchecked_into(),
                         1,
                     ),
-                    // 5FCLgr3aRRHCJLXeoH5vbz7NGuQ3E3hLg44KPn4LaRMb7ub9
+                    // 5FCLgrQcKX43W5nSPZ9WnTCX2EosYMdxQK238RVuBzVHvW2C
                     (
-                        hex!["8a8766b57f2391f4f6e2fed09b1ea8fde72948f988494ec39e91562812c5dee5"]
+                        hex!["8a8766cd4746732e0f4b13d70c541bf8a4e31f895d7915f1d8211ddfc7000341"]
                             .unchecked_into(),
                         1,
                     ),
                 ],
                 // Sudo account
-                // 5FCLsu6FTwi9cafruqVbEo8uUEqPHaf6oqNLhSTn5CkbrQ3o
-                hex!["8a880aedd15c00bfa62220f014d12ff818534e99bd298c5c1a68ac221fc2471e"].into(),
+                // 5FCLsuKWKGLDMDUmTke8pbBTDqwxmFri4z6utanCHno1WxJH
+                hex!["8a880afcce745e98eb27dd016eb9a050a0c73097f91768fdffe6f3c99fca8f6d"].into(),
                 // Fractal authoritative account
-                // 5FCLidfiL1wcTSXvecm1PrrP3N3jUxAgpdDGJQRAqA5pk1K3
-                hex!["8a8781412df00f8be33f7428dfdcd467957a5142f1308b45036126443fc42635"].into(),
+                // 5FCLidfDWqbDHZNbqGzAiTLJTY3zLrYZEor9MDUWXiD3hE5E
+                hex!["8a8781409e238a4b2a794fb7decee78007a8adee55ecf7888ed49b4ed64e4425"].into(),
                 vec![(
                     // Fractal bridge account seeded with the 5 million units burned from ERC-20.
-                    // 5FCLbrtNGk7gQ8YUHkmXc5vA3hLtknq72nBUCMDt5ipfrpve
-                    hex!["8a871ca23ac8d23d00150248b11b90aa485518b10128c3a1a8588e3ca7d21e63"].into(),
+                    // 5FCLbrPcvVNBvKkiwEa8DQxyGTW4BPBVaDG2Sq3LRJv5y59x
+                    hex!["8a871c81b98ef76617dcfe3bdc5af1b150f20553094bd98dce9da8eb4048655d"].into(),
                     5_000_000 * UNIT_BALANCE,
                 )],
             )
