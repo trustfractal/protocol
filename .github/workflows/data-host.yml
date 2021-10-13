@@ -14,6 +14,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: support/@trustfractal/data-host
+
 jobs:
   'node-14':
     # The type of runner that the job will run on
