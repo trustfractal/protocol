@@ -67,5 +67,9 @@ ssh $node_01 'docker-compose up -d'
 ssh $node_02 'docker-compose up -d'
 
 # now shoot in keys and reboot
-echo "Now shoot in the prod and val keys and reboot once"
+echo "Now shoot in the prod and val keys ..  "
 
+read -p "Press enter to continue and reboot all the nodes"
+
+# reboot the nodes so the validator keys get activated
+exec_on_all_nodes 'docker-compose restart'
