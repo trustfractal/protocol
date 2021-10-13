@@ -4,8 +4,10 @@ set -e -o pipefail
 
 usage() {
   cat << EOT
-Usage: $0 <<BUILD ID>>
-Reset fractals mainnet, example BUILD ID = e1ca4db_20211011_1204
+Reset Fractal Mainnet.
+
+Example:
+$0 e1ca4db_20211011_1204
 EOT
 }
 
