@@ -25,7 +25,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       # Download and cache dependencies
       - name: Cache node modules
       - uses: actions/cache@v2
@@ -33,8 +33,8 @@ jobs:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - name: Install packages
-      - run: yarn install
+        run: yarn install
       - name: Run tests
-      - run: yarn test
-      # - run: yarn run cov:send
-      # - run: yarn run cov:check
+        run: yarn test
+      #  run: yarn run cov:send
+      #  run: yarn run cov:check
