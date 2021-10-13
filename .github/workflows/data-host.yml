@@ -1,0 +1,38 @@
+name: data-host CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on pull request events but only for the master branch
+  # TODO: remove on:push
+  on: push
+    paths:
+      - 'support/@trustfractal/data-host/**'
+  # pull_request:
+  #  branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  'node-14':
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      # Download and cache dependencies
+      - name: Cache node modules
+      - uses: actions/cache@v2
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Install packages
+        run: yarn install
+      - run: yarn test
+      - run: yarn run cov:send
+      - run: yarn run cov:check
