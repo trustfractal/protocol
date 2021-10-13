@@ -1,12 +1,13 @@
 name: data-host CI
 
 # Controls when the workflow will run
+
+# TODO: remove on:push
 on:
-  # Triggers the workflow on pull request events but only for the master branch
-  # TODO: remove on:push
-  on: push
+  push:
     paths:
       - 'support/@trustfractal/data-host/**'
+  # Triggers the workflow on pull request events but only for the master branch
   # pull_request:
   #  branches: [ master ]
 
