@@ -11,6 +11,11 @@ subsitute_node_build_id() {
   ssh $1 "PERL_BADLANG=0 perl -pi -e \"s/\\\\w+_\\\\d+_\\\\d+/$2/\" docker-compose.yml"
 }
 
+# /p2p/12D3KooWB3ENNs5vK5HNJTHVd33wEZnXdoTFwHkEUcFdQ6JxRhRJ
+subsitute_bootnode_id() {
+  ssh $1 "PERL_BADLANG=0 perl -pi -e \"s|/p2p/\w+|/p2p/$2|\" docker-compose.yml"
+}
+
 (( $# < 1 )) && { echo "1 arguements is required."; usage; exit 1; }
 
 NODE_BUILD_ID=$1
@@ -55,5 +60,12 @@ echo "Found bootnode_id $bootnode_id"
 
 # change the docker-compose files splice in the new node-build-id for $node_01 and $node_02
 # run the insert-keys step for all the nodes
+subsitute_bootnode_id $node_01 $bootnode_id
+subsitute_bootnode_id $node_02 $bootnode_id
 
-# reboot them all
+ssh $node_01 'docker-compose up -d'
+ssh $node_02 'docker-compose up -d'
+
+# now shoot in keys and reboot
+echo "Now shoot in the prod and val keys and reboot once"
+
