@@ -1,7 +1,7 @@
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const AWS = require('aws-sdk');
-const nodeCron = require('node-cron');
-const settings = require('./settings.json')
+const CronJob = require('node-cron');
+const Settings = require('./settings.json')
 
 // Create a promise API instance of the passed in node address.
 async function createPromiseApi(nodeAddress, types) {
@@ -11,51 +11,44 @@ async function createPromiseApi(nodeAddress, types) {
     return api;
 }
 
-async function publishToTopic(topicName, message) {
-    AWS.config.update({region: settings.region});
-    const sns = new AWS.SNS({apiVersion: settings.awsApiVersion});
-    const topics = await sns.listTopics().promise();
-    const topicArn = topics.Topics.find(t => t.TopicArn.includes(topicName)).TopicArn;
-
-    return sns.publish({
-        Message: message,
-        TopicArn: topicArn,
-    }).promise();
-}
-
 async function main() {
-    const api = await createPromiseApi(settings.nodeAddress);
+    const api = await createPromiseApi(Settings.nodeAddress);
 
-    let lastHeaderHex = settings.lastHeaderHex;
-    let counter = 0;
+    AWS.config.update({region: Settings.region});
+    const sns = new AWS.SNS({apiVersion: Settings.awsApiVersion});
+    const topics = await sns.listTopics().promise();
+    const topicArn = topics.Topics.find(t => t.TopicArn.includes(Settings.topicName)).TopicArn;
+
+    let lastHeaderHex = Settings.lastHeaderHex;
+    let lastNewBlockAt = Date.now();
     let sendingSns = false;
-    const job = nodeCron.schedule(settings.cronTime, () => {
-        console.log(new Date().toLocaleString());
-        api.rpc.chain.getBlock().then(signedBlock => {
+    const job = CronJob.schedule(Settings.cronTime, async () => {
+        try {
+            console.log(new Date().toISOString(), 'Checking for new block');
+            const signedBlock = await api.rpc.chain.getBlock();
             const currentHeader = signedBlock.block.header.hash;
+
             if (currentHeader.toHex() != lastHeaderHex) {
                 lastHeaderHex = currentHeader.toHex();
-                counter = 0;
-            } else {
-                counter++;
-                if (counter > 1 && !sendingSns) {
-                    sendingSns = true;
-
-                    // Create promise and SNS service object
-                    publishToTopic(settings.topicName, `message: ${settings.message};  Last header hex: ${lastHeaderHex}`).then((data) => {
-                        sendingSns = false;
-                        counter = 0;
-                        console.log(`Message ${settings.message} sent to the topic ${settings.topicName}`);
-                        console.log("MessageID is " + data.MessageId);
-                        //TODO: save the latest header hex to the settings.json
-                    }).catch((err) => {
-                        sendingSns = false;
-                        counter = 0;
-                        console.error(err, err.stack);
-                    });
-                }
+                lastNewBlockAt = Date.now();
+                return;
             }
-        });
+            console.log(`${Date.now()} , ${lastNewBlockAt}, ${Settings.requireNewBlockEveryMs}`)
+            if (!sendingSns && (Date.now() - lastNewBlockAt > Settings.requireNewBlockEveryMs)) {
+                sendingSns = true;
+                let data = await sns.publish({
+                    Message: `message: ${Settings.message};  Last header hex: ${lastHeaderHex}`,
+                    TopicArn: topicArn,
+                }).promise();
+                console.warn(`Message ${Settings.message} sent to the topic ${topicArn}`);
+                console.warn("MessageID is " + data.MessageId);
+                sendingSns = false;
+            }
+        } catch (err) {
+            sendingSns = false;
+            lastNewBlockAt = Date.now();
+            console.error(err, err.stack);
+        }
     });
 }
 

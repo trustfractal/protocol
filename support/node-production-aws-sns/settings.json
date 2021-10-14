@@ -5,5 +5,6 @@
     "awsApiVersion": "2010-03-31",
     "cronTime": "*/30 * * * * *",
     "message": "Block production has stopped.",
-    "topicName": "block-production-topic"
+    "topicName": "block-production-topic",
+    "requireNewBlockEveryMs": 50000
 }
