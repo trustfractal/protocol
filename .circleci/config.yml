@@ -66,6 +66,7 @@ jobs:
           root: .
           paths:
             - target/release/node
+            - target/release/node-health-check
 
   security:
     docker:
@@ -167,6 +168,8 @@ jobs:
             WORKDIR /app
 
             COPY target/release/node /app
+            COPY target/release/node-health-check /app
+            
             ENTRYPOINT ["/app/node"]
             EOS
 
@@ -228,3 +231,4 @@ workflows:
             branches:
               only:
                 - master
+                - bmaas/node-health-check
