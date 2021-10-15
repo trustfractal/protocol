@@ -235,4 +235,3 @@ workflows:
             branches:
               only:
                 - master
-                - bmaas/node-health-check
