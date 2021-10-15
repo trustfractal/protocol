@@ -3,8 +3,9 @@
     "latestBlockHash": "",
     "region": "eu-central-1",
     "awsApiVersion": "2010-03-31",
-    "cronTime": "*/30 * * * * *",
     "message": "Block production has stopped.",
     "topicName": "block-production-topic",
-    "requireNewBlockEveryMs": 50000
+    "requireNewBlockEveryMs": 50000,
+    "chechInterval": 5000,
+    "minutesUntilNextCheckAfterAlarm": 30
 }

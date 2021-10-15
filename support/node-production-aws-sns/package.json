@@ -1,17 +1,16 @@
 {
-  "name": "measure-block-time",
+  "name": "node-production-aws-sns",
   "version": "1.0.0",
   "main": "index.js",
   "author": "Antoni Dikov(antoni@fractal.id)",
   "license": "MIT",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "yarn build && polkadot-dev-build-ts"
+    "start": "node index.js"
   },
   "dependencies": {
     "@polkadot/api": "^5.5.1",
     "@polkadot/types": "^5.5.1",
-    "aws-sdk": "^2.1005.0",
-    "node-cron": "^3.0.0"
+    "aws-sdk": "^2.1005.0"
   }
 }
