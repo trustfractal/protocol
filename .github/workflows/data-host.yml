@@ -36,5 +36,3 @@ jobs:
         run: yarn install
       - name: Run tests
         run: yarn test
-      #  run: yarn run cov:send
-      #  run: yarn run cov:check
