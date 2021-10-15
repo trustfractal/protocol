@@ -20,12 +20,9 @@ async function main() {
 
     let lastHeaderHex = Settings.lastHeaderHex;
     let lastNewBlockAt = Date.now();
-    let sendingSns = false;
-    let sleepTime = 0;
     while (true) {
-        await new Promise(r => setTimeout(r, sleepTime));
         try {
-            sleepTime = Settings.sleepIntervalMs
+            await new Promise(r => setTimeout(r, Settings.sleepIntervalMs));
             const signedBlock = await api.rpc.chain.getBlock();
             const currentHeader = signedBlock.block.header.hash;
 
@@ -38,12 +35,7 @@ async function main() {
 
             console.log(new Date().toISOString(), `Have not seen new block for ${new Date() - lastNewBlockAt}ms`);
 
-            if (sendingSns) {
-                continue;
-            }
-
             if (Date.now() - lastNewBlockAt > Settings.requireNewBlockEveryMs) {
-                sleepTime = 1000 * 60 * Settings.minutesUntilNextCheckAfterAlarm;
                 sendingSns = true;
                 let data = await sns.publish({
                     Message: `message: ${Settings.message};  Last header hex: ${lastHeaderHex}`,
@@ -51,12 +43,10 @@ async function main() {
                 }).promise();
                 console.warn(`Message ${Settings.message} sent to the topic ${topicArn}`);
                 console.warn("MessageID is " + data.MessageId);
-                sendingSns = false;
+                await new Promise(r => setTimeout(r, 1000 * 60 * Settings.minutesUntilNextCheckAfterAlarm));
             }
         } catch (err) {
-            sendingSns = false;
             lastNewBlockAt = Date.now();
-            sleepTime = Settings.sleepIntervalMs;
             console.error(err, err.stack);
         }
     };
