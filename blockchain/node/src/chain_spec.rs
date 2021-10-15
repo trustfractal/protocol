@@ -2,7 +2,7 @@ use fractal_protocol_blockchain_runtime::{
     AccountId, AuraConfig, BalancesConfig, FractalMintingConfig, GenesisConfig, GrandpaConfig,
     Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
-use sc_service::ChainType;
+use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
@@ -39,9 +39,15 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
     (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
+pub fn fractal_properties() -> Properties {
+    let mut p = Properties::new();
+    p.insert("tokenDecimals".into(), 12.into());
+    p.insert("tokenSymbol".into(), "FCL".into());
+    p
+}
+
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
     Ok(ChainSpec::from_genesis(
         // Name
         "Development",
@@ -76,7 +82,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Protocol ID
         None,
         // Properties
-        None,
+        Some(fractal_properties()),
         // Extensions
         None,
     ))
@@ -278,7 +284,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
         // Protocol ID
         None,
         // Properties
-        None,
+        Some(fractal_properties()),
         // Extensions
         None,
     ))
