@@ -6,6 +6,6 @@
     "message": "Block production has stopped.",
     "topicName": "block-production-topic",
     "requireNewBlockEveryMs": 50000,
-    "chechInterval": 5000,
+    "sleepIntervalMs": 5000,
     "minutesUntilNextCheckAfterAlarm": 30
 }

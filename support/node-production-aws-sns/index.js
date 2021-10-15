@@ -25,7 +25,7 @@ async function main() {
     while (true) {
         await new Promise(r => setTimeout(r, sleepTime));
         try {
-            sleepTime = Settings.chechInterval
+            sleepTime = Settings.sleepIntervalMs
             const signedBlock = await api.rpc.chain.getBlock();
             const currentHeader = signedBlock.block.header.hash;
 
@@ -56,7 +56,7 @@ async function main() {
         } catch (err) {
             sendingSns = false;
             lastNewBlockAt = Date.now();
-            sleepTime = Settings.chechInterval;
+            sleepTime = Settings.sleepIntervalMs;
             console.error(err, err.stack);
         }
     };
