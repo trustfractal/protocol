@@ -41,7 +41,6 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 pub fn fractal_properties() -> Properties {
     let mut p = Properties::new();
-    // p.insert("ss58format".into(), <number>.into());
     p.insert("tokenDecimals".into(), 12.into());
     p.insert("tokenSymbol".into(), "FCL".into());
     p
@@ -49,7 +48,6 @@ pub fn fractal_properties() -> Properties {
 
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-    let props = fractal_properties();
     Ok(ChainSpec::from_genesis(
         // Name
         "Development",
@@ -84,7 +82,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Protocol ID
         None,
         // Properties
-        Some(props),
+        Some(fractal_properties()),
         // Extensions
         None,
     ))
@@ -223,7 +221,6 @@ pub const UNIT_BALANCE: Balance = 1_000_000_000_000;
 
 pub fn mainnet_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Mainnet wasm not available".to_string())?;
-    let props = fractal_properties();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -287,7 +284,7 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
         // Protocol ID
         None,
         // Properties
-        Some(props),
+        Some(fractal_properties()),
         // Extensions
         None,
     ))
