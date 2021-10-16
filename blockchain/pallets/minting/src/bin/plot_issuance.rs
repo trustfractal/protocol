@@ -1,4 +1,3 @@
-use core::convert::TryInto;
 use fractal_minting::Issuance;
 
 /// Utility to generate issuance curves with hard-coded parameters for plotting
