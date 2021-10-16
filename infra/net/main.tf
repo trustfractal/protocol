@@ -225,6 +225,15 @@ resource "aws_security_group" "fclnode" {
    }
 
   ingress {
+      from_port   = 9955
+      to_port     = 9955
+      protocol    = "tcp"
+      description = "HEALTH"
+      cidr_blocks = ["0.0.0.0/0"]
+
+   }
+
+  ingress {
       from_port   = 9944
       to_port     = 9944
       protocol    = "tcp"
@@ -411,7 +420,7 @@ resource "aws_lb_target_group" "TG-tf" {
   health_check {
     interval            = 30
     path                = "/health"
-    port                = 9933
+    port                = 9955
     healthy_threshold   = 2
     unhealthy_threshold = 2
     timeout             = 5
