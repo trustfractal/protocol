@@ -1,37 +1,43 @@
-use core::{f64::consts::LN_2, num::NonZeroU64};
+use core::f64::consts::LN_2;
+use num_traits::*;
 
 /// Exponential issuance curve in unit-less steps with a linear portion to
 /// complete issuance at step `complete_at`.
 #[derive(Debug, Clone)]
-pub struct Issuance {
-    pub total: u128,
-    pub half_life: NonZeroU64,
-    pub complete_at: NonZeroU64,
+pub struct Issuance<Balance = u128, Step = u64> {
+    pub total: Balance,
+    pub half_life: Step,
+    pub complete_at: Step,
 }
 
-impl Issuance {
-    pub fn total_issued_by(&self, index: u64) -> u128 {
+impl<Balance, Step> Issuance<Balance, Step>
+where
+    Step: num_traits::PrimInt,
+    Balance: num_traits::PrimInt,
+{
+    pub fn total_issued_by(&self, index: Step) -> Balance {
         self.total - self.unissued_at(index)
     }
 
-    fn unissued_at(&self, index: u64) -> u128 {
-        if index >= self.complete_at.get() {
-            return 0;
+    fn unissued_at(&self, index: Step) -> Balance {
+        if index >= self.complete_at {
+            return zero();
         }
-        if index == 0 {
+        if index == zero() {
             return self.total;
         }
 
-        (self.total as f64 * self.percent_unissued_at(index)) as u128
+        let total: f64 = cast(self.total).unwrap();
+        cast(self.percent_unissued_at(index) * total).unwrap()
     }
 
     // Exponential curve with a half-life of h = e^(-x * ln2 / h).
     // Linear portion is tangent to the curve such that the line equals zero at
     // `complete_at`.
-    fn percent_unissued_at(&self, index: u64) -> f64 {
-        let complete_at = self.complete_at.get() as f64;
-        let half_life = self.half_life.get() as f64;
-        let index = index as f64;
+    fn percent_unissued_at(&self, index: Step) -> f64 {
+        let complete_at: f64 = cast(self.complete_at).unwrap();
+        let half_life: f64 = cast(self.half_life).unwrap();
+        let index: f64 = cast(index).unwrap();
 
         let linear_after = complete_at - half_life / LN_2;
 

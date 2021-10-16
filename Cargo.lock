@@ -1640,6 +1640,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "merklex",
+ "num-traits",
  "pallet-balances",
  "parity-scale-codec",
  "serde",
