@@ -10,7 +10,7 @@ variable "scale_evaluation_periods" {
 
 variable "ami"{
  type = string
-  default = "ami-0e30a58facff5c48b"
+  default = "ami-06b56de79e958f48f"
 }
 
 variable "keyname"{

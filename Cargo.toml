@@ -8,4 +8,5 @@ members = [
 
 exclude = [
   'support/@trustfractal',
+  'support/node-production-aws-sns',
 ]
