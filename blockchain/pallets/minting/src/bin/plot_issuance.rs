@@ -7,7 +7,7 @@ fn main() {
     let issuance = Issuance {
         total: 400_000_000,
         half_life: 52560000,
-        complete_at: (52560000 * 3),
+        complete_at: 52560000 * 3,
     };
     let step_by = 14400;
 

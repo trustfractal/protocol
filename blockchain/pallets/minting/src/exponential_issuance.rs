@@ -1,5 +1,5 @@
 use core::f64::consts::LN_2;
-use num_traits::*;
+use num_traits::{cast, zero};
 
 /// Exponential issuance curve in unit-less steps with a linear portion to
 /// complete issuance at step `complete_at`.
@@ -41,7 +41,7 @@ where
 
         let linear_after = complete_at - half_life / LN_2;
 
-        let e = |x: f64| (-x * LN_2 / half_life).exp();
+        let e = |x: f64| f64::exp(-x * LN_2 / half_life);
         if index > linear_after {
             e(linear_after) - LN_2 / half_life * e(linear_after) * (index - linear_after)
         } else {
