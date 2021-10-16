@@ -222,6 +222,12 @@ impl pallet_grandpa::Config for Runtime {
     type WeightInfo = ();
 }
 
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+
 parameter_types! {
     pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
 }
@@ -272,8 +278,9 @@ parameter_types! {
     pub const MaxMintPerPeriod: Balance = 80_000 * UNIT_BALANCE;
     pub const MintEveryNBlocks: BlockNumber = DAYS;
 
-    // 5FCLexq3tEnxfqp68ZKeoRgRJx2TUFdGMu7Z7LEpy5kdZWiK
-    pub const ExcessMintingReceiver: AccountId = AccountId::new(hex_literal::hex!["8a874abb06513a14773e18e5a86559bffdc93600125118a4680a82d93c641f44"]);
+    // 5FCLexMpgW8XH8K79PYhVSgy52SqSWdfGstaBCDGWzQtHLhh
+    pub const ExcessMintingReceiver: AccountId =
+        AccountId::new(hex_literal::hex!["8a874a9c3d01537eee89ba2ef693c6a5fd71c8c8c63f74167dc642e4c9ad0203"]);
 }
 
 impl fractal_minting::Config for Runtime {
@@ -295,15 +302,21 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Aura: pallet_aura::{Pallet, Config<T>},
-        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>},
+        // System
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage} = 1,
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 2,
+        Aura: pallet_aura::{Pallet, Config<T>} = 3,
+        Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event} = 4,
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 6,
+
+        // Handy utilities
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 7,
+        Utility: pallet_utility::{Pallet, Call, Event} = 9,
+
+        // Fractal pallets
+        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
     }
 );
 
@@ -499,6 +512,7 @@ impl_runtime_apis! {
             add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
             add_benchmark!(params, batches, pallet_balances, Balances);
             add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+            add_benchmark!(params, batches, pallet_utility, Utility);
 
             if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
             Ok(batches)

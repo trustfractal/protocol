@@ -8,8 +8,8 @@ variable "scale_evaluation_periods" {
    default = 2
 }
 
-variable "ami"{
- type = string
+variable "ami" {
+  type = string
   default = "ami-049778dde52806d99"
 }
 
