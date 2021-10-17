@@ -180,9 +180,8 @@ mod register_identity {
     fn mints_less_in_the_second_round() {
         run_test(|| {
             run_to_next_minting();
-            let after_first = excess_receiver_balance();
-
             run_to_next_minting();
+
             assert_eq!(
                 excess_receiver_balance(),
                 FIRST_MINTING_TOTAL + SECOND_MINTING_TOTAL
