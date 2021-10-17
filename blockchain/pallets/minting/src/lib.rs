@@ -270,6 +270,13 @@ pub mod pallet {
             block_number: BlockNumberFor<T>,
             accounts_count: u32,
         ) -> (BalanceOf<T>, BalanceOf<T>) {
+            // Using Issuance like this makes it _technically_ possible for
+            // consensus to fail if the CPU's floating point calculations are
+            // different.
+            //
+            // If this becomes a problem, we can have this value derived from
+            // an extrinsic that an authoritative account sets. Similar to how
+            // the timestamp pallet works.
             let issuance = crate::Issuance {
                 total: T::TotalIssuance::get(),
                 half_life: T::IssuanceHalfLife::get(),
