@@ -41,7 +41,7 @@ where
 
         let linear_after = complete_at - half_life / LN_2;
 
-        let e = |x: f64| f64::exp(-x * LN_2 / half_life);
+        let e = |x: f64| libm::exp(-x * LN_2 / half_life);
         if index > linear_after {
             e(linear_after) - LN_2 / half_life * e(linear_after) * (index - linear_after)
         } else {
