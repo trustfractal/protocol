@@ -55,7 +55,7 @@ build_id_sub_script() {
 }
 
 replace_build_id() {
-  sed -i "s/nodefcl:.*/nodefcl:$DOCKER_IMAGE_ID/" $1
+  sed -i "s/boymaas\/nodefcl:.*/boymaas\/nodefcl:$DOCKER_IMAGE_ID/" $1
 }
 
 replace_p2p_bootnode_id() {

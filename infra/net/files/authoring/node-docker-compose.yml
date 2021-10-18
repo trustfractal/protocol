@@ -10,6 +10,16 @@ services:
       - "9944:9944"
       - "9933:9933"
       - "30333:30333"
-    command: |
-      --base-path /data --chain /config/fclMainnetSpecRaw.json --port 30333 --rpc-port 9933 --ws-port 9944 --name "FCL authoring" --validator --rpc-cors=all --ws-max-connections 65536 ${EXTRA_ARGS} --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWP56k6pYUxM21BCKgDuXZpRbT9nZVpcoQh4uYsE7KjN9J
+    command: >
+      --base-path /data
+      --chain /config/fclMainnetSpecRaw.json
+      --port 30333
+      --rpc-port 9933
+      --ws-port 9944
+      --name "FCL authoring"
+      --validator
+      --rpc-cors=all
+      --ws-max-connections 65536
+      ${EXTRA_ARGS}
+      --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWSyefmjq4UcpBvcHUjD9ZkQSBbQuWqoq6bHoFFoLi2rZA
     restart: always

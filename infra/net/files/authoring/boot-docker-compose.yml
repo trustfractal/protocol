@@ -10,6 +10,15 @@ services:
       - "9944:9944"
       - "9933:9933"
       - "30333:30333"
-    command: |
-      --base-path /data --chain /config/fclMainnetSpecRaw.json --port 30333 --rpc-port 9933 --ws-port 9944 --name "FCL boot authoring" --validator --rpc-cors=all --ws-max-connections 65536 ${EXTRA_ARGS}
+    command: >
+      --base-path /data
+      --chain /config/fclMainnetSpecRaw.json
+      --port 30333
+      --rpc-port 9933
+      --ws-port 9944
+      --name "FCL boot authoring"
+      --validator
+      --rpc-cors=all
+      --ws-max-connections 65536
+      ${EXTRA_ARGS}
     restart: always
