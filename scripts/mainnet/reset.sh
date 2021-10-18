@@ -11,23 +11,6 @@ $0 e1ca4db_20211011_1204
 EOT
 }
 
-build_id_sub_script() {
- echo "PERL_BADLANG=0 perl -pi -e \"s/\\\\w+_\\\\d+_\\\\d+/$1/\" $2"
-}
-
-substitute_node_build_id() {
-  ssh $1 "$(build_id_sub_script $2 docker-compose.yml)"
-}
-
-bootnode_sub_script() {
-  echo "PERL_BADLANG=0 perl -pi -e \"s|/p2p/\w+|/p2p/$1|\" $2"
-}
-
-# Replaces /p2p/<some_id> with /p2p/$2 in $1's docker-compose.yml
-substitute_bootnode_peer_id() {
-  ssh $1 "$(bootnode_sub_script $2 docker-compose.yml)"
-}
-
 exec_on_authoring_nodes() {
   ssh $node_boot "$1"
   ssh $authoring_node_01 "$1"
@@ -63,6 +46,23 @@ create_genesis_spec() {
 
 get_bootnode_peer_id() {
   ssh $node_boot "docker-compose logs | grep 'Local node identity is' | awk '{print \$10}' | head -n1"
+}
+
+build_id_sub_script() {
+  echo "PERL_BADLANG=0 perl -pi -e \"s/\\\\w+_\\\\d+_\\\\d+/$1/\" $2"
+}
+
+substitute_node_build_id() {
+  ssh $1 "$(build_id_sub_script $2 docker-compose.yml)"
+}
+
+bootnode_sub_script() {
+  echo "PERL_BADLANG=0 perl -pi -e \"s|/p2p/\w+|/p2p/$1|\" $2"
+}
+
+# Replaces /p2p/<some_id> with /p2p/$2 in $1's docker-compose.yml
+substitute_bootnode_peer_id() {
+  ssh $1 "$(bootnode_sub_script $2 docker-compose.yml)"
 }
 
 start_authoring_nodes() {
