@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  node:
+    container_name: nodefcl
+    image: boymaas/nodefcl:e02bdd3_20211013_1120
+    volumes:
+      - "/home/ubuntu/base-path:/data"
+      - "/home/ubuntu/:/config"
+    ports:
+      - "9944:9944"
+      - "9933:9933"
+      - "30333:30333"
+    command: |
+      --base-path /data --chain /config/fclMainnetSpecRaw.json --port 30333 --rpc-port 9933 --ws-port 9944 --name 65380554 --validator --unsafe-ws-external --unsafe-rpc-external --rpc-cors=all --rpc-methods Unsafe --ws-max-connections 65536 --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWQYCAtHgNR4mHaxZCESGP7tcZ2wDV3UnD5gwjhXzBQFkC
+    restart: always
+  node-health-check:
+    container_name: nodefcl-health-check
+    image: boymaas/nodefcl:8635bfe_20211014_2119
+    entrypoint: /app/node-health-check
+    ports:
+      - "9955:9955"
+    command: |
+            -n http://nodefcl:9933/health -d
+    restart: always
