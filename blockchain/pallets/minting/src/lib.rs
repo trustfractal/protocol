@@ -39,8 +39,10 @@ pub mod pallet {
 
         type Currency: Currency<Self::AccountId>;
 
+        type TotalIssuance: Get<BalanceOf<Self>>;
+        type IssuanceHalfLife: Get<Self::BlockNumber>;
+        type IssuanceCompleteAt: Get<Self::BlockNumber>;
         type MaxRewardPerUser: Get<BalanceOf<Self>>;
-        type MaxMintPerPeriod: Get<BalanceOf<Self>>;
 
         type MintEveryNBlocks: Get<Self::BlockNumber>;
 
@@ -50,6 +52,9 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
     pub struct Pallet<T>(_);
+
+    #[pallet::storage]
+    pub type TotalAlreadyMinted<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type NextMintingRewards<T: Config> =
@@ -207,52 +212,86 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+    where
+        BalanceOf<T>: num_traits::PrimInt,
+        BlockNumberFor<T>: num_traits::PrimInt,
+    {
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Weight::default()
         }
 
         fn on_finalize(block_number: BlockNumberFor<T>) {
-            if block_number % T::MintEveryNBlocks::get() != 0u32.into() {
+            let is_mint_block = block_number % T::MintEveryNBlocks::get() == 0u32.into()
+                && block_number != 0u32.into();
+            if !is_mint_block {
                 return;
             }
 
             let accounts = NextMintingRewards::<T>::iter().collect::<Vec<_>>();
-
             let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
 
-            let naive_mint_per_user = T::MaxMintPerPeriod::get()
-                .checked_div(&accounts_count.into())
-                .unwrap_or_else(|| 0u32.into());
-
-            let actual_mint_per_user =
-                core::cmp::min(T::MaxRewardPerUser::get(), naive_mint_per_user);
+            let (mint_per_user, total_minted) = Self::minting_amount(block_number, accounts_count);
 
             let recipients = accounts
                 .iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
-
             let removed = recipients.inspect(|(id, _)| NextMintingRewards::<T>::remove(id));
 
             // Dropping the Imbalance resolves it.
             let _imbalance = removed
-                .map(|(_, account)| T::Currency::deposit_creating(account, actual_mint_per_user))
+                .map(|(_, account)| T::Currency::deposit_creating(account, mint_per_user))
                 .fold(
                     <T::Currency as Currency<_>>::PositiveImbalance::zero(),
                     |acc, v| acc.merge(v),
                 );
 
-            let total_minted = actual_mint_per_user * accounts_count.into();
-
-            let unclaimed = T::MaxMintPerPeriod::get() - total_minted;
+            let distributed_to_users = mint_per_user * accounts_count.into();
+            let unclaimed = total_minted - distributed_to_users;
             T::Currency::deposit_creating(&T::ExcessMintingReceiver::get(), unclaimed);
+
+            TotalAlreadyMinted::<T>::set(TotalAlreadyMinted::<T>::get() + total_minted);
 
             Self::deposit_event(Event::Minted {
                 total: total_minted,
-                per_user: actual_mint_per_user,
+                per_user: mint_per_user,
                 number_of_accounts: accounts_count,
                 excess: unclaimed,
             });
+        }
+    }
+
+    impl<T: Config> Pallet<T>
+    where
+        BalanceOf<T>: num_traits::PrimInt,
+        BlockNumberFor<T>: num_traits::PrimInt,
+    {
+        fn minting_amount(
+            block_number: BlockNumberFor<T>,
+            accounts_count: u32,
+        ) -> (BalanceOf<T>, BalanceOf<T>) {
+            // Using Issuance like this makes it _technically_ possible for
+            // consensus to fail if the CPU's floating point calculations are
+            // different.
+            //
+            // If this becomes a problem, we can have this value derived from
+            // an extrinsic that an authoritative account sets. Similar to how
+            // the timestamp pallet works.
+            let issuance = crate::Issuance {
+                total: T::TotalIssuance::get(),
+                half_life: T::IssuanceHalfLife::get(),
+                complete_at: T::IssuanceCompleteAt::get(),
+            };
+            let total_after_block = issuance.total_issued_by(block_number);
+            let to_issue = total_after_block - TotalAlreadyMinted::<T>::get();
+
+            let even_mint_per_user = to_issue
+                .checked_div(&accounts_count.into())
+                .unwrap_or_else(|| 0u32.into());
+
+            let mint_per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_mint_per_user);
+
+            (mint_per_user, to_issue)
         }
     }
 }

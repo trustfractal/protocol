@@ -12,17 +12,40 @@ mod register_identity {
     use frame_support::dispatch::PostDispatchInfo;
     use frame_support::pallet_prelude::Pays;
 
+    // Based on configuration of Issuance, this is the amount that we expect in the first minting.
+    const FIRST_MINTING_TOTAL: u64 = 4824112;
+    const SECOND_MINTING_TOTAL: u64 = 4768702;
+
+    fn max_reward_per_user() -> u64 {
+        <Test as crate::Config>::MaxRewardPerUser::get()
+    }
+
+    fn excess_receiver_balance() -> u64 {
+        Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get())
+    }
+
+    fn run_test(f: impl FnOnce()) {
+        new_test_ext().execute_with(|| {
+            step_block();
+            f();
+        });
+    }
+
+    fn step_block() {
+        FractalMinting::on_finalize(System::block_number());
+        System::on_finalize(System::block_number());
+        System::set_block_number(System::block_number() + 1);
+        System::on_initialize(System::block_number());
+        FractalMinting::on_initialize(System::block_number());
+    }
+
     fn run_to_next_minting() {
         let mint_every_n = <Test as crate::Config>::MintEveryNBlocks::get();
 
         loop {
-            FractalMinting::on_finalize(System::block_number());
-            System::on_finalize(System::block_number());
-            System::set_block_number(System::block_number() + 1);
-            System::on_initialize(System::block_number());
-            FractalMinting::on_initialize(System::block_number());
+            step_block();
 
-            if System::block_number() % mint_every_n == 0 {
+            if System::block_number() % mint_every_n == 1 {
                 break;
             }
         }
@@ -44,7 +67,7 @@ mod register_identity {
         ));
     }
 
-    fn register_for_minting_dataset(account: u64, dataset: &[&'static str]) -> PostDispatchInfo {
+    fn register_for_minting_dataset(account: u64, dataset: &[&str]) -> PostDispatchInfo {
         let pd_info = FractalMinting::register_for_minting(
             Origin::signed(account),
             None,
@@ -61,22 +84,19 @@ mod register_identity {
 
     #[test]
     fn receives_portion_of_minting_after_block() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(1, 1);
             register_for_minting(1);
 
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn gets_no_reward_until_block() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             run_to_next_minting();
 
             register_id_account(1, 1);
@@ -85,33 +105,27 @@ mod register_identity {
 
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn only_receives_for_immediate_minting() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(1, 1);
             register_for_minting(1);
 
             run_to_next_minting();
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn divides_max_minting_between_users() {
-        new_test_ext().execute_with(|| {
-            let users = 5;
+        run_test(|| {
+            let users = 2 * FIRST_MINTING_TOTAL / max_reward_per_user();
 
             for id in 1..=users {
                 register_id_account(id, id);
@@ -121,17 +135,14 @@ mod register_identity {
             run_to_next_minting();
 
             for id in 1..=users {
-                assert_eq!(
-                    Balances::free_balance(&id),
-                    <Test as crate::Config>::MaxMintPerPeriod::get() / users
-                );
+                assert_eq!(Balances::free_balance(&id), FIRST_MINTING_TOTAL / users);
             }
         });
     }
 
     #[test]
     fn multiple_registrations_only_one_mint() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(1, 1);
             register_for_minting_dataset(1, &["1"]);
             register_for_minting_dataset(1, &["1", "2"]);
@@ -139,45 +150,48 @@ mod register_identity {
 
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn unclaimed_minting_goes_to_excess_receiver() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get()),
-                <Test as crate::Config>::MaxMintPerPeriod::get()
-            );
+            assert_eq!(excess_receiver_balance(), FIRST_MINTING_TOTAL);
         });
     }
 
     #[test]
     fn only_unclaimed_minting_goes_to_excess_receiver() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(1, 1);
             register_for_minting(1);
 
             run_to_next_minting();
 
-            let expected = <Test as crate::Config>::MaxMintPerPeriod::get()
-                - <Test as crate::Config>::MaxRewardPerUser::get();
+            let expected = FIRST_MINTING_TOTAL - max_reward_per_user();
+            assert_eq!(excess_receiver_balance(), expected);
+        });
+    }
+
+    #[test]
+    fn mints_less_in_the_second_round() {
+        run_test(|| {
+            run_to_next_minting();
+            run_to_next_minting();
+
             assert_eq!(
-                Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get()),
-                expected
+                excess_receiver_balance(),
+                FIRST_MINTING_TOTAL + SECOND_MINTING_TOTAL
             );
         });
     }
 
     #[test]
     fn errors_with_invalid_fractal_signature() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             assert_noop!(
                 FractalMinting::register_identity(Origin::signed(124), 1, 2),
                 Error::<Test>::MustBeFractal
@@ -187,7 +201,7 @@ mod register_identity {
 
     #[test]
     fn minting_requires_identity() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             assert_noop!(
                 FractalMinting::register_for_minting(
                     Origin::signed(1),
@@ -201,39 +215,33 @@ mod register_identity {
 
     #[test]
     fn second_address_allows_registering_with_first() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
             register_id_account(42, 2);
 
             register_for_minting(1);
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn second_address_does_not_clear_minting() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
             register_for_minting(1);
 
             register_id_account(42, 2);
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), max_reward_per_user());
         });
     }
 
     #[test]
     fn user_can_extend_either_dataset() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
             register_id_account(42, 2);
 
@@ -241,17 +249,14 @@ mod register_identity {
             register_for_minting(2);
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&2),
-                <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&2), max_reward_per_user());
             assert_eq!(Balances::free_balance(&1), 0);
         });
     }
 
     #[test]
     fn second_identity_to_same_account_gets_double() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
             register_id_account(43, 1);
 
@@ -267,16 +272,13 @@ mod register_identity {
             ));
             run_to_next_minting();
 
-            assert_eq!(
-                Balances::free_balance(&1),
-                2 * <Test as crate::Config>::MaxRewardPerUser::get()
-            );
+            assert_eq!(Balances::free_balance(&1), 2 * max_reward_per_user());
         });
     }
 
     #[test]
     fn first_call_to_register_for_minting_is_free() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
 
             let post = register_for_minting_dataset(1, &["a", "b"]);
@@ -287,7 +289,7 @@ mod register_identity {
 
     #[test]
     fn second_call_to_register_for_minting_is_paid() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
 
             register_for_minting_dataset(1, &["a", "b"]);
@@ -300,7 +302,7 @@ mod register_identity {
 
     #[test]
     fn register_for_minting_allows_bootstrapping_of_account_after_second_call_to_register_id() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
             register_for_minting_dataset(1, &["a", "b"]);
 
@@ -314,7 +316,7 @@ mod register_identity {
 
     #[test]
     fn register_for_minting_requires_payment_after_next_minting() {
-        new_test_ext().execute_with(|| {
+        run_test(|| {
             register_id_account(42, 1);
 
             register_for_minting_dataset(1, &["a", "b"]);
@@ -333,7 +335,7 @@ mod register_identity {
 
         #[test]
         fn second_proof_does_not_extend_initial_proof() {
-            new_test_ext().execute_with(|| {
+            run_test(|| {
                 register_id_account(1, 1);
                 assert_ok!(FractalMinting::register_for_minting(
                     Origin::signed(1),
@@ -353,7 +355,7 @@ mod register_identity {
 
         #[test]
         fn multiple_identities_requires_specifying_identity() {
-            new_test_ext().execute_with(|| {
+            run_test(|| {
                 register_id_account(42, 1);
                 register_id_account(43, 1);
 
@@ -370,7 +372,7 @@ mod register_identity {
 
         #[test]
         fn provided_identity_not_registered() {
-            new_test_ext().execute_with(|| {
+            run_test(|| {
                 register_id_account(42, 1);
 
                 assert_noop!(

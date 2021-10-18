@@ -70,9 +70,12 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-    pub const MaxRewardPerUser: u64 = 42;
-    pub const MaxMintPerPeriod: u64 = 200;
     pub const MintEveryNBlocks: u64 = 10;
+
+    pub const TotalIssuance: u64 = 420_000_000;
+    pub const IssuanceHalfLife: u64 = 600;
+    pub const IssuanceCompleteAt: u64 = 10_000;
+    pub const MaxRewardPerUser: u64 = 420_000;
 
     pub const ExcessMintingReceiver: u64 = 1234;
 }
@@ -80,10 +83,13 @@ parameter_types! {
 impl fractal_minting::Config for Test {
     type Event = Event;
     type Currency = Balances;
-    type MaxRewardPerUser = MaxRewardPerUser;
-    type MaxMintPerPeriod = MaxMintPerPeriod;
+    type TotalIssuance = TotalIssuance;
+    type IssuanceHalfLife = IssuanceHalfLife;
+    type IssuanceCompleteAt = IssuanceCompleteAt;
     type MintEveryNBlocks = MintEveryNBlocks;
     type ExcessMintingReceiver = ExcessMintingReceiver;
+
+    type MaxRewardPerUser = MaxRewardPerUser;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
