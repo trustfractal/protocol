@@ -11,7 +11,7 @@ services:
       - "9933:9933"
       - "30333:30333"
     command: |
-      --base-path /data --chain /config/fclMainnetSpecRaw.json --port 30333 --rpc-port 9933 --ws-port 9944 --name 65380554 --validator --unsafe-ws-external --unsafe-rpc-external --rpc-cors=all --rpc-methods Unsafe --ws-max-connections 65536 --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWQYCAtHgNR4mHaxZCESGP7tcZ2wDV3UnD5gwjhXzBQFkC
+      --base-path /data --chain /config/fclMainnetSpecRaw.json --port 30333 --rpc-port 9933 --ws-port 9944 --name "FCL traffic" --validator --rpc-cors=all --ws-max-connections 65536 --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWQYCAtHgNR4mHaxZCESGP7tcZ2wDV3UnD5gwjhXzBQFkC
     restart: always
   node-health-check:
     container_name: nodefcl-health-check
