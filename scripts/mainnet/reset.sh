@@ -30,6 +30,17 @@ node_boot="ubuntu@node-boot.mainnet.fractalprotocol.com"
 authoring_node_1="ubuntu@node-1.mainnet.fractalprotocol.com"
 authoring_node_2="ubuntu@node-2.mainnet.fractalprotocol.com"
 
+confirm_with_user() {
+  echo "!!!!!!! WARNING !!!!!!!"
+  echo "THIS WILL COMPLETELY DESTROY THE STATE OF THE MAINNET BLOCKCHAIN"
+  echo "Are you sure you want to continue"
+
+  read -p "Only 'reset mainnet state' will continue: " response
+  if [ "$response" != "reset mainnet state" ]; then
+    exit 0
+  fi
+}
+
 clear_existing_state() {
   exec_on_authoring_nodes 'docker-compose down'
 
@@ -105,6 +116,7 @@ apply_terraform() {
   (cd $INFRA_DIR && terraform apply -auto-approve)
 }
 
+confirm_with_user
 clear_existing_state
 create_genesis_spec
 start_boot_node
