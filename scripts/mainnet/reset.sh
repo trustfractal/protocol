@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -exo pipefail
+set -eo pipefail
 
 usage() {
   cat << EOT
@@ -42,27 +42,30 @@ confirm_with_user() {
 }
 
 clear_existing_state() {
+  echo "Bringing down nodes"
   exec_on_authoring_nodes 'docker-compose down'
 
+  echo "Removing stored state"
   exec_on_authoring_nodes 'sudo rm -fR base-path'
+  echo "Removing specs"
   exec_on_authoring_nodes 'sudo rm -f fclMainnet*.json'
 }
 
 create_genesis_spec() {
+  echo "Rebuilding spec"
   scp $SCRIPT_DIR/rebuild-spec.sh $node_boot:/tmp/rebuild-spec.sh
   ssh $node_boot "/tmp/rebuild-spec.sh $DOCKER_IMAGE_ID"
+
+  echo "Downloading built spec"
   ssh $node_boot 'tar cz --exclude base-path fcl*.json' | tar xz -C $INFRA_DIR/files/spec/
 
+  echo "Copying spec to authoring nodes"
   (cd $INFRA_DIR/files/spec && tar cz *) | ssh $authoring_node_1 'tar xz'
   (cd $INFRA_DIR/files/spec && tar cz *) | ssh $authoring_node_2 'tar xz'
 }
 
 get_bootnode_peer_id() {
   ssh $node_boot "docker-compose logs | grep 'Local node identity is' | awk '{print \$10}' | head -n1"
-}
-
-build_id_sub_script() {
-  echo "PERL_BADLANG=0 perl -pi -e \"s/\\\\w+_\\\\d+_\\\\d+/$1/\" $2"
 }
 
 replace_build_id() {
@@ -74,12 +77,14 @@ replace_p2p_bootnode_id() {
 }
 
 start_boot_node() {
+  echo "Starting boot node"
   replace_build_id $AUTHORING_DIR/boot-docker-compose.yml
   scp $AUTHORING_DIR/boot-docker-compose.yml $node_boot:docker-compose.yml
   ssh $node_boot 'EXTRA_ARGS="--rpc-methods=Unsafe --unsafe-rpc-external" docker-compose up -d'
 }
 
 start_authoring_nodes() {
+  echo "Starting authoring nodes"
   replace_build_id $AUTHORING_DIR/node-docker-compose.yml
   replace_p2p_bootnode_id $AUTHORING_DIR/node-docker-compose.yml
 
@@ -96,10 +101,12 @@ wait_for_key_upload() {
 }
 
 restart_authoring_nodes() {
+  echo "Restarting boot and authoring nodes"
   exec_on_authoring_nodes 'docker-compose restart'
 }
 
 copy_state_to_local_dir() {
+  echo "Copying autoscaling state to local repository"
   ssh $node_boot 'tar cz --exclude base-path fcl*.json' | tar xz -C $INFRA_DIR/files/spec/
 
   replace_build_id $INFRA_DIR/files/asg/docker-compose.yml
@@ -107,12 +114,14 @@ copy_state_to_local_dir() {
 }
 
 build_ami() {
+  echo "Building AMI"
   (cd $INFRA_DIR/packer && packer build -force fcl-asg-node.pkr.hcl | tee /tmp/packer_$DOCKER_IMAGE_ID.out)
   ami_id=$(cat /tmp/packer_$DOCKER_IMAGE_ID.out | grep -A 1 'AMIs were created' | tail -n1 | cut -d' ' -f2)
   sed -i "s/ami-\w*/$ami_id/" $INFRA_DIR/variables.tf
 }
 
 apply_terraform() {
+  echo "Applying terraform"
   (cd $INFRA_DIR && terraform apply -auto-approve)
 }
 
