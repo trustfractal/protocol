@@ -1,3 +1,3 @@
 # Simple JS tool for substrate upgrades
 
-Eaxmple: `node index.js --nodeAddress ws://127.0.0.1:9944 --rootMnemonicPath root-mnemonic --wasmPath fractal.wasm`
+Eaxmple: `./support/runtime-upgrade/upgrade_chain.sh ws://127.0.0.1:9944 ./support/runtime-upgrade/example_mnemonic`

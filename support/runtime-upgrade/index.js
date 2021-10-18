@@ -1,6 +1,5 @@
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 
-const keyring = new Keyring({ type: 'sr25519' });
 var argv = require('minimist')(process.argv.slice(2));
 const fs = require('fs');
 
@@ -15,7 +14,7 @@ async function createPromiseApi(nodeAddress) {
 async function main() {
     const nodeAddress = argv.nodeAddress;
     const api = await createPromiseApi(nodeAddress);
-
+    const keyring = new Keyring({ type: 'sr25519' });
     // Retrieve the upgrade key from the chain state
     const adminId = await api.query.sudo.key();
 
@@ -38,7 +37,7 @@ async function main() {
         console.log('Proposal status:', status.type);
 
         if (status.isInBlock) {
-            console.log('Chain upgraded successfully');
+            console.error('You have just upgraded your chain');
 
             console.log('Included at block hash', status.asInBlock.toHex());
             console.log('Events:');
@@ -46,8 +45,13 @@ async function main() {
             console.log(JSON.stringify(events, null, 2));
         } else if (status.isFinalized) {
             console.log('Finalized block hash', status.asFinalized.toHex());
+
+            process.exit(0);
         }
   });
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exit(-1);
+  });
