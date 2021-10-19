@@ -21,5 +21,5 @@ services:
       --rpc-cors=all
       --ws-max-connections 65536
       ${EXTRA_ARGS}
-      --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWSyefmjq4UcpBvcHUjD9ZkQSBbQuWqoq6bHoFFoLi2rZA
+      --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWFQ9GLiqzsmfPtreuWheeZuJfacUVZEw2J7Mr3gYUWj9s
     restart: always
