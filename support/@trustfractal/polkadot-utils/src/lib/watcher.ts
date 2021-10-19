@@ -27,6 +27,9 @@ export class TxnWatcher {
       if (result.status.isReady) {
         this.status = 'Ready';
         this.onReady.callAll();
+      } else if (result.status.isBroadcast) {
+        // Nothing to do when breadcasted, but not handling will trigger the
+        // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
         this.onInBlock.callAll();
