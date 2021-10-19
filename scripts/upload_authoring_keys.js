@@ -5,18 +5,18 @@ const proc = require('child_process');
 const authorities = [
   {
     ip: '3.68.37.250',
-    auraKeyFile: '/tmp/aura0.gpg',
-    grandpaKeyFile: '/tmp/gran0.gpg',
+    auraKeyFile: '../keys/aura0.gpg',
+    grandpaKeyFile: '../keys/gran0.gpg',
   },
   {
     ip: '3.121.242.107',
-    auraKeyFile: '/tmp/aura1.gpg',
-    grandpaKeyFile: '/tmp/gran1.gpg',
+    auraKeyFile: '../keys/aura1.gpg',
+    grandpaKeyFile: '../keys/gran1.gpg',
   },
   {
     ip: '3.66.246.152',
-    auraKeyFile: '/tmp/aura2.gpg',
-    grandpaKeyFile: '/tmp/gran2.gpg',
+    auraKeyFile: '../keys/aura2.gpg',
+    grandpaKeyFile: '../keys/gran2.gpg',
   },
 ];
 
