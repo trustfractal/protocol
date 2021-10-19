@@ -1,6 +1,6 @@
-#!/bin/bash -x
+#!/bin/bash
 
-set -e -o pipefail
+set -eo pipefail
 
 usage() {
   cat << EOT
@@ -11,69 +11,128 @@ $0 e1ca4db_20211011_1204
 EOT
 }
 
-subsitute_node_build_id() {
-  ssh $1 "PERL_BADLANG=0 perl -pi -e \"s/\\\\w+_\\\\d+_\\\\d+/$2/\" docker-compose.yml"
-}
-
-# /p2p/12D3KooWB3ENNs5vK5HNJTHVd33wEZnXdoTFwHkEUcFdQ6JxRhRJ
-subsitute_bootnode_id() {
-  ssh $1 "PERL_BADLANG=0 perl -pi -e \"s|/p2p/\w+|/p2p/$2|\" docker-compose.yml"
+exec_on_authoring_nodes() {
+  ssh $node_boot "$1"
+  ssh $authoring_node_1 "$1"
+  ssh $authoring_node_2 "$1"
 }
 
 (( $# < 1 )) && { echo "1 arguements is required."; usage; exit 1; }
 
-NODE_BUILD_ID=$1
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+ROOT_DIR="$SCRIPT_DIR/../.."
+INFRA_DIR="$ROOT_DIR/infra/net"
+AUTHORING_DIR="$INFRA_DIR/files/authoring"
+
+DOCKER_IMAGE_ID=$1
 
 node_boot="ubuntu@node-boot.mainnet.fractalprotocol.com"
-node_01="ubuntu@node-1.mainnet.fractalprotocol.com"
-node_02="ubuntu@node-2.mainnet.fractalprotocol.com"
+authoring_node_1="ubuntu@node-1.mainnet.fractalprotocol.com"
+authoring_node_2="ubuntu@node-2.mainnet.fractalprotocol.com"
 
-exec_on_all_nodes() {
-  ssh $node_boot "$1"
-  ssh $node_01 "$1"
-  ssh $node_02 "$1"
+confirm_with_user() {
+  echo "!!!!!!! WARNING !!!!!!!"
+  echo "THIS WILL COMPLETELY DESTROY THE STATE OF THE MAINNET BLOCKCHAIN"
+  echo "Are you sure you want to continue"
+
+  read -p "Only 'reset mainnet state' will continue: " response
+  if [ "$response" != "reset mainnet state" ]; then
+    exit 0
+  fi
 }
 
-# close down nodes
-exec_on_all_nodes 'docker-compose down'
+clear_existing_state() {
+  echo "Bringing down nodes"
+  exec_on_authoring_nodes 'docker-compose down'
 
-# remove base-path
-exec_on_all_nodes 'sudo rm -fR base-path'
-exec_on_all_nodes 'sudo rm  fclMainnet*.json'
+  echo "Removing stored state"
+  exec_on_authoring_nodes 'sudo rm -fR base-path'
+  echo "Removing specs"
+  exec_on_authoring_nodes 'sudo rm -f fclMainnet*.json'
+}
 
-# generate new Genesis Spec
-scp reset/rebuild-spec.sh $node_boot:/tmp/rebuild-spec.sh
-ssh $node_boot "/tmp/rebuild-spec.sh $NODE_BUILD_ID"
+create_genesis_spec() {
+  echo "Rebuilding spec"
+  scp $SCRIPT_DIR/rebuild-spec.sh $node_boot:/tmp/rebuild-spec.sh
+  ssh $node_boot "/tmp/rebuild-spec.sh $DOCKER_IMAGE_ID"
 
-# distrbute the specs, to the other nodes
-ssh $node_boot 'tar cz --exclude base-path fcl*.json' | ssh $node_01 'tar xz'
-ssh $node_boot 'tar cz --exclude base-path fcl*.json' | ssh $node_02 'tar xz'
+  echo "Downloading built spec"
+  ssh $node_boot 'tar cz --exclude base-path fcl*.json' | tar xz -C $INFRA_DIR/files/spec/
 
-# now change the compose files with the new node-build-id
-subsitute_node_build_id $node_boot $NODE_BUILD_ID
-subsitute_node_build_id $node_01 $NODE_BUILD_ID
-subsitute_node_build_id $node_02 $NODE_BUILD_ID
+  echo "Copying spec to authoring nodes"
+  (cd $INFRA_DIR/files/spec && tar cz *) | ssh $authoring_node_1 'tar xz'
+  (cd $INFRA_DIR/files/spec && tar cz *) | ssh $authoring_node_2 'tar xz'
+}
 
-# reboot $node_boot and find the bootnode id
-# this by greping for the folowing and exiting the process on the pattern
-# Local node identity is: (\w+)
-ssh $node_boot 'docker-compose up -d'
-bootnode_id=$(ssh $node_boot "docker-compose logs | grep 'Local node identity is' | awk '{print \$10}'")
+get_bootnode_peer_id() {
+  ssh $node_boot "docker-compose logs | grep 'Local node identity is' | awk '{print \$10}' | head -n1"
+}
 
-echo "Found bootnode_id $bootnode_id"
+replace_build_id() {
+  sed -i "s/boymaas\/nodefcl:.*/boymaas\/nodefcl:$DOCKER_IMAGE_ID/" $1
+}
 
-# change the docker-compose files splice in the new node-build-id for $node_01 and $node_02
-# run the insert-keys step for all the nodes
-subsitute_bootnode_id $node_01 $bootnode_id
-subsitute_bootnode_id $node_02 $bootnode_id
+replace_p2p_bootnode_id() {
+  sed -i "s/p2p\/.*/p2p\/$(get_bootnode_peer_id)/" $1
+}
 
-ssh $node_01 'docker-compose up -d'
-ssh $node_02 'docker-compose up -d'
+start_boot_node() {
+  echo "Starting boot node"
+  replace_build_id $AUTHORING_DIR/boot-docker-compose.yml
+  scp $AUTHORING_DIR/boot-docker-compose.yml $node_boot:docker-compose.yml
+  ssh $node_boot 'EXTRA_ARGS="--rpc-methods=Unsafe --unsafe-rpc-external" docker-compose up -d'
+}
 
-# now shoot in keys and reboot
-echo "Upload block authoring and finality keys"
+start_authoring_nodes() {
+  echo "Starting authoring nodes"
+  replace_build_id $AUTHORING_DIR/node-docker-compose.yml
+  replace_p2p_bootnode_id $AUTHORING_DIR/node-docker-compose.yml
 
-read -p "Press enter to continue and reboot all the nodes"
+  scp $AUTHORING_DIR/node-docker-compose.yml $authoring_node_1:docker-compose.yml
+  ssh $authoring_node_1 'EXTRA_ARGS="--rpc-methods=Unsafe --unsafe-rpc-external" docker-compose up -d'
 
-# reboot the nodes so the validator keys get activated
-exec_on_all_nodes 'docker-compose restart'
+  scp $AUTHORING_DIR/node-docker-compose.yml $authoring_node_2:docker-compose.yml
+  ssh $authoring_node_2 'EXTRA_ARGS="--rpc-methods=Unsafe --unsafe-rpc-external" docker-compose up -d'
+}
+
+wait_for_key_upload() {
+  echo "Upload block authoring and finality keys now..."
+  read -p "Enter when complete..."
+}
+
+restart_authoring_nodes() {
+  echo "Restarting boot and authoring nodes"
+  exec_on_authoring_nodes 'docker-compose restart'
+}
+
+copy_state_to_local_dir() {
+  echo "Copying autoscaling state to local repository"
+  ssh $node_boot 'tar cz --exclude base-path fcl*.json' | tar xz -C $INFRA_DIR/files/spec/
+
+  replace_build_id $INFRA_DIR/files/asg/docker-compose.yml
+  replace_p2p_bootnode_id $INFRA_DIR/files/asg/docker-compose.yml
+}
+
+build_ami() {
+  echo "Building AMI"
+  (cd $INFRA_DIR/packer && packer build -force fcl-asg-node.pkr.hcl | tee /tmp/packer_$DOCKER_IMAGE_ID.out)
+  ami_id=$(cat /tmp/packer_$DOCKER_IMAGE_ID.out | grep -A 1 'AMIs were created' | tail -n1 | cut -d' ' -f2)
+  sed -i "s/ami-\w*/$ami_id/" $INFRA_DIR/variables.tf
+}
+
+apply_terraform() {
+  echo "Applying terraform"
+  (cd $INFRA_DIR && terraform apply -auto-approve)
+}
+
+confirm_with_user
+clear_existing_state
+create_genesis_spec
+start_boot_node
+start_authoring_nodes
+wait_for_key_upload
+restart_authoring_nodes
+
+copy_state_to_local_dir
+build_ami
+apply_terraform
