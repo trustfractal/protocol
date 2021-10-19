@@ -1,7 +1,7 @@
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
-export type TxnError = Error | DispatchError;
+export type TxnError = Error | DispatchError | AnyJson;
 
 export class TxnWatcher {
   unsub?: () => void;
@@ -20,13 +20,16 @@ export class TxnWatcher {
     return (result: ISubmittableResult) => {
       if (result.dispatchError) {
         this.status = 'Error';
-        this.onError(result.dispatchError);
+        this.onError(result.dispatchError.toHuman());
         return;
       }
 
       if (result.status.isReady) {
         this.status = 'Ready';
         this.onReady.callAll();
+      } else if (result.status.isBroadcast) {
+        // Nothing to do when breadcasted, but not handling will trigger the
+        // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
         this.onInBlock.callAll();
