@@ -1,11 +1,12 @@
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const AWS = require('aws-sdk');
 const Settings = require('./settings.json')
+const types = require('../../blockchain/types.json')
 
 // Create a promise API instance of the passed in node address.
 async function createPromiseApi(nodeAddress) {
     const provider = new WsProvider(nodeAddress);
-    const api = await new ApiPromise({ provider });
+    const api = await new ApiPromise({ provider, types });
     await api.isReady;
     return api;
 }
