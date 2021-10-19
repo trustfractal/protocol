@@ -20,6 +20,7 @@ services:
       --rpc-cors=all
       --rpc-external
       --ws-external
+      --pruning archive
       --ws-max-connections 65536
       --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWSyefmjq4UcpBvcHUjD9ZkQSBbQuWqoq6bHoFFoLi2rZA
     restart: always
