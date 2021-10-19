@@ -1,7 +1,7 @@
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
-export type TxnError = Error | DispatchError;
+export type TxnError = Error | DispatchError | AnyJson;
 
 export class TxnWatcher {
   unsub?: () => void;
@@ -20,7 +20,7 @@ export class TxnWatcher {
     return (result: ISubmittableResult) => {
       if (result.dispatchError) {
         this.status = 'Error';
-        this.onError(result.dispatchError);
+        this.onError(result.dispatchError.toHuman());
         return;
       }
 
