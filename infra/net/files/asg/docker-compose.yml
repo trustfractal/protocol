@@ -2,7 +2,7 @@ version: "3.8"
 services:
   node:
     container_name: nodefcl
-    image: boymaas/nodefcl:e02bdd3_20211013_1120
+    image: boymaas/nodefcl:f382dec_20211018_1839
     volumes:
       - "/home/ubuntu/base-path:/data"
       - "/home/ubuntu/:/config"
@@ -22,11 +22,11 @@ services:
       --ws-external
       --pruning archive
       --ws-max-connections 65536
-      --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWSyefmjq4UcpBvcHUjD9ZkQSBbQuWqoq6bHoFFoLi2rZA
+      --bootnodes /dns/boot.mainnet.fractalprotocol.com/tcp/30333/p2p/12D3KooWFQ9GLiqzsmfPtreuWheeZuJfacUVZEw2J7Mr3gYUWj9s
     restart: always
   node-health-check:
     container_name: nodefcl-health-check
-    image: boymaas/nodefcl:8635bfe_20211014_2119
+    image: boymaas/nodefcl:f382dec_20211018_1839
     entrypoint: /app/node-health-check
     ports:
       - "9955:9955"
