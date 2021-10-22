@@ -1,5 +1,7 @@
+import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
+import { KeyringPair } from '@polkadot/keyring/types';
 
 export type TxnError = Error | DispatchError | AnyJson;
 
@@ -86,6 +88,15 @@ export class TxnWatcher {
     return this.promise((resolve) => {
       this.onFinalized.push(resolve);
     });
+  }
+
+  static signAndSend(txn: SubmittableExtrinsic<'promise'>, signer: KeyringPair): TxnWatcher {
+    const watcher = new TxnWatcher();
+    (async () => {
+      const unsub = await txn.signAndSend(signer, watcher.signAndSendCb());
+      watcher.unsub = unsub;
+    })();
+    return watcher;
   }
 }
 
