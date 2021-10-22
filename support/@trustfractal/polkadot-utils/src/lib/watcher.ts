@@ -1,11 +1,12 @@
 import { SubmittableExtrinsic } from '@polkadot/api/types';
+import { KeyringPair } from '@polkadot/keyring/types';
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
-import { KeyringPair } from '@polkadot/keyring/types';
 
 export type TxnError = Error | DispatchError | AnyJson;
 
 export class TxnWatcher {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   unsub: () => void = () => {};
 
   public status: AnyJson | string = 'Unsubmitted';
@@ -14,8 +15,11 @@ export class TxnWatcher {
   private onInBlock = new OnceMultiCallback<void>('onInBlock');
   private onFinalized = new OnceMultiCallback<void>('onFinalized');
 
-  private onUnhandledError = new OnceMultiCallback<TxnError>('onUnhandledError');
+  private onUnhandledError = new OnceMultiCallback<TxnError>(
+    'onUnhandledError'
+  );
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   handleInvalid: () => void = () => {};
 
   signAndSendCb(): (result: ISubmittableResult) => void {
@@ -90,7 +94,10 @@ export class TxnWatcher {
     });
   }
 
-  static signAndSend(txn: SubmittableExtrinsic<'promise'>, signer: KeyringPair): TxnWatcher {
+  static signAndSend(
+    txn: SubmittableExtrinsic<'promise'>,
+    signer: KeyringPair
+  ): TxnWatcher {
     const watcher = new TxnWatcher();
     (async () => {
       const unsub = await txn.signAndSend(signer, watcher.signAndSendCb());
