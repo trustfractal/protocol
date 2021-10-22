@@ -6,17 +6,17 @@ import { KeyringPair } from '@polkadot/keyring/types';
 export type TxnError = Error | DispatchError | AnyJson;
 
 export class TxnWatcher {
-  unsub?: () => void;
+  unsub: () => void = () => {};
 
-  status: AnyJson | string = 'Unsubmitted';
+  public status: AnyJson | string = 'Unsubmitted';
 
-  onReady = new MultiCallback<void>();
-  onInBlock = new OnceMultiCallback<void>('onInBlock');
-  onFinalized = new OnceMultiCallback<void>('onFinalized');
+  private onReady = new MultiCallback<void>();
+  private onInBlock = new OnceMultiCallback<void>('onInBlock');
+  private onFinalized = new OnceMultiCallback<void>('onFinalized');
 
-  onUnhandledError = new OnceMultiCallback<TxnError>('onUnhandledError');
+  private onUnhandledError = new OnceMultiCallback<TxnError>('onUnhandledError');
 
-  handleInvalid?: () => void;
+  handleInvalid: () => void = () => {};
 
   signAndSendCb(): (result: ISubmittableResult) => void {
     return (result: ISubmittableResult) => {
@@ -40,7 +40,7 @@ export class TxnWatcher {
 
         this.status = 'Finalized';
         this.onFinalized.callAll();
-        this.unsub!();
+        this.unsub();
       } else if (result.status.isFuture) {
         this.status = 'Future';
         // Future means we submitted a TXN with too high of a nonce. Since
@@ -60,7 +60,7 @@ export class TxnWatcher {
   private onError(error: TxnError) {
     console.error(error);
     this.onUnhandledError.callAll(error);
-    this.unsub!();
+    this.unsub();
   }
 
   async ready(): Promise<void> {
