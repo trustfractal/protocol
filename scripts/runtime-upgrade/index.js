@@ -1,4 +1,5 @@
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
+const { TxnWatcher } = require('@trustfractal/polkadot-utils')
 
 var argv = require('minimist')(process.argv.slice(2));
 const fs = require('fs');
@@ -15,43 +16,32 @@ async function main() {
     const nodeAddress = argv.nodeAddress;
     const api = await createPromiseApi(nodeAddress);
     const keyring = new Keyring({ type: 'sr25519' });
-    // Retrieve the upgrade key from the chain state
-    const adminId = await api.query.sudo.key();
 
     // Some mnemonic phrase
-    const PHRASE = fs.readFileSync(argv.rootMnemonicPath).toString().trimEnd();
+    const PHRASE = fs.readFileSync(argv.privateKey).toString().trimEnd();
 
     // Add an account, straight mnemonic
     const newPair = keyring.addFromUri(PHRASE);
 
     // Retrieve the runtime to upgrade
     const code = fs.readFileSync(argv.wasmPath).toString('hex');
-    const proposal = api.tx.system && api.tx.system.setCode
-        ? api.tx.system.setCode(`0x${code}`) // For newer versions of Substrate
-        : api.tx.consensus.setCode(`0x${code}`); // For previous versions
+    const proposal = api.tx.system.setCode(`0x${code}`);
 
+    // Retrieve the upgrade key from the chain state
+    const adminId = await api.query.sudo.key();
     console.log(`Upgrading from ${adminId}, ${code.length / 2} bytes`);
 
     // Perform the actual chain upgrade via the sudo module
-    api.tx.sudo.sudoUncheckedWeight(proposal, 1).signAndSend(newPair, ({ events = [], status }) => {
-        console.log('Proposal status:', status.type);
-
-        if (status.isInBlock) {
-            console.error('You have just upgraded your chain');
-
-            console.log('Included at block hash', status.asInBlock.toHex());
-            console.log('Events:');
-
-            console.log(JSON.stringify(events, null, 2));
-        } else if (status.isFinalized) {
-            console.log('Finalized block hash', status.asFinalized.toHex());
-
-            process.exit(0);
-        }
-  });
+    const txn = TxnWatcher.signAndSend(api.tx.sudo.sudoUncheckedWeight(proposal, 1), newPair);
+    await txn.inBlock();
+    console.log('Included in block'); //TODO: include the block hash when TxnWatcher is updated to return it from `inBlock`
+    //TODO: Also we can log the events here
+    await txn.finalized();
+    console.log('Finalized'); //TODO: include the finalized block hash when TxnWatcher is updated to return it from `inBlock`
+    process.exit(1);
 }
 
 main().catch((error) => {
     console.error(error);
-    process.exit(-1);
+    process.exit(1);
   });
