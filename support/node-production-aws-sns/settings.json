@@ -1,5 +1,5 @@
 {
-    "nodeAddress": "ws://127.0.0.1:9944",
+    "nodeAddress": "wss://nodes.mainnet.fractalprotocol.com",
     "latestBlockHash": "",
     "region": "eu-central-1",
     "awsApiVersion": "2010-03-31",
