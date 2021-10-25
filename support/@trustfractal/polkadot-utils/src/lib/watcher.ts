@@ -12,8 +12,8 @@ export class TxnWatcher {
   public status: AnyJson | string = 'Unsubmitted';
 
   private onReady = new MultiCallback<void>();
-  private onInBlock = new OnceMultiCallback<void>('onInBlock');
-  private onFinalized = new OnceMultiCallback<void>('onFinalized');
+  private onInBlock = new OnceMultiCallback<string>('onInBlock');
+  private onFinalized = new OnceMultiCallback<string>('onFinalized');
 
   private onUnhandledError = new OnceMultiCallback<TxnError>(
     'onUnhandledError'
@@ -38,12 +38,12 @@ export class TxnWatcher {
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll();
+        this.onInBlock.callAll(result.status.asInBlock.toHex());
       } else if (result.status.isFinalized) {
-        this.onInBlock.callIfUncalled();
+        this.onInBlock.callIfUncalled(result.status.asFinalized.toHex());
 
         this.status = 'Finalized';
-        this.onFinalized.callAll();
+        this.onFinalized.callAll(result.status.asFinalized.toHex());
         this.unsub();
       } else if (result.status.isFuture) {
         this.status = 'Future';
@@ -82,13 +82,13 @@ export class TxnWatcher {
     });
   }
 
-  async inBlock(): Promise<void> {
+  async inBlock(): Promise<string> {
     return this.promise((resolve) => {
       this.onInBlock.push(resolve);
     });
   }
 
-  async finalized(): Promise<void> {
+  async finalized(): Promise<string> {
     return this.promise((resolve) => {
       this.onFinalized.push(resolve);
     });
