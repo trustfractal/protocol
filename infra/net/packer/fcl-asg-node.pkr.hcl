@@ -20,6 +20,11 @@ source "amazon-ebs" "ubuntu" {
     most_recent = true
     owners      = ["099720109477"]
   }
+  launch_block_device_mappings {
+    device_name = "/dev/sda1"
+    volume_size = 512
+    delete_on_termination = true
+  }
   ssh_username = "ubuntu"
 }
 
