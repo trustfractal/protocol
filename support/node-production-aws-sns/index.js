@@ -13,8 +13,6 @@ async function createPromiseApi(nodeAddress) {
 }
 
 async function main() {
-    const api = await createPromiseApi(argv.nodeAddress || Settings.nodeAddress);
-
     AWS.config.update({region: Settings.region});
     const sns = new AWS.SNS({apiVersion: Settings.awsApiVersion});
     const topics = await sns.listTopics().promise();
@@ -22,8 +20,10 @@ async function main() {
 
     let lastHeaderHex = Settings.lastHeaderHex;
     let lastNewBlockAt = Date.now();
+
     while (true) {
         try {
+            const api = await createPromiseApi(argv.nodeAddress || Settings.nodeAddress);
             await new Promise(r => setTimeout(r, Settings.sleepIntervalMs));
             const signedBlock = await api.rpc.chain.getBlock();
             const currentHeader = signedBlock.block.header.hash;
@@ -50,6 +50,11 @@ async function main() {
         } catch (err) {
             lastNewBlockAt = Date.now();
             console.error(err, err.stack);
+            await sns.publish({
+                Message: `${err.toString()}; For address: ${argv.nodeAddress || Settings.nodeAddress}`,
+                TopicArn: topicArn,
+            }).promise();
+            await new Promise(r => setTimeout(r, 1000 * 60 * Settings.minutesUntilNextCheckAfterAlarm));
         }
     };
 }
