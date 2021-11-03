@@ -5,6 +5,10 @@ import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
 export type TxnError = Error | DispatchError | AnyJson;
 
+export interface TxnInBlock {
+    block: string,
+}
+
 export class TxnWatcher {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   unsub: () => void = () => {};
@@ -12,8 +16,8 @@ export class TxnWatcher {
   public status: AnyJson | string = 'Unsubmitted';
 
   private onReady = new MultiCallback<void>();
-  private onInBlock = new OnceMultiCallback<string>('onInBlock');
-  private onFinalized = new OnceMultiCallback<string>('onFinalized');
+  private onInBlock = new OnceMultiCallback<TxnInBlock>('onInBlock');
+  private onFinalized = new OnceMultiCallback<TxnInBlock>('onFinalized');
 
   private onUnhandledError = new OnceMultiCallback<TxnError>(
     'onUnhandledError'
@@ -38,12 +42,12 @@ export class TxnWatcher {
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll(result.status.asInBlock.toHex());
+        this.onInBlock.callAll( { block: result.status.asInBlock.toHex() } );
       } else if (result.status.isFinalized) {
-        this.onInBlock.callIfUncalled(result.status.asFinalized.toHex());
+        this.onInBlock.callIfUncalled( { block: result.status.asFinalized.toHex() } );
 
         this.status = 'Finalized';
-        this.onFinalized.callAll(result.status.asFinalized.toHex());
+        this.onFinalized.callAll( { block: result.status.asFinalized.toHex() } );
         this.unsub();
       } else if (result.status.isFuture) {
         this.status = 'Future';
@@ -82,13 +86,13 @@ export class TxnWatcher {
     });
   }
 
-  async inBlock(): Promise<string> {
+  async inBlock(): Promise<TxnInBlock> {
     return this.promise((resolve) => {
       this.onInBlock.push(resolve);
     });
   }
 
-  async finalized(): Promise<string> {
+  async finalized(): Promise<TxnInBlock> {
     return this.promise((resolve) => {
       this.onFinalized.push(resolve);
     });
