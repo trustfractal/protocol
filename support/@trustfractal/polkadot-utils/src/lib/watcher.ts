@@ -170,7 +170,7 @@ export class TxnWatcher {
       try {
         await watcher.signAndSend(txn, signer, options);
       } catch (e) {
-        watcher.onError(e);
+        watcher.onError(e as Error);
       }
     })();
     return watcher;
