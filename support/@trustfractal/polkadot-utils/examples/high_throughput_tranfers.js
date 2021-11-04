@@ -58,6 +58,7 @@ async function main() {
   let inBlocksMap = new Map();
   inBlocks.forEach(v => inBlocksMap.set(v.block, (inBlocksMap.get(v.block) ?? 0) + 1))
   console.log('All txns in block', inBlocksMap);
+
   let finalizedMap = new Map();
   let finalized = await Promise.all(Array.from(watchers).map(w => w.finalized()));
   finalized.forEach(v => finalizedMap.set(v.includedInBlock, (finalizedMap.get(v.includedInBlock) ?? 0) + 1))

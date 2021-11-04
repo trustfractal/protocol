@@ -5,12 +5,19 @@ import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
 export type TxnError = Error | DispatchError | AnyJson;
 
+export interface TxnReady {
+  // This may change if the TXN needs to be retried.
+  hash: string;
+}
+
 export interface TxnInBlock {
   block: string;
+  hash: string;
 }
 
 export interface TxnFinalized {
   includedInBlock: string;
+  hash: string;
 }
 
 export class TxnWatcher {
@@ -18,8 +25,9 @@ export class TxnWatcher {
   unsub: () => void = () => {};
 
   public status: AnyJson | string = 'Unsubmitted';
+  private hash?: string;
 
-  private onReady = new MultiCallback<void>();
+  private onReady = new MultiCallback<TxnReady>();
   private onInBlock = new OnceMultiCallback<TxnInBlock>('onInBlock');
   private onFinalized = new OnceMultiCallback<TxnFinalized>('onFinalized');
 
@@ -40,21 +48,26 @@ export class TxnWatcher {
 
       if (result.status.isReady) {
         this.status = 'Ready';
-        this.onReady.callAll();
+        this.onReady.callAll({hash: this.hash!});
       } else if (result.status.isBroadcast) {
         // Nothing to do when breadcasted, but not handling will trigger the
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll({ block: result.status.asInBlock.toHex() });
+        this.onInBlock.callAll({
+          block: result.status.asInBlock.toHex(),
+          hash: this.hash!,
+        });
       } else if (result.status.isFinalized) {
         this.onInBlock.callIfUncalled({
           block: result.status.asFinalized.toHex(),
+          hash: this.hash!,
         });
 
         this.status = 'Finalized';
         this.onFinalized.callAll({
           includedInBlock: result.status.asFinalized.toHex(),
+          hash: this.hash!,
         });
         this.unsub();
       } else if (result.status.isFuture) {
@@ -79,7 +92,7 @@ export class TxnWatcher {
     this.unsub();
   }
 
-  async ready(): Promise<void> {
+  async ready(): Promise<TxnReady> {
     return this.promise((resolve) => {
       this.onReady.push(resolve);
     });
@@ -106,15 +119,19 @@ export class TxnWatcher {
     });
   }
 
+  async signAndSend(txn: SubmittableExtrinsic<'promise'>, signer: KeyringPair, options?: { nonce?: number }) {
+    const signed = txn.sign(signer, options || {});
+    this.hash = signed.hash.toHex();
+    const unsub = await txn.send(this.signAndSendCb());
+    this.unsub = unsub;
+  }
+
   static signAndSend(
     txn: SubmittableExtrinsic<'promise'>,
     signer: KeyringPair
   ): TxnWatcher {
     const watcher = new TxnWatcher();
-    (async () => {
-      const unsub = await txn.signAndSend(signer, watcher.signAndSendCb());
-      watcher.unsub = unsub;
-    })();
+    watcher.signAndSend(txn, signer);
     return watcher;
   }
 }
