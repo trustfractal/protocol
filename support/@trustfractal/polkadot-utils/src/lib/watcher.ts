@@ -1,9 +1,10 @@
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { KeyringPair } from '@polkadot/keyring/types';
+import { GenericEventData } from '@polkadot/types/generic';
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
-export type TxnError = Error | DispatchError | AnyJson;
+export type TxnError = Error | DispatchError | GenericEventData | AnyJson;
 
 export interface TxnReady {
   // This may change if the TXN needs to be retried.
@@ -46,9 +47,13 @@ export class TxnWatcher {
         return;
       }
 
+      if (this.extrinsicEventsError(result)) {
+        return;
+      }
+
       if (result.status.isReady) {
         this.status = 'Ready';
-        this.onReady.callAll({hash: this.hash!});
+        this.onReady.callAll({ hash: this.hash! });
       } else if (result.status.isBroadcast) {
         // Nothing to do when breadcasted, but not handling will trigger the
         // unhandled case below.
@@ -92,6 +97,32 @@ export class TxnWatcher {
     this.unsub();
   }
 
+  private extrinsicEventsError(result: ISubmittableResult): boolean {
+    const events = result.events;
+    if (events.length === 0) return false;
+
+    for (const { event } of events) {
+      if (event.section !== 'system') continue;
+
+      if (event.method === 'ExtrinsicSuccess') {
+        return false;
+      }
+      if (event.method === 'ExtrinsicFailed') {
+        this.status = 'ExtrinsicFailed';
+        this.onError(event.data);
+        return true;
+      }
+    }
+
+    const error = new Error(
+      `No extrinsic event found for extrinsic: ${
+        this.hash
+      } in state ${result.status.toHuman()}`
+    );
+    this.onError(error);
+    throw error;
+  }
+
   async ready(): Promise<TxnReady> {
     return this.promise((resolve) => {
       this.onReady.push(resolve);
@@ -119,7 +150,11 @@ export class TxnWatcher {
     });
   }
 
-  async signAndSend(txn: SubmittableExtrinsic<'promise'>, signer: KeyringPair, options?: { nonce?: number }) {
+  async signAndSend(
+    txn: SubmittableExtrinsic<'promise'>,
+    signer: KeyringPair,
+    options?: { nonce?: number }
+  ) {
     const signed = txn.sign(signer, options || {});
     this.hash = signed.hash.toHex();
     const unsub = await txn.send(this.signAndSendCb());
