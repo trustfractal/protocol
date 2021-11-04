@@ -9,18 +9,20 @@ const args = require('minimist')(process.argv.slice(2));
 //     --amounts send_funds_amounts_example.csv \
 //     --network wss://nodes.testnet.fractalprotocol.com
 async function main() {
-  await prompt.start();
+  await prompt.start({ stdout: process.stderr });
 
   const amountsFileContents = fs.readFileSync(args.amounts).toString().trim();
 
-  const amounts = {};
+  // Use a map instead of an object because maps iterate their keys in insert
+  // order.
+  const amounts = new Map();
   for (const line of amountsFileContents.split("\n")) {
     const [addressStr, amountStr] = line.split(",");
     const amount = Number(amountStr) * 10 ** 12;
-    if (amounts[addressStr] != null) {
+    if (amounts.get(addressStr) != null) {
       throw new Error(`Found duplicate address: ${addressStr}`);
     }
-    amounts[addressStr] = amount;
+    amounts.set(addressStr, amount);
   }
 
   const ws = new WsProvider(
@@ -33,21 +35,23 @@ async function main() {
   const privateKey = await prompt.get(["privateKey"]);
   const signer = keyring.addFromUri(privateKey.privateKey || "//Alice");
 
-  const totalToSend = Object.values(amounts).reduce((acc, v) => acc + v, 0);
-  const numAccounts = Object.keys(amounts).length;
+  const totalToSend = Array.from(amounts.values()).reduce((acc, v) => acc + v, 0);
+  const numAccounts = amounts.size;
 
   await confirmWithUser(
     `Will send ${totalToSend / 10 ** 12} to ${numAccounts} addresses from ${
       signer.address
     }.`
   );
-  const promises = Object.keys(amounts).map(async (address) => {
-    const amount = amounts[address];
+  const promises = Array.from(amounts.entries()).map(async ([address, amount]) => {
     const txn = api.tx.balances.transfer(address, amount);
     const result = await batcher.signAndSend(txn, signer).inBlock();
-    console.log(`Sent ${amount / 10 ** 12} to ${address}`);
+    return `${address},${amount / 10 ** 12},${result.hash}`;
   });
-  await Promise.all(promises);
+
+  for (const promise of promises) {
+    console.log(await promise);
+  }
 }
 
 async function confirmWithUser(message) {
