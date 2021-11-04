@@ -1,0 +1,17 @@
+{
+  "name": "runtime-upgrade",
+  "version": "1.0.0",
+  "description": "Upgrades the substrate runtime",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Antoni Dikov <antoni@fractal.id>",
+  "license": "ISC",
+  "dependencies": {
+    "@polkadot/api": "^6.3.1",
+    "@polkadot/types": "^6.3.1",
+    "@trustfractal/polkadot-utils": "^0.1.4",
+    "minimist": "^1.2.5"
+  }
+}
