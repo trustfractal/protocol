@@ -25,12 +25,7 @@ export class TxnBatcher {
 
       const nonce = await this.nextNonce(signer);
       try {
-        const unsub = await txn.signAndSend(
-          signer,
-          { nonce },
-          watcher.signAndSendCb()
-        );
-        watcher.unsub = unsub;
+        await watcher.signAndSend(txn, signer, { nonce });
         watcher.handleInvalid = retry;
         await watcher.ready();
       } catch (e) {
