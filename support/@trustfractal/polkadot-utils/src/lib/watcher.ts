@@ -6,11 +6,11 @@ import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 export type TxnError = Error | DispatchError | AnyJson;
 
 export interface TxnInBlock {
-    block: string,
+  block: string;
 }
 
 export interface TxnFinalized {
-    includedInBlock: string,
+  includedInBlock: string;
 }
 
 export class TxnWatcher {
@@ -46,12 +46,16 @@ export class TxnWatcher {
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll( { block: result.status.asInBlock.toHex() } );
+        this.onInBlock.callAll({ block: result.status.asInBlock.toHex() });
       } else if (result.status.isFinalized) {
-        this.onInBlock.callIfUncalled( { block: result.status.asFinalized.toHex() } );
+        this.onInBlock.callIfUncalled({
+          block: result.status.asFinalized.toHex(),
+        });
 
         this.status = 'Finalized';
-        this.onFinalized.callAll( { includedInBlock: result.status.asFinalized.toHex() } );
+        this.onFinalized.callAll({
+          includedInBlock: result.status.asFinalized.toHex(),
+        });
         this.unsub();
       } else if (result.status.isFuture) {
         this.status = 'Future';
