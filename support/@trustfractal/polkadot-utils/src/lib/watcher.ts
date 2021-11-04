@@ -155,18 +155,24 @@ export class TxnWatcher {
     signer: KeyringPair,
     options?: { nonce?: number }
   ) {
-    const signed = txn.sign(signer, options || {});
-    this.hash = signed.hash.toHex();
-    const unsub = await txn.send(this.signAndSendCb());
+    const unsub = await txn.signAndSend(signer, options || {}, this.signAndSendCb());
+    this.hash = txn.hash.toHex();
     this.unsub = unsub;
   }
 
   static signAndSend(
     txn: SubmittableExtrinsic<'promise'>,
-    signer: KeyringPair
+    signer: KeyringPair,
+    options?: { nonce?: number }
   ): TxnWatcher {
     const watcher = new TxnWatcher();
-    watcher.signAndSend(txn, signer);
+    (async () => {
+      try {
+        await watcher.signAndSend(txn, signer, options);
+      } catch (e) {
+        watcher.onError(e);
+      }
+    })();
     return watcher;
   }
 }
