@@ -5,6 +5,14 @@ import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
 export type TxnError = Error | DispatchError | AnyJson;
 
+export interface TxnInBlock {
+  block: string;
+}
+
+export interface TxnFinalized {
+  includedInBlock: string;
+}
+
 export class TxnWatcher {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   unsub: () => void = () => {};
@@ -12,8 +20,8 @@ export class TxnWatcher {
   public status: AnyJson | string = 'Unsubmitted';
 
   private onReady = new MultiCallback<void>();
-  private onInBlock = new OnceMultiCallback<void>('onInBlock');
-  private onFinalized = new OnceMultiCallback<void>('onFinalized');
+  private onInBlock = new OnceMultiCallback<TxnInBlock>('onInBlock');
+  private onFinalized = new OnceMultiCallback<TxnFinalized>('onFinalized');
 
   private onUnhandledError = new OnceMultiCallback<TxnError>(
     'onUnhandledError'
@@ -38,12 +46,16 @@ export class TxnWatcher {
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll();
+        this.onInBlock.callAll({ block: result.status.asInBlock.toHex() });
       } else if (result.status.isFinalized) {
-        this.onInBlock.callIfUncalled();
+        this.onInBlock.callIfUncalled({
+          block: result.status.asFinalized.toHex(),
+        });
 
         this.status = 'Finalized';
-        this.onFinalized.callAll();
+        this.onFinalized.callAll({
+          includedInBlock: result.status.asFinalized.toHex(),
+        });
         this.unsub();
       } else if (result.status.isFuture) {
         this.status = 'Future';
@@ -82,13 +94,13 @@ export class TxnWatcher {
     });
   }
 
-  async inBlock(): Promise<void> {
+  async inBlock(): Promise<TxnInBlock> {
     return this.promise((resolve) => {
       this.onInBlock.push(resolve);
     });
   }
 
-  async finalized(): Promise<void> {
+  async finalized(): Promise<TxnFinalized> {
     return this.promise((resolve) => {
       this.onFinalized.push(resolve);
     });
