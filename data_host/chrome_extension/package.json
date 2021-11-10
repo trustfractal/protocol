@@ -20,12 +20,14 @@
     "@types/react-dom": "^17.0.1",
     "@types/react-redux": "^7.1.16",
     "final-form": "^4.20.2",
+    "node-sass": "^6.0.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-final-form": "^6.5.3",
     "react-hot-loader": "^4.13.0",
     "react-redux": "^7.2.4",
-    "webext-redux": "^2.1.7"
+    "webext-redux": "^2.1.7",
+    "@trustfractal/data-host": "file:../../support/@trustfractal/data-host/build/main"
   },
   "devDependencies": {
     "@babel/core": "^7.12.17",
@@ -52,7 +54,6 @@
     "fs-extra": "^9.1.0",
     "html-loader": "^2.1.0",
     "html-webpack-plugin": "^5.2.0",
-    "node-sass": "^4.14.1",
     "prettier": "^2.2.1",
     "sass-loader": "^11.0.1",
     "source-map-loader": "^2.0.1",

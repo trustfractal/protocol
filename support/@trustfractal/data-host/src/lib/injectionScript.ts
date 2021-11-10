@@ -1,8 +1,8 @@
-import App from '@popup/app';
 export class InjectionScript {
-
-  async setup(id: string): Promise<any> {
-    console.log('InjectionScript initialized.');
-    App(id);
+  // substrateAddress is going to be used to send funds
+  async setup(substrateAddress: string): Promise<void> {
+    console.log(
+      `InjectionScript initialized with address: ${substrateAddress}.`
+    );
   }
 }
