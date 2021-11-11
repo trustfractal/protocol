@@ -5,7 +5,7 @@ import { Store } from 'webext-redux';
 
 import { REDUX_PORT_NAME } from '../../redux/port';
 
-import {FractalUI} from '@trustfractal/data-host';
+import {FractalUI, Background} from '@trustfractal/data-host';
 import Popup from './Popup';
 import './index.css';
 
@@ -13,9 +13,12 @@ const store = new Store({ portName: REDUX_PORT_NAME });
 
 store.ready().then(() => {
     let ui = new FractalUI();
-    ui.render(document.getElementById('#app-container')).then(() => {
-       console.log('FractalUI setup promise called.')
+    ui.render(document.getElementById('app-container')).then(() => {
+       console.log('FractalUI render promise called.')
     });
+
+    let background = new Background();
+    background.setup().then(() => { console.log( 'Background setup promise called.')})
 
 //   render(
 //     <Provider store={store}>

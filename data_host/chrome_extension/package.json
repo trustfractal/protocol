@@ -15,19 +15,20 @@
   "dependencies": {
     "@hot-loader/react-dom": "^17.0.1",
     "@reduxjs/toolkit": "^1.6.0",
+    "@trustfractal/data-host": "file:../../support/@trustfractal/data-host/build/main",
     "@types/chrome": "0.0.132",
     "@types/react": "^17.0.2",
     "@types/react-dom": "^17.0.1",
     "@types/react-redux": "^7.1.16",
     "final-form": "^4.20.2",
     "node-sass": "^6.0.1",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "react-final-form": "^6.5.3",
     "react-hot-loader": "^4.13.0",
     "react-redux": "^7.2.4",
-    "webext-redux": "^2.1.7",
-    "@trustfractal/data-host": "file:../../support/@trustfractal/data-host/build/main"
+    "styled-components": "^5.3.3",
+    "webext-redux": "^2.1.7"
   },
   "devDependencies": {
     "@babel/core": "^7.12.17",
