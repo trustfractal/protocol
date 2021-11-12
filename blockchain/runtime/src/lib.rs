@@ -282,6 +282,9 @@ parameter_types! {
     pub const IssuanceHalfLife: BlockNumber = 10 * YEARS;
     pub const IssuanceCompleteAt: BlockNumber = 120 * YEARS;
 
+    // SBP M1 review: this looks like it is environment-specific,
+    // so you could initialize it from the genesis config.
+    // (like the fractal_authoritative_account)
     // 5FCLexMpgW8XH8K79PYhVSgy52SqSWdfGstaBCDGWzQtHLhh
     pub const ExcessMintingReceiver: AccountId =
         AccountId::new(hex_literal::hex!["8a874a9c3d01537eee89ba2ef693c6a5fd71c8c8c63f74167dc642e4c9ad0203"]);

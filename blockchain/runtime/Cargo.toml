@@ -18,6 +18,8 @@ substrate-wasm-builder={version = '4.0.0', git = 'https://github.com/paritytech/
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
 hex-literal= {version = '0.3.1'}
 
+# SBP M1 review: you could upgrade to a more recent monthly version, it should be faitly low impact (look at the commit history on the node template).
+
 # Substrate dependencies
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 frame-executive = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}

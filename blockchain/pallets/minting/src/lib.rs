@@ -11,6 +11,8 @@ mod tests;
 pub mod exponential_issuance;
 pub use exponential_issuance::*;
 
+// SBP M1 review: nitpick .. missing doc comments on public types / functions.
+
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::pallet_prelude::*;
@@ -28,6 +30,7 @@ pub mod pallet {
     use merklex::MerkleTree;
     use sp_runtime::traits::CheckedDiv;
 
+    // SBP M1 review: this could be a constant param in Config
     pub type FractalId = u64;
 
     type BalanceOf<T> =
@@ -134,6 +137,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        // SBP M1 review: you should benchmark the pallet to have actual weights of every dispatchable calls.
         #[pallet::weight((
             10_000 + T::DbWeight::get().reads_writes(1, 1),
             DispatchClass::Normal,
@@ -148,6 +152,9 @@ pub mod pallet {
             T::AccountId: Clone,
         {
             let should_be_fractal = ensure_signed(origin)?;
+            // SBP M1 review: you could use an origin instead of this.
+            // You would pass the FractalAuthoritative origin in Config,
+            // this could be Sudo at first, and a governance origin type at a later point.
             ensure!(
                 should_be_fractal == FractalAuthoritativeAccount::<T>::get(),
                 Error::<T>::MustBeFractal
@@ -160,6 +167,8 @@ pub mod pallet {
 
         /// Register to receive minting in the next period.
         // TODO(shelbyd): Charge users transaction fees if this isn't their first registration.
+        // SBP M1 review: you could look into a tailored transaction payment scheme (see pallet_transaction_payment)
+        // instead of not charging fees for this operation, which open the door to DOS attacks.
         #[pallet::weight((
             10_000 + T::DbWeight::get().reads_writes(3, 2),
             DispatchClass::Normal,
@@ -228,6 +237,11 @@ pub mod pallet {
                 return;
             }
 
+            // SBP M1 review: you should probably evaluate how much weight the on_finalize
+            // could consume in a worst case scenario for a very high nbr of minting rewards.
+            // Based on the findinds, this could lead you to adapt the current logic
+            // (spread the minting of the rewards over several blocks, or offload the processing
+            //  to an off-chain worker ..)
             let accounts = NextMintingRewards::<T>::iter().collect::<Vec<_>>();
             let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
 

@@ -27,6 +27,7 @@ where
             return self.total;
         }
 
+        // SBP M1 review: avoid using unwrap(), runtime code should not panic
         let total: f64 = cast(self.total).unwrap();
         cast(self.percent_unissued_at(index) * total).unwrap()
     }
@@ -35,6 +36,7 @@ where
     // Linear portion is tangent to the curve such that the line equals zero at
     // `complete_at`.
     fn percent_unissued_at(&self, index: Step) -> f64 {
+        // SBP M1 review: avoid using unwrap(), runtime code should not panic
         let complete_at: f64 = cast(self.complete_at).unwrap();
         let half_life: f64 = cast(self.half_life).unwrap();
         let index: f64 = cast(index).unwrap();
@@ -49,3 +51,5 @@ where
         }
     }
 }
+
+// SBP M1 review: you could write a few simple tests for the issuance curve ...
