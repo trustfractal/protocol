@@ -1,5 +1,6 @@
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { KeyringPair } from '@polkadot/keyring/types';
+import { SignerOptions } from '@polkadot/submittable/types';
 import { GenericEventData } from '@polkadot/types/generic';
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
@@ -153,7 +154,7 @@ export class TxnWatcher {
   async signAndSend(
     txn: SubmittableExtrinsic<'promise'>,
     signer: KeyringPair,
-    options?: { nonce?: number }
+    options?: Partial<SignerOptions>,
   ) {
     const unsub = await txn.signAndSend(signer, options || {}, this.signAndSendCb());
     this.hash = txn.hash.toHex();
@@ -163,7 +164,7 @@ export class TxnWatcher {
   static signAndSend(
     txn: SubmittableExtrinsic<'promise'>,
     signer: KeyringPair,
-    options?: { nonce?: number }
+    options?: Partial<SignerOptions>,
   ): TxnWatcher {
     const watcher = new TxnWatcher();
     (async () => {
