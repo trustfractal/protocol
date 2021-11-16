@@ -1,5 +1,5 @@
 // import Protocol from "@components/Protocol";
-import Protocol from './Protocol';
+import Protocol from '@components/Protocol';
 function App() {
 
   return (

@@ -38,12 +38,15 @@
     // "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
 
     "lib": ["es2017", "dom"],
-    "types": [],
+    "types": ["node", "chrome"],
     "typeRoots": ["node_modules/@types", "src/types"],
     "baseUrl": "./",
     "paths": {
         "@popup/*": ["src/popup/*"],
-        "@components/*": ["src/popup/components/*"]
+        "@components/*": ["src/popup/components/*"],
+        "@utils/*": ["src/popup/utils/*"],
+        "@services/*": ["src/popup/services/*"],
+        "@vendor/*": ["src/vendor/*"],
     },
     "jsx": "react-jsx" ,
   },
