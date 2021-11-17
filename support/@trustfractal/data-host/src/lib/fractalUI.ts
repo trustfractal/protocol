@@ -4,8 +4,8 @@ import ReactDOM from 'react-dom';
 import App from '../popup/components/App';
 
 export class FractalUI {
-  // substrateAddress is going to be used to send funds
-  async render(element: HTMLElement | null): Promise<void> {
+  //TODO(melatron): Add substrateAddress that would be used for sending funds
+  render(element: HTMLElement | null): void {
     ReactDOM.render(App(), element);
   }
 }

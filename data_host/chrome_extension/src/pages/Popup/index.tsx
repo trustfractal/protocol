@@ -13,19 +13,11 @@ const store = new Store({ portName: REDUX_PORT_NAME });
 
 store.ready().then(() => {
     let ui = new FractalUI();
+    //TODO: `ui.render` wouldn't return a promise. Change it to `ui.render(document.getElementById('app-container'));`
+    // when the new version of @trustfractal/data-host is up.
     ui.render(document.getElementById('app-container')).then(() => {
        console.log('FractalUI render promise called.')
     });
-
-    let background = new Background();
-    background.setup().then(() => { console.log( 'Background setup promise called.')})
-
-//   render(
-//     <Provider store={store}>
-//       <Popup />
-//     </Provider>,
-//     window.document.querySelector('#app-container')
-//   );
 });
 
 if (module.hot) module.hot.accept();
