@@ -1,7 +1,5 @@
 import { NotConnectedError } from '@services/FractalAccount';
-// import { MaguroService } from "@services/MaguroService";
 import { ProtocolService } from '@services/Protocol';
-// import { WindowsService } from '@services/WindowsService';
 import { Storage } from '@utils/StorageArray';
 
 export class MissingLiveness extends Error {}
@@ -13,10 +11,7 @@ export class ProtocolOptIn {
 
   constructor(
     private readonly storage: Storage,
-    // private readonly maguro: MaguroService,
-    private readonly protocol: ProtocolService,
-    // private readonly windows: WindowsService,
-    // private readonly livenessUrl: string
+    private readonly protocol: ProtocolService
   ) {}
 
   async isOptedIn() {
@@ -24,7 +19,7 @@ export class ProtocolOptIn {
   }
 
   private async mnemonicKey() {
-    const network = 'mnemonic'; //TODO: get the mnemonic await this.maguro.currentNetwork();
+    const network = 'network'; //TODO(melatron): get the current network
     return `opt-in/${network}/mnemonic`;
   }
 
@@ -54,12 +49,6 @@ export class ProtocolOptIn {
       await cb(mnemonic);
     }
   }
-
-//   async postOptInLiveness() {
-//     await this.tryRegisterIdentity(async () => {
-//       await this.windows.openTab(this.livenessUrl);
-//     });
-//   }
 
   async checkOptIn() {
     const mnemonic = await this.getMnemonic();

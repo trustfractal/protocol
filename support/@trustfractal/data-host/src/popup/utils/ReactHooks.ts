@@ -18,7 +18,6 @@ export function useLoadedState<T>(
 
   // The common case is to only want to call the loader once, so we memoize it
   // for the user to prevent all users from having to do that themselves.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoLoader = useCallback(() => loader(), [...watchedVars]);
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export function useLoadedState<T>(
   const setValue = (t: T) => setLoadedValue([true, t]);
   const reload = () => setLoadedValue([false, null]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(reload, [...watchedVars]);
 
   if (loaded) {
@@ -207,7 +205,6 @@ export function useCachedState<T>(args: CacheArgs<T>): Load<T> {
     // The purpose of this hook is to minimize work. Providing no watched
     // arguments effectively memoizes the input object so the user doesn't
     // have to.
-    // eslint-disable-next-line
     []
   );
 

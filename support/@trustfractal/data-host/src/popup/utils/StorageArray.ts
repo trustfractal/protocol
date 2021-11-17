@@ -81,6 +81,7 @@ export class StorageArray {
   }
 
   iter() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const storage = this;
     return {
       [Symbol.asyncIterator]() {
@@ -100,6 +101,7 @@ export class StorageArray {
   }
 
   iterBack() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const storage = this;
     return {
       [Symbol.asyncIterator]() {
@@ -150,6 +152,7 @@ export async function withLock<T>(
       );
       if ((await storage.getItem(holding_lock)) !== id) continue;
     }
+    // eslint-disable-next-line no-constant-condition
   } while (false);
 
   try {

@@ -1,9 +1,9 @@
 import {
-  ERROR_HAS_ITEM,
-  ERROR_GET_ITEM,
-  ERROR_SET_ITEM,
-  ERROR_REMOVE_ITEM,
   ERROR_CLEAR,
+  ERROR_GET_ITEM,
+  ERROR_HAS_ITEM,
+  ERROR_REMOVE_ITEM,
+  ERROR_SET_ITEM,
 } from './Errors';
 
 export class StorageService {

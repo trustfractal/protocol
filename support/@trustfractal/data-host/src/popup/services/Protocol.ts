@@ -44,7 +44,6 @@ export class ProtocolService {
   constructor(
     private readonly api: Promise<ApiPromise>,
     public signer: KeyringPair | null,
-    // private readonly maguro: MaguroService,
     private readonly dataHost: DataHost
   ) {}
 
@@ -137,7 +136,6 @@ export class ProtocolService {
     if (await this.isIdentityRegistered()) return;
 
     console.log('Identity is not registered, trying to register');
-    // await this.maguro.registerIdentity(this.address());
     if (await this.isIdentityRegistered()) {
       console.log('Identity successfully registered');
     } else {
@@ -288,9 +286,7 @@ export class ProtocolService {
     }
   }
 
-  private async mintingReceived(
-    end: number
-  ): Promise<MintingReceived | null> {
+  private async mintingReceived(end: number): Promise<MintingReceived | null> {
     // Since minting occurs in the on_finalize hook, users don't show up as
     // registered on the exact block minting occurs.
     try {

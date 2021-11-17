@@ -4,8 +4,6 @@ import { Storage } from '@utils/StorageArray';
 import { ReplaySubject } from 'rxjs';
 
 interface Tokens {
-  catfish: string;
-  megalodon: string;
   scopes: string;
 }
 
@@ -61,39 +59,10 @@ export class FractalAccountConnector extends MultiContext {
     return JSON.parse(stored);
   }
 
-  async inInjectedScript() {
-    if (!window.location.toString().startsWith(environment.FRACTAL_WEBSITE_URL))
-      return;
-    if (!(await this.willAcceptNextTokens())) return;
-
-    const catfishSessionKey = 'catfish_token';
-    const megalodonSessionKey = 'megalodon_token';
-
-    const catfish = localStorage.getItem(catfishSessionKey);
-    const megalodon = localStorage.getItem(megalodonSessionKey);
-    const scopes = localStorage.getItem(`${megalodonSessionKey}-scopes`);
-
-    if (!catfish || !megalodon || !scopes) return;
-
-    const tokens = { catfish, megalodon, scopes };
-    await this.setTokens(tokens);
-  }
-
-  async getMegalodonToken() {
-    return (await this.requireTokens()).megalodon;
-  }
-
   private async requireTokens() {
     const t = await this.getTokens();
     if (t == null) throw new NotConnectedError();
     return t;
-  }
-
-  async setMegalodonToken(token: string) {
-    await this.storage.setItem(
-      TOKENS_KEY,
-      JSON.stringify({ ...(await this.requireTokens()), megalodon: token })
-    );
   }
 
   async getCatfishToken() {

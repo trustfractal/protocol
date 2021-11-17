@@ -1,16 +1,10 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
-// import { UserAlerts } from "@popup/Alerts";
 import environment from '@popup/Environment';
-// import { CatfishService } from "@services/CatfishService";
 import { DataHost } from '@services/DataHost';
 import { FractalAccountConnector } from '@services/FractalAccount';
-// import { MaguroService } from "@services/MaguroService";
-// import { MegalodonService } from "@services/MegalodonService";
-// import { MintingRegistrar } from "@services/MintingRegistrar";
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
 import { StorageService } from '@services/StorageService';
-// import { WindowsService } from '@services/WindowsService';
 import { AggregateMultiContext, MultiContext } from '@utils/MultiContext';
 import { ValueCache } from '@utils/ReactHooks';
 
@@ -27,15 +21,6 @@ export function getStorageService() {
   return storageService;
 }
 
-// let mintingRegistrar: MintingRegistrar;
-// export function getMintingRegistrar() {
-//   if (mintingRegistrar === undefined) {
-//     const sleep = environment.IS_DEV ? 5 : 30 * 60;
-//     mintingRegistrar = new MintingRegistrar(storageService, sleep);
-//   }
-//   return mintingRegistrar;
-// }
-
 let dataHost: DataHost;
 export function getDataHost() {
   if (dataHost === undefined) {
@@ -46,7 +31,7 @@ export function getDataHost() {
 
 async function getApi() {
   try {
-    const url = 'url'; //(await getMaguroService().getConfig()).blockchain_url;
+    const url = 'url'; //TODO(melatron): get the mainnet url
     const provider = new WsProvider(url);
     return await ApiPromise.create({ provider, types });
   } catch (e) {
@@ -62,12 +47,7 @@ export function getProtocolService(mnemonic?: string) {
     const signer = mnemonic
       ? ProtocolService.signerFromMnemonic(mnemonic)
       : null;
-    protocol = new ProtocolService(
-      getApi(),
-      signer,
-      //   getMaguroService(),
-      getDataHost()
-    );
+    protocol = new ProtocolService(getApi(), signer, getDataHost());
 
     getProtocolOptIn()
       .getMnemonic()
@@ -82,54 +62,12 @@ export function getProtocolService(mnemonic?: string) {
   return protocol;
 }
 
-// let maguro: MaguroService;
-// export function getMaguroService() {
-//   if (maguro === undefined) {
-//     maguro = new MaguroService(
-//       getStorageService(),
-//       getFractalAccountConnector(),
-//       getCatfishService(),
-//     );
-//   }
-//   return maguro;
-// }
-
-// let catfish: CatfishService;
-// function getCatfishService() {
-//   if (catfish === undefined) {
-//     catfish = new CatfishService(getFractalAccountConnector());
-//   }
-//   return catfish;
-// }
-
-// let megalodon: MegalodonService;
-// export function getMegalodonService() {
-//   if (megalodon === undefined) {
-//     megalodon = new MegalodonService(
-//       getFractalAccountConnector(),
-//       getCatfishService(),
-//     );
-//   }
-//   return megalodon;
-// }
-
-// let windows: WindowsService;
-// export function getWindowsService() {
-//   if (windows === undefined) {
-//     windows = new WindowsService();
-//   }
-//   return windows;
-// }
-
 let protocolOptIn: ProtocolOptIn;
 export function getProtocolOptIn() {
   if (protocolOptIn === undefined) {
     protocolOptIn = new ProtocolOptIn(
       getStorageService(),
-      //   getMaguroService(),
-      getProtocolService(),
-    //   getWindowsService(),
-    //   environment.PROTOCOL_JOURNEY_URL,
+      getProtocolService()
     );
 
     protocolOptIn.postOptInCallbacks.push(async () => {
@@ -142,14 +80,6 @@ export function getProtocolOptIn() {
   }
   return protocolOptIn;
 }
-
-// let userAlerts: UserAlerts;
-// export function getUserAlerts() {
-//   if (userAlerts == null) {
-//     userAlerts = new UserAlerts();
-//   }
-//   return userAlerts;
-// }
 
 let fractalAccountConnector: FractalAccountConnector;
 export function getFractalAccountConnector() {
