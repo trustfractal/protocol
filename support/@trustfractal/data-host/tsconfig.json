@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowJs": true,
     "incremental": true,
     "target": "ES2020",
     "outDir": "build/main",

@@ -64,7 +64,7 @@ export class Loading<T, Orig = T> {
     return def;
   }
 
-  map<U>(fn: (t: T) => U): Loading<U, Orig> {
+  map<U>(_fn: (t: T) => U): Loading<U, Orig> {
     return new Loading(this.setValue, this.reload);
   }
 }
