@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "target": "es2017",
+    "target": "ES2020",
     "outDir": "build/main",
     "rootDir": "src",
     "moduleResolution": "node",
@@ -37,9 +37,15 @@
     // "experimentalDecorators": true /* Enables experimental support for ES7 decorators. */,
     // "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
 
-    "lib": ["es2017"],
+    "lib": ["es2017", "dom"],
     "types": [],
-    "typeRoots": ["node_modules/@types", "src/types"]
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "baseUrl": "./",
+    "paths": {
+        "@popup/*": ["src/popup/*"],
+        "@components/*": ["src/popup/components/*"]
+    },
+    "jsx": "react-jsx" ,
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules/**"],

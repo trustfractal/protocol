@@ -1,11 +1,11 @@
 {
-  "name": "data-host",
-  "version": "1.0.0",
+  "name": "@trustfractal/data-host",
+  "version": "1.0.2",
   "description": "Javascript library for data providers using fractal protocol",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "https://github.com/melatron/data-host",
+  "repository": "https://github.com/trustfractal/protocol/tree/master/support/@trustfractal/data-host",
   "license": "MIT",
   "keywords": [],
   "scripts": {
@@ -41,13 +41,23 @@
   "engines": {
     "node": ">=10"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@hot-loader/react-dom": "^17.0.1",
+    "@trustfractal/polkadot-utils": "^0.1.7",
+    "@types/node": "^16.11.7",
+    "@types/react": "^17.0.34",
+    "@types/react-dom": "^17.0.11",
+    "@types/styled-components": "^5.1.15",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "styled-components": "^5.3.3"
+  },
   "devDependencies": {
-    "@ava/typescript": "^1.1.1",
+    "@ava/typescript": "^3.0.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@typescript-eslint/eslint-plugin": "^4.0.1",
     "@typescript-eslint/parser": "^4.0.1",
-    "ava": "^3.12.1",
+    "ava": "^3.15.0",
     "codecov": "^3.5.0",
     "cspell": "^4.1.0",
     "cz-conventional-changelog": "^3.3.0",
@@ -64,7 +74,7 @@
     "standard-version": "^9.0.0",
     "ts-node": "^9.0.0",
     "typedoc": "^0.19.0",
-    "typescript": "^4.0.2"
+    "typescript": "^4.4.4"
   },
   "files": [
     "build/main",
@@ -78,14 +88,10 @@
   "ava": {
     "failFast": true,
     "timeout": "60s",
-    "typescript": {
-      "rewritePaths": {
-        "src/": "build/main/"
-      }
-    },
+
     "files": [
-      "!build/module/**"
-    ]
+        "build/main/tests/*"
+      ]
   },
   "config": {
     "commitizen": {
