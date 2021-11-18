@@ -1,17 +1,17 @@
+
+import Button, { ButtonProps } from "@common/Button";
+import { Subsubtitle } from "@common/Subtitle";
+import Text, { TextWeights } from "@common/Text";
 import styled from "styled-components";
 
-import Button, { ButtonProps } from "@popup/components/common/Button";
-import Text, { TextWeights } from "@popup/components/common/Text";
-import { Subsubtitle } from "@popup/components/common/Subtitle";
-
-export { default as Text } from "@popup/components/common/Text";
+export { default as Text } from "@common/Text";
 export {
   default as Subtitle,
   Subsubtitle,
-} from "@popup/components/common/Subtitle";
-export { default as Icon, IconNames } from "@popup/components/common/Icon";
-export { default as Input } from "@popup/components/common/Input";
-export { default as Title } from "@popup/components/common/Title";
+} from "@common/Subtitle";
+export { default as Icon, IconNames } from "@common/Icon";
+export { default as Input } from "@common/Input";
+export { default as Title } from "@common/Title";
 
 const Container = styled.div`
   width: 100%;

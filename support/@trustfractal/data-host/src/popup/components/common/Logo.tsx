@@ -1,7 +1,6 @@
-import React from "react";
-
-import styled, { css } from "styled-components";
 import Icon, { IconNames } from "@popup/components/common/Icon";
+import React from "react";
+import styled, { css } from "styled-components";
 
 const Root = styled.div<{ height: string; width: string; clickable?: boolean }>`
   background: var(--c-white);

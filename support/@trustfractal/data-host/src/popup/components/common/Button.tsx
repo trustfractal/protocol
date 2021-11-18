@@ -1,6 +1,5 @@
-import React from "react";
-
 import Spinner from "@popup/components/common/Spinner";
+import React from "react";
 import styled, { css } from "styled-components";
 
 const Root = styled.button<{

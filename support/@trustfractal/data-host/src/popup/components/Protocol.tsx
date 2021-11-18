@@ -1,6 +1,6 @@
 
 // import TopComponent from "@components/TopComponent";
-import TopComponent from '@components/TopComponent';
+import TopComponent from '@components/common/TopComponent';
 import { mnemonicGenerate } from "@polkadot/util-crypto";
 import Loading from "@popup/components/Loading";
 import { getProtocolOptIn } from "@services/Factory";

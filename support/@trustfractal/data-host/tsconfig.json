@@ -45,6 +45,7 @@
     "paths": {
         "@popup/*": ["src/popup/*"],
         "@components/*": ["src/popup/components/*"],
+        "@common/*": ["src/popup/components/common/*"],
         "@utils/*": ["src/popup/utils/*"],
         "@services/*": ["src/popup/services/*"],
         "@vendor/*": ["src/vendor/*"],

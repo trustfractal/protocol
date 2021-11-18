@@ -1,16 +1,15 @@
-import styled from "styled-components";
 
 import {
+  BoldText,
+  Cta,
   Icon,
   IconNames,
-  Subtitle,
   Subsubtitle,
-  BoldText,
+  Subtitle,
   VerticalSequence,
-  Cta,
 } from '@components/Common';
-
 import environment from "@popup/Environment";
+import styled from "styled-components";
 
 const List = styled.ul`
   list-style: none;
