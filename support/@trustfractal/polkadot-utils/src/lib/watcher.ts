@@ -1,16 +1,25 @@
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { KeyringPair } from '@polkadot/keyring/types';
+import { SignerOptions } from '@polkadot/submittable/types';
+import { GenericEventData } from '@polkadot/types/generic';
 import { DispatchError } from '@polkadot/types/interfaces';
 import { AnyJson, ISubmittableResult } from '@polkadot/types/types';
 
-export type TxnError = Error | DispatchError | AnyJson;
+export type TxnError = Error | DispatchError | GenericEventData | AnyJson;
+
+export interface TxnReady {
+  // This may change if the TXN needs to be retried.
+  hash: string;
+}
 
 export interface TxnInBlock {
   block: string;
+  hash: string;
 }
 
 export interface TxnFinalized {
   includedInBlock: string;
+  hash: string;
 }
 
 export class TxnWatcher {
@@ -18,8 +27,9 @@ export class TxnWatcher {
   unsub: () => void = () => {};
 
   public status: AnyJson | string = 'Unsubmitted';
+  private hash?: string;
 
-  private onReady = new MultiCallback<void>();
+  private onReady = new MultiCallback<TxnReady>();
   private onInBlock = new OnceMultiCallback<TxnInBlock>('onInBlock');
   private onFinalized = new OnceMultiCallback<TxnFinalized>('onFinalized');
 
@@ -38,23 +48,32 @@ export class TxnWatcher {
         return;
       }
 
+      if (this.extrinsicEventsError(result)) {
+        return;
+      }
+
       if (result.status.isReady) {
         this.status = 'Ready';
-        this.onReady.callAll();
+        this.onReady.callAll({ hash: this.hash! });
       } else if (result.status.isBroadcast) {
         // Nothing to do when breadcasted, but not handling will trigger the
         // unhandled case below.
       } else if (result.status.isInBlock) {
         this.status = 'InBlock';
-        this.onInBlock.callAll({ block: result.status.asInBlock.toHex() });
+        this.onInBlock.callAll({
+          block: result.status.asInBlock.toHex(),
+          hash: this.hash!,
+        });
       } else if (result.status.isFinalized) {
         this.onInBlock.callIfUncalled({
           block: result.status.asFinalized.toHex(),
+          hash: this.hash!,
         });
 
         this.status = 'Finalized';
         this.onFinalized.callAll({
           includedInBlock: result.status.asFinalized.toHex(),
+          hash: this.hash!,
         });
         this.unsub();
       } else if (result.status.isFuture) {
@@ -79,7 +98,33 @@ export class TxnWatcher {
     this.unsub();
   }
 
-  async ready(): Promise<void> {
+  private extrinsicEventsError(result: ISubmittableResult): boolean {
+    const events = result.events;
+    if (events.length === 0) return false;
+
+    for (const { event } of events) {
+      if (event.section !== 'system') continue;
+
+      if (event.method === 'ExtrinsicSuccess') {
+        return false;
+      }
+      if (event.method === 'ExtrinsicFailed') {
+        this.status = 'ExtrinsicFailed';
+        this.onError(event.data);
+        return true;
+      }
+    }
+
+    const error = new Error(
+      `No extrinsic event found for extrinsic: ${
+        this.hash
+      } in state ${result.status.toHuman()}`
+    );
+    this.onError(error);
+    throw error;
+  }
+
+  async ready(): Promise<TxnReady> {
     return this.promise((resolve) => {
       this.onReady.push(resolve);
     });
@@ -106,14 +151,28 @@ export class TxnWatcher {
     });
   }
 
+  async signAndSend(
+    txn: SubmittableExtrinsic<'promise'>,
+    signer: KeyringPair,
+    options?: Partial<SignerOptions>,
+  ) {
+    const unsub = await txn.signAndSend(signer, options || {}, this.signAndSendCb());
+    this.hash = txn.hash.toHex();
+    this.unsub = unsub;
+  }
+
   static signAndSend(
     txn: SubmittableExtrinsic<'promise'>,
-    signer: KeyringPair
+    signer: KeyringPair,
+    options?: Partial<SignerOptions>,
   ): TxnWatcher {
     const watcher = new TxnWatcher();
     (async () => {
-      const unsub = await txn.signAndSend(signer, watcher.signAndSendCb());
-      watcher.unsub = unsub;
+      try {
+        await watcher.signAndSend(txn, signer, options);
+      } catch (e) {
+        watcher.onError(e as Error);
+      }
     })();
     return watcher;
   }

@@ -1,0 +1,10 @@
+{
+  "name": "fractal-protocol-scripts",
+  "version": "0.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "@trustfractal/polkadot-utils": "^0.1.7",
+    "minimist": "^1.2.5",
+    "prompt": "^1.2.0"
+  }
+}
