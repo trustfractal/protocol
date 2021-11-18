@@ -1,11 +1,9 @@
-import styled from "styled-components";
-import { useEffect } from "react";
-
-import environment from "@popup/Environment";
-
+import Logo from "@components/common/Logo";
 import Spinner from "@components/common/Spinner";
 import Text, { TextHeights, TextSizes } from "@components/common/Text";
-import Logo from "@components/common/Logo";
+import environment from "@popup/Environment";
+import { useEffect } from "react";
+import styled from "styled-components";
 
 const RootContainer = styled.div`
   min-width: 352px;
