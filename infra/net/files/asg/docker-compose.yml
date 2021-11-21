@@ -2,7 +2,7 @@ version: "3.8"
 services:
   node:
     container_name: nodefcl
-    image: boymaas/nodefcl:6035ebb_20211023_2112
+    image: boymaas/nodefcl:a1c08c6_20211118_1605
     volumes:
       - "/home/ubuntu/base-path:/data"
       - "/home/ubuntu/:/config"
@@ -26,7 +26,7 @@ services:
     restart: always
   node-health-check:
     container_name: nodefcl-health-check
-    image: boymaas/nodefcl:6035ebb_20211023_2112
+    image: boymaas/nodefcl:a1c08c6_20211118_1605
     entrypoint: /app/node-health-check
     ports:
       - "9955:9955"
