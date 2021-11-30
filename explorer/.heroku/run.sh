@@ -1,3 +1,3 @@
 #! /bin/bash
 
-apt install libclang
+yes | apt-get install libclang-dev
