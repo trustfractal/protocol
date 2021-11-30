@@ -1,0 +1,4 @@
+heroku:
+  buildpacks:
+    - emk/rust
+  app: fractal-protocol-explorer
