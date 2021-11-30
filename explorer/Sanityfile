@@ -1,8 +1,6 @@
 heroku:
   buildpacks:
-    - https://github.com/niteoweb/heroku-buildpack-shell.git
     - emk/rust
   app: fractal-protocol-explorer
   copy_to_root:
-    - .heroku/run.sh
     - RustConfig

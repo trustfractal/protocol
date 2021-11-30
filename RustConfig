@@ -1,1 +1,5 @@
-RUST_CARGO_BUILD_FLAGS="--release --bin fractal_explorer"
+#! /bin/sh
+
+set -euxo pipefail
+
+RUST_CARGO_BUILD_FLAGS='--bin fractal_explorer --release'
