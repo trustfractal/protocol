@@ -2,13 +2,14 @@
   "compilerOptions": {
     "allowJs": true,
     "incremental": true,
-    "target": "ES2020",
-    "outDir": "build/main",
+    "target": "ESNext",
+    "outDir": "dist",
     "rootDir": "src",
     "moduleResolution": "node",
-    "module": "commonjs",
+    "module": "esnext",
     "declaration": true,
-    "inlineSourceMap": true,
+    // "inlineSourceMap": true,
+    "sourceMap": true,
     "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
     "resolveJsonModule": true /* Include modules imported with .json extension. */,
 
@@ -43,12 +44,14 @@
     "typeRoots": ["node_modules/@types", "src/types"],
     "baseUrl": "./",
     "paths": {
+        "@assets/*": ["src/assets/*"],
         "@popup/*": ["src/popup/*"],
         "@components/*": ["src/popup/components/*"],
         "@common/*": ["src/popup/components/common/*"],
         "@utils/*": ["src/popup/utils/*"],
         "@services/*": ["src/popup/services/*"],
-        "@vendor/*": ["src/vendor/*"]
+        "@vendor/*": ["src/vendor/*"],
+        "@styles/*": ["src/popup/styles/*"]
     },
     "jsx": "react-jsx" ,
   },

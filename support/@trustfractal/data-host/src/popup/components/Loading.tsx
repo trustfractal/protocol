@@ -1,6 +1,6 @@
-import Logo from "@components/common/Logo";
-import Spinner from "@components/common/Spinner";
-import Text, { TextHeights, TextSizes } from "@components/common/Text";
+import Logo from "@common/Logo";
+import Spinner from "@common/Spinner";
+import Text, { TextHeights, TextSizes } from "@common/Text";
 import environment from "@popup/Environment";
 import { useEffect } from "react";
 import styled from "styled-components";

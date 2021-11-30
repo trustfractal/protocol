@@ -31,7 +31,7 @@ export function getDataHost() {
 
 async function getApi() {
   try {
-    const url = 'url'; //TODO(melatron): get the mainnet url
+    const url = 'wss://nodes.testnet.fractalprotocol.com'; //TODO(melatron): get the mainnet url
     const provider = new WsProvider(url);
     return await ApiPromise.create({ provider, types });
   } catch (e) {

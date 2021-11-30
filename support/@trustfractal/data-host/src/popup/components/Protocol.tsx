@@ -1,15 +1,11 @@
-
-// import TopComponent from "@components/TopComponent";
-import TopComponent from '@components/common/TopComponent';
+import TopComponent from '@common/TopComponent';
+import Loading from "@components/Loading";
+import { OptInForm } from "@components/OptInForm";
+import { SetupInProgress, SetupSuccess } from "@components/SetupScreen";
 import { mnemonicGenerate } from "@polkadot/util-crypto";
-import Loading from "@popup/components/Loading";
 import { getProtocolOptIn } from "@services/Factory";
 import { useLoadedState } from "@utils/ReactHooks";
 import { useState } from "react";
-
-
-import { OptInForm } from "./OptInForm";
-import { SetupInProgress, SetupSuccess } from "./SetupScreen";
 
 function DataScreen() {
     return <div></div>

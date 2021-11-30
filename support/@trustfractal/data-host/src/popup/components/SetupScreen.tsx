@@ -1,3 +1,4 @@
+
 import {
   Cta,
   Icon,
@@ -5,7 +6,7 @@ import {
   Subtitle,
   Title,
   VerticalSequence,
-} from "@popup/components/common";
+} from "@components/Common";
 import { useEffect, useState } from "react";
 
 

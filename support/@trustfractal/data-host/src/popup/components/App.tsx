@@ -1,9 +1,12 @@
-// import Protocol from "@components/Protocol";
 import Protocol from '@components/Protocol';
+import GlobalStyle from "@styles/GlobalStyle";
 function App() {
 
   return (
+    <>
+    <GlobalStyle />
     <Protocol />
+    </>
   );
 }
 
