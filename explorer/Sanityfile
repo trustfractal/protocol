@@ -1,4 +1,5 @@
 heroku:
   buildpacks:
+    - https://github.com/niteoweb/heroku-buildpack-shell.git
     - emk/rust
   app: fractal-protocol-explorer
