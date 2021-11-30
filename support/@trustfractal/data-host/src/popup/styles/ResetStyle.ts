@@ -1,4 +1,4 @@
-import { createGlobalStyle, css } from "styled-components";
+import { createGlobalStyle, css } from 'styled-components';
 
 export const reset = css`
   /*
@@ -124,7 +124,7 @@ export const reset = css`
   blockquote:after,
   q:before,
   q:after {
-    content: "";
+    content: '';
     content: none;
   }
   table {
@@ -162,7 +162,7 @@ export const reset = css`
   blockquote::after,
   q::before,
   q::after {
-    content: "";
+    content: '';
     content: none;
   }
 

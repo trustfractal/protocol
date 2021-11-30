@@ -1,15 +1,17 @@
 import { Storage, StorageArray } from '@utils/StorageArray';
 
 export class DataHost {
-    private build!: (s: string) => string | undefined;
-    private extend_multiple!: (mtree: string, leaves: any) => string | undefined;
-    private prune_balanced!: (s: string) => string | undefined;
-    private strict_extension_proof!: (mtree_a: string, mtree_b: string) => string | undefined;
+  private build!: (s: string) => string | undefined;
+  private extend_multiple!: (mtree: string, leaves: any) => string | undefined;
+  private prune_balanced!: (s: string) => string | undefined;
+  private strict_extension_proof!: (
+    mtree_a: string,
+    mtree_b: string
+  ) => string | undefined;
 
   constructor(
     private readonly metadata: Storage,
-    private readonly sensitive: Storage,
-
+    private readonly sensitive: Storage
   ) {}
 
   private key(key: string) {
@@ -17,17 +19,13 @@ export class DataHost {
   }
 
   async init() {
-    const {
-        build,
-        extend_multiple,
-        prune_balanced,
-        strict_extension_proof,
-      } = await import('@vendor/merklex-js/merklex_js.js');
+    const { build, extend_multiple, prune_balanced, strict_extension_proof } =
+      await import('@vendor/merklex-js/merklex_js.js');
 
-      this.build = build;
-      this.extend_multiple = extend_multiple;
-      this.prune_balanced = prune_balanced;
-      this.strict_extension_proof = strict_extension_proof;
+    this.build = build;
+    this.extend_multiple = extend_multiple;
+    this.prune_balanced = prune_balanced;
+    this.strict_extension_proof = strict_extension_proof;
   }
   async enable() {
     await this.metadata.setItem(this.key('enabled'), 'true');

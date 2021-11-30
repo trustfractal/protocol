@@ -1,7 +1,7 @@
-import { createGlobalStyle, css } from "styled-components";
+import { createGlobalStyle, css } from 'styled-components';
 
-import { normalize } from "./NormalizeStyle";
-import { reset } from "./ResetStyle";
+import { normalize } from './NormalizeStyle';
+import { reset } from './ResetStyle';
 
 const global = css`
   ${reset}

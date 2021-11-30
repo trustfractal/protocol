@@ -1,5 +1,5 @@
 {
-  "version": "0.1",
+  "version": "0.2",
   "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/master/cspell.schema.json",
   "language": "en",
   "words": [
@@ -31,6 +31,16 @@
     "occured",
     "mainnet's",
     "Lamport's",
+    "mtree",
+    "Roboto",
+    "Segoe",
+    "Cantarell",
+    "Fira",
+    "Neue",
+    "necolas",
+    "monospace",
+    "focusring",
+    "textfield",
     "melatron"
   ],
   "flagWords": [],
