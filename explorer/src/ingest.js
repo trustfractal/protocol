@@ -104,9 +104,11 @@ async function catchUpToLatest(api, storage) {
   }
 
   const maxInProgress = 100;
+  const maxToDo = maxInProgress * 100;
 
   const nextBlock = fullyIngestedBlock == null ? 0 : fullyIngestedBlock + 1;
-  const blockIngestions = limitedParallel(nextBlock, latestBlockNumber, maxInProgress, async (i) => {
+  const lastBlock = Math.min(latestBlockNumber, nextBlock + maxToDo);
+  const blockIngestions = limitedParallel(nextBlock, lastBlock, maxInProgress, async (i) => {
     await ingestBlock(i, api, storage);
   });
 
