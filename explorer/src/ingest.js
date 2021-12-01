@@ -1,34 +1,19 @@
 #!/usr/bin/env node
 
-
-async function promiseProgress(progress, promises) {
-  progress.start(promises.length, 0);
-  return Promise.all(
-    promises.map(async (p) => {
-      const result = await p;
-      progress.increment();
-      return result;
-    })
-  );
-}
-
 const args = require("args-parser")(process.argv);
 const { ApiPromise, WsProvider } = require("@polkadot/api");
 const types = require(`${process.cwd()}/blockchain/types.json`);
-const redisLib = require('redis');
+const postgresLib = require('postgres');
 
 async function main() {
-  const { chain, redis: redisUrl } = args;
-  if (!chain || !redisUrl) {
-    console.log("Please provide --chain=wss://yourchain and --redis=redis://some-redis");
+  const { chain, postgres: postgresUrl } = args;
+  if (!chain || !postgresUrl) {
+    console.log("Please provide --chain=wss://yourchain and --postgres=postgres://some-postgres");
     process.exit(1);
   }
 
-  const redis = redisLib.createClient({
-    url: redisUrl,
-  });
-  await redis.connect();
-  const storage = new RedisStorage(redis);
+  const postgres = await postgresLib(postgresUrl);
+  const storage = await PostgresStorage.create(postgres);
 
   const provider = new WsProvider(chain);
   const api = await ApiPromise.create({
@@ -53,32 +38,55 @@ main()
     process.exit(1);
   });
 
-class RedisStorage {
-  constructor(redis) {
-    this.redis = redis;
+class PostgresStorage {
+  constructor(postgres) {
+    this.pg = postgres;
+  }
+
+  static async create(postgres) {
+    await postgres`
+      CREATE TABLE IF NOT EXISTS
+      key_values (
+        key VARCHAR PRIMARY KEY,
+        value VARCHAR NOT NULL
+      )
+    `;
+    return new PostgresStorage(postgres);
   }
 
   async fullyIngested() {
-    const val = await this.redis.get('ingestion/fully_ingested');
+    const val = await this.getKey('ingestion/fully_ingested');
     return val && Number(val);
   }
 
+  async getKey(key) {
+    const [val] = await this.pg`SELECT value FROM key_values WHERE key = ${key} LIMIT 1`;
+    return val?.value;
+  }
+
+  async setKey(key, value) {
+    await this.pg`
+      INSERT INTO key_values (key, value) VALUES (${key}, ${value})
+      ON CONFLICT (key) DO UPDATE SET value=${value}
+    `;
+  }
+
   async setFullyIngested(number) {
-    await this.redis.set('ingestion/fully_ingested', number.toString());
+    await this.setKey('ingestion/fully_ingested', number.toString());
   }
 
   async setLargestBlock(number) {
-    await this.redis.set('ingestion/largest', number.toString());
+    await this.setKey('ingestion/largest', number.toString());
   }
 
   async saveBlock(number, blockData) {
     const json = JSON.stringify(blockData);
-    await this.redis.set(`block/${number}`, json);
+    await this.setKey(`block/${number}`, json);
   }
 
   async saveExtrinsic(blockNumber, index, extrinsicData) {
     const json = JSON.stringify(extrinsicData);
-    await this.redis.set(`block/${blockNumber}/extrinsic/${index}`, json);
+    await this.setKey(`block/${blockNumber}/extrinsic/${index}`, json);
   }
 }
 
