@@ -8,3 +8,11 @@ edition = "2018"
 [dependencies]
 actix-web = "3.3.2"
 structopt = "0.3.25"
+
+[[bin]]
+name = "fractal_explorer_web"
+path = "src/bin/web.rs"
+
+[[bin]]
+name = "fractal_explorer_index"
+path = "src/bin/index.rs"
