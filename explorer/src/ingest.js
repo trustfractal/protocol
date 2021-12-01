@@ -3,7 +3,7 @@
 const args = require("args-parser")(process.argv);
 const { ApiPromise, WsProvider } = require("@polkadot/api");
 const types = require(`${process.cwd()}/blockchain/types.json`);
-const postgresLib = require('postgres');
+const { Client: PostgresClient } = require('pg');
 
 async function main() {
   const { chain, postgres: postgresUrl } = args;
@@ -11,10 +11,16 @@ async function main() {
     console.log("Please provide --chain=wss://yourchain and --postgres=postgres://some-postgres");
     process.exit(1);
   }
-  const useSsl = args.ssl === 'true';
 
-  const postgres = await postgresLib(postgresUrl, { ssl: useSsl });
-  const storage = await PostgresStorage.create(postgres);
+  const pgClient = new PostgresClient({
+    connectionString: postgresUrl,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+  await pgClient.connect();
+
+  const storage = await PostgresStorage.create(pgClient);
 
   const provider = new WsProvider(chain);
   const api = await ApiPromise.create({
@@ -45,13 +51,13 @@ class PostgresStorage {
   }
 
   static async create(postgres) {
-    await postgres`
+    await postgres.query(`
       CREATE TABLE IF NOT EXISTS
       key_values (
         key VARCHAR PRIMARY KEY,
         value VARCHAR NOT NULL
       )
-    `;
+    `);
     return new PostgresStorage(postgres);
   }
 
@@ -61,15 +67,15 @@ class PostgresStorage {
   }
 
   async getKey(key) {
-    const [val] = await this.pg`SELECT value FROM key_values WHERE key = ${key} LIMIT 1`;
-    return val?.value;
+    const val = await this.pg.query(`SELECT value FROM key_values WHERE key = '${key}' LIMIT 1`);
+    return val.rows[0]?.value;
   }
 
   async setKey(key, value) {
-    await this.pg`
-      INSERT INTO key_values (key, value) VALUES (${key}, ${value})
-      ON CONFLICT (key) DO UPDATE SET value=${value}
-    `;
+    await this.pg.query(`
+      INSERT INTO key_values (key, value) VALUES ('${key}', '${value}')
+      ON CONFLICT (key) DO UPDATE SET value='${value}'
+    `);
   }
 
   async setFullyIngested(number) {
