@@ -1,0 +1,7 @@
+heroku:
+  buildpacks:
+    - https://github.com/emk/heroku-buildpack-rust
+  app: fractal-protocol-explorer
+  copy_to_root:
+    - RustConfig
+    - Procfile

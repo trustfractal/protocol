@@ -1,0 +1,1 @@
+web: ./target/release/fractal_explorer --port $PORT
