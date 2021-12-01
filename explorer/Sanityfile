@@ -9,4 +9,4 @@ heroku:
     - RustConfig
     - Procfile
   addons:
-    - heroku-redis
+    - heroku-postgresql
