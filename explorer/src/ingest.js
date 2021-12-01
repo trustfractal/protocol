@@ -28,14 +28,17 @@ async function main() {
     types,
   });
 
-  updateLargestBlock(api, storage);
+  let catchingUp = false;
+  await onNewBlock(api, async (number) => {
+    await storage.setLargestBlock(number);
+    console.log(`Largest block ${number}`)
 
-  while (true) {
-    const didWork = await catchUpToLatest(api, storage);
-    if (!didWork) {
-      await sleep(6000);
+    if (!catchingUp) {
+      catchingUp = true;
+      await catchUpTo(number, api, storage);
+      catchingUp = false;
     }
-  }
+  });
 }
 
 main()
@@ -97,32 +100,31 @@ class PostgresStorage {
   }
 }
 
-async function updateLargestBlock(api, storage) {
-  while (true) {
-    const latestBlockNumber = (await api.rpc.chain.getBlock()).block.header.number.toNumber();
-    await storage.setLargestBlock(latestBlockNumber);
-    console.log(`Largest block ${latestBlockNumber}`)
-    await sleep(6000);
-  }
+async function onNewBlock(api, callback) {
+  await api.rpc.chain.subscribeNewHeads(async (header) => {
+    const latestBlockNumber = header.number.toNumber();
+    callback(latestBlockNumber);
+  });
+  return new Promise(resolve => {});
 }
 
 async function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
 
-async function catchUpToLatest(api, storage) {
-  const latestBlockNumber = (await api.rpc.chain.getBlock()).block.header.number.toNumber();
+async function catchUpTo(catchUpBlock, api, storage) {
   const fullyIngestedBlock = await storage.fullyIngested();
 
-  if (fullyIngestedBlock != null && fullyIngestedBlock >= latestBlockNumber) {
-    return false;
+  if (fullyIngestedBlock != null && fullyIngestedBlock >= catchUpBlock) {
+    return;
   }
 
   const maxInProgress = 100;
   const maxToDo = maxInProgress * 100;
 
   const nextBlock = fullyIngestedBlock == null ? 0 : fullyIngestedBlock + 1;
-  const lastBlock = Math.min(latestBlockNumber, nextBlock + maxToDo);
+  const lastBlock = Math.min(catchUpBlock, nextBlock + maxToDo);
+
   const blockIngestions = limitedParallel(nextBlock, lastBlock, maxInProgress, async (i) => {
     await ingestBlock(i, api, storage);
   });
@@ -134,8 +136,6 @@ async function catchUpToLatest(api, storage) {
       console.log(`Finished ingesting block ${finished}`);
     }
   }
-
-  return true;
 }
 
 // Returns an array of promises that resolve to the values in [start..=end].
