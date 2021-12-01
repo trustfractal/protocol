@@ -11,8 +11,9 @@ async function main() {
     console.log("Please provide --chain=wss://yourchain and --postgres=postgres://some-postgres");
     process.exit(1);
   }
+  const useSsl = args.ssl === 'true';
 
-  const postgres = await postgresLib(postgresUrl);
+  const postgres = await postgresLib(postgresUrl, { ssl: useSsl });
   const storage = await PostgresStorage.create(postgres);
 
   const provider = new WsProvider(chain);
