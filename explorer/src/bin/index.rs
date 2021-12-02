@@ -1,5 +1,6 @@
 use fractal_explorer::{indexing, ingested};
-use postgres::{Client, NoTls};
+use native_tls::*;
+use postgres::Client;
 use std::{
     sync::{atomic::*, mpsc::*, Arc},
     thread::*,
@@ -21,11 +22,18 @@ struct Options {
 
 impl Options {
     fn postgres(&self) -> anyhow::Result<Client> {
+        let connector = TlsConnector::builder()
+            // Heroku generates a self-signed certificate for the machines running this.
+            // We need to allow that as an "invalid" certificate.
+            .danger_accept_invalid_certs(true)
+            .build()?;
+        let connector = postgres_native_tls::MakeTlsConnector::new(connector);
+
         Ok(self
             .postgres
             .parse::<postgres::Config>()?
             .ssl_mode(postgres::config::SslMode::Require)
-            .connect(NoTls)?)
+            .connect(connector)?)
     }
 }
 
