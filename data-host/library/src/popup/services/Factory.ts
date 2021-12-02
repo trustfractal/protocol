@@ -1,13 +1,14 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
-import environment from '@popup/Environment';
+import { environment } from '@popup/Environment';
+import { StorageService } from '@popup/services/StorageService';
 import { DataHost } from '@services/DataHost';
 import { FractalAccountConnector } from '@services/FractalAccount';
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
-import { StorageService } from '@services/StorageService';
 import { AggregateMultiContext, MultiContext } from '@utils/MultiContext';
 import { ValueCache } from '@utils/ReactHooks';
 
+//TODO(melatron): We should import these from our source of truth, /blockchain/types.json.
 const types = {
   FractalId: 'u64',
   MerkleTree: 'Raw',

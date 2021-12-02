@@ -1,7 +1,7 @@
 import Logo from "@common/Logo";
 import Spinner from "@common/Spinner";
 import Text, { TextHeights, TextSizes } from "@common/Text";
-import environment from "@popup/Environment";
+import { environment } from "@popup/Environment";
 import { useEffect } from "react";
 import styled from "styled-components";
 

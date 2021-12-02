@@ -1,14 +1,15 @@
 import TopComponent from '@common/TopComponent';
 import Loading from "@components/Loading";
 import { OptInForm } from "@components/OptInForm";
-import { SetupInProgress, SetupSuccess } from "@components/SetupScreen";
+import { SetupError, SetupInProgress, SetupSuccess } from "@components/SetupScreen";
 import { mnemonicGenerate } from "@polkadot/util-crypto";
 import { getProtocolOptIn } from "@services/Factory";
 import { useLoadedState } from "@utils/ReactHooks";
 import { useState } from "react";
 
+// TODO(melatron): Implement DataScreen
 function DataScreen() {
-    return <div></div>
+    return <div>Data Screen</div>
 }
 
 function ProtocolState() {
@@ -18,6 +19,11 @@ function ProtocolState() {
     const completedLiveness = useLoadedState(() =>
       getProtocolOptIn().hasCompletedLiveness(),
     );
+
+    const handleError = (err: Error, retry: () => void) => {
+      console.error(err);
+      setPageOverride(<SetupError onRetry={retry} />);
+    };
 
     const optInWithMnemonic = async (mnemonic?: string) => {
       mnemonic = mnemonic || mnemonicGenerate();
@@ -36,9 +42,8 @@ function ProtocolState() {
             onContinue={() => setPageOverride(null)}
           />,
         );
-      } catch (e) {
-        console.log(e);
-        // handleError(e, () => optInWithMnemonic(mnemonic));
+      } catch (e: any) {
+        handleError(e, () => optInWithMnemonic(mnemonic));
       }
     };
 

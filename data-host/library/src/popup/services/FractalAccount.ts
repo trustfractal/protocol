@@ -1,4 +1,4 @@
-import environment from '@popup/Environment';
+import { environment } from '@popup/Environment';
 import { MultiContext } from '@utils/MultiContext';
 import { Storage } from '@utils/StorageArray';
 import { ReplaySubject } from 'rxjs';

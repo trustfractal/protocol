@@ -8,7 +8,7 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - data_host/chrome_extension/**/*
+      - data-host/chrome-extension/**/*
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
     container: node:14.16.0
     defaults:
       run:
-        working-directory: data_host/chrome_extension
+        working-directory: data-host/chrome-extension
 
     env:
       FORCE_COLOR: true
@@ -46,5 +46,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: data-host-chrome-extension-staging
-          path: data_host/chrome_extension/build
+          path: data-host/chrome-extension/build
           if-no-files-found: error

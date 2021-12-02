@@ -4,7 +4,7 @@ name: Data Host CI
 on:
   pull_request:
     paths:
-      - 'support/@trustfractal/data-host/**'
+      - 'data-host/library/**'
     branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
@@ -12,7 +12,7 @@ on:
 
 defaults:
   run:
-    working-directory: support/@trustfractal/data-host
+    working-directory: data-host/library
 
 jobs:
   'node-14':

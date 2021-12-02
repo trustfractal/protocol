@@ -8,7 +8,7 @@ import {
   Subtitle,
   VerticalSequence,
 } from '@components/Common';
-import environment from "@popup/Environment";
+import { environment } from "@popup/Environment";
 import styled from "styled-components";
 
 const List = styled.ul`
