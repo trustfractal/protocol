@@ -21,7 +21,11 @@ struct Options {
 
 impl Options {
     fn postgres(&self) -> anyhow::Result<Client> {
-        Ok(Client::connect(&self.postgres, NoTls)?)
+        Ok(self
+            .postgres
+            .parse::<postgres::Config>()?
+            .ssl_mode(postgres::config::SslMode::Disable)
+            .connect(NoTls)?)
     }
 }
 
@@ -157,10 +161,7 @@ struct Interval {
 
 impl Interval {
     fn new(every: Duration) -> Self {
-        Interval {
-            every,
-            last: None,
-        }
+        Interval { every, last: None }
     }
 
     fn is_time(&mut self) -> bool {
