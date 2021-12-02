@@ -5,6 +5,12 @@ use std::collections::HashMap;
 pub mod identities;
 
 pub trait Indexer: Send {
+    fn storage_version(&mut self) -> u32;
+
+    fn version_upgrade(&mut self, _pg: &mut Client) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn begin(&mut self, _pg: &mut Client) -> anyhow::Result<()> {
         Ok(())
     }
@@ -12,6 +18,7 @@ pub trait Indexer: Send {
     fn begin_block(&mut self, _block: &Block, _pg: &mut Client) -> anyhow::Result<()> {
         Ok(())
     }
+
     fn end_block(&mut self, _block: &Block, _pg: &mut Client) -> anyhow::Result<()> {
         Ok(())
     }

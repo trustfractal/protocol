@@ -102,14 +102,23 @@ impl Drop for UnparkOnDrop {
 enum Never {}
 
 fn create_status_table(options: &Options) -> anyhow::Result<()> {
-    options.postgres()?.execute(
+    let mut pg = options.postgres()?;
+    pg.execute(
         "
-      CREATE TABLE IF NOT EXISTS
-      indexing_status (
-        id VARCHAR PRIMARY KEY,
-        latest_block INT
-      )
-    ",
+          CREATE TABLE IF NOT EXISTS
+          indexing_status (
+            id VARCHAR PRIMARY KEY,
+            latest_block INT
+          )
+        ",
+        &[],
+    )?;
+    pg.execute(
+        "
+          ALTER TABLE indexing_status
+          ADD COLUMN IF NOT EXISTS
+          storage_version INT NOT NULL DEFAULT 0
+        ",
         &[],
     )?;
 
@@ -122,6 +131,14 @@ fn run_indexer(
     options: Options,
 ) -> anyhow::Result<Never> {
     let mut pg = options.postgres()?;
+
+    let storage_version = storage_version(id, &mut pg)?;
+    if storage_version != Some(indexer.storage_version()) {
+        indexer.version_upgrade(&mut pg)?;
+        save_storage_version(id, indexer.storage_version(), &mut pg)?;
+        save_latest_block_number(id, None, &mut pg)?;
+    }
+
     indexer.begin(&mut pg)?;
     let mut log_every = Interval::new(Duration::from_secs(1));
 
@@ -134,13 +151,13 @@ fn run_indexer(
                 continue;
             }
         };
-        let latest_for_indexer = latest_for_indexer(id, &mut pg)?;
-        if latest_for_indexer == Some(latest_ingested) {
+        let latest_block_number = latest_block_number(id, &mut pg)?;
+        if latest_block_number == Some(latest_ingested) {
             sleep(Duration::from_millis(options.caught_up_sleep_ms));
             continue;
         }
 
-        let next_block = latest_for_indexer.map(|x| x + 1).unwrap_or(0);
+        let next_block = latest_block_number.map(|b| b + 1).unwrap_or(0);
 
         for block_number in next_block..=latest_ingested {
             let block = ingested::load_block(block_number, &mut pg)?
@@ -154,7 +171,7 @@ fn run_indexer(
             }
 
             indexer.end_block(&block, &mut pg)?;
-            save_latest_for_indexer(id, block_number, &mut pg)?;
+            save_latest_block_number(id, Some(block_number), &mut pg)?;
             if log_every.is_time() {
                 log::info!("Indexer '{}' finished block {}", id, block_number);
             }
@@ -184,7 +201,7 @@ impl Interval {
     }
 }
 
-fn latest_for_indexer(id: &str, pg: &mut Client) -> anyhow::Result<Option<u64>> {
+fn latest_block_number(id: &str, pg: &mut Client) -> anyhow::Result<Option<u64>> {
     let row = match pg
         .query(
             "SELECT latest_block FROM indexing_status WHERE id = $1",
@@ -197,16 +214,45 @@ fn latest_for_indexer(id: &str, pg: &mut Client) -> anyhow::Result<Option<u64>> 
         None => return Ok(None),
     };
 
-    Ok(Some(row.get::<_, i32>(&"latest_block") as u64))
+    let number = row.get::<_, Option<i32>>(&"latest_block").map(|n| n as u64);
+    Ok(number)
 }
 
-fn save_latest_for_indexer(id: &str, number: u64, pg: &mut Client) -> anyhow::Result<()> {
+fn save_latest_block_number(id: &str, number: Option<u64>, pg: &mut Client) -> anyhow::Result<()> {
     pg.execute(
         "
         INSERT INTO indexing_status (id, latest_block) VALUES ($1, $2)
         ON CONFLICT (id) DO UPDATE SET latest_block = $2
     ",
-        &[&id, &(number as i32)],
+        &[&id, &number.map(|n| n as i32)],
+    )?;
+
+    Ok(())
+}
+
+fn storage_version(id: &str, pg: &mut Client) -> anyhow::Result<Option<u32>> {
+    let row = match pg
+        .query(
+            "SELECT storage_version FROM indexing_status WHERE id = $1",
+            &[&id],
+        )?
+        .into_iter()
+        .next()
+    {
+        Some(row) => row,
+        None => return Ok(None),
+    };
+
+    Ok(Some(row.get::<_, i32>(&"storage_version") as u32))
+}
+
+fn save_storage_version(id: &str, storage_version: u32, pg: &mut Client) -> anyhow::Result<()> {
+    pg.execute(
+        "
+        INSERT INTO indexing_status (id, storage_version) VALUES ($1, $2)
+        ON CONFLICT (id) DO UPDATE SET storage_version = $2
+    ",
+        &[&id, &(storage_version as i32)],
     )?;
 
     Ok(())
