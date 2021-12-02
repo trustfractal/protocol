@@ -1,11 +1,24 @@
 use crate::data::*;
+use postgres::Client;
 use std::collections::HashMap;
 
 pub mod identities;
 
 pub trait Indexer: Send {
-    fn begin_block(&mut self, _number: u64) {}
-    fn visit_extrinsic(&mut self, _extrinsic: &Extrinsic) {}
+    fn begin(&mut self, _pg: &mut Client) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn begin_block(&mut self, _block: &Block, _pg: &mut Client) -> anyhow::Result<()> {
+        Ok(())
+    }
+    fn end_block(&mut self, _block: &Block, _pg: &mut Client) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn visit_extrinsic(&mut self, _extrinsic: &Extrinsic, _pg: &mut Client) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub fn indexers() -> HashMap<String, Box<dyn Indexer>> {
