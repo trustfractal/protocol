@@ -24,7 +24,7 @@ impl Options {
         Ok(self
             .postgres
             .parse::<postgres::Config>()?
-            .ssl_mode(postgres::config::SslMode::Disable)
+            .ssl_mode(postgres::config::SslMode::Require)
             .connect(NoTls)?)
     }
 }
