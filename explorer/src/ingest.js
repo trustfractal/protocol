@@ -119,6 +119,7 @@ async function catchUpTo(catchUpBlock, api, storage) {
     return;
   }
 
+  const logEvery = new Interval(1000);
   const maxInProgress = 100;
   const maxToDo = maxInProgress * 100;
 
@@ -132,9 +133,26 @@ async function catchUpTo(catchUpBlock, api, storage) {
   for (const ingestion of blockIngestions) {
     const finished = await ingestion;
     await storage.setFullyIngested(finished);
-    if (blockIngestions.length < maxInProgress || finished % maxInProgress === 0) {
+    if (logEvery.isTime()) {
       console.log(`Finished ingesting block ${finished}`);
     }
+  }
+}
+
+class Interval {
+  constructor(every) {
+    this.every = every;
+    this.last = null;
+  }
+
+  isTime() {
+    const now = new Date();
+    if (this.last != null && (now - this.last) < this.every) {
+      return false;
+    }
+
+    this.last = now;
+    return true;
   }
 }
 
