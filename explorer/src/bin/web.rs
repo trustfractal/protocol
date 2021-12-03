@@ -1,27 +1,20 @@
-use actix_web::{web, App, HttpRequest, HttpServer, Responder};
-use structopt::*;
+use actix_web::*;
+use fractal_explorer::pages;
+use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(StructOpt, Clone)]
 struct Options {
     #[structopt(long, default_value = "8080")]
     port: u16,
 }
 
-async fn greet(req: HttpRequest) -> impl Responder {
-    let name = req.match_info().get("name").unwrap_or("World");
-    format!("Hello {}!", &name)
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let options = Options::from_args();
+    let port = options.port;
 
-    HttpServer::new(|| {
-        App::new()
-            .route("/", web::get().to(greet))
-            .route("/{name}", web::get().to(greet))
-    })
-    .bind(("0.0.0.0", options.port))?
-    .run()
-    .await
+    HttpServer::new(move || App::new().data(options.clone()).service(pages::service()))
+        .bind(("0.0.0.0", port))?
+        .run()
+        .await
 }

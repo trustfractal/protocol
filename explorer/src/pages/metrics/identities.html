@@ -1,0 +1,41 @@
+<h2>Identity Counts</h2>
+
+<style>
+#myChart {
+  max-height: 400px;
+}
+</style>
+
+<canvas id="myChart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.6.1/dist/chart.min.js"></script>
+<script>
+const ctx = document.getElementById('myChart').getContext('2d');
+const myChart = new Chart(ctx, {
+    type: 'line',
+    xAxisId: 'Block Number',
+    data: {
+        datasets: [{
+            label: '# of Identities',
+            data: [
+                {{#points}}
+                  {x:{{x}}, y:{{y}}},
+                {{/points}}
+            ],
+            borderColor: 'darkblue',
+            tension: 0.1,
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true,
+            },
+            x: {
+                type: 'linear',
+            },
+        },
+        responsive: true,
+    }
+});
+</script>
