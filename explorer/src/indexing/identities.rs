@@ -9,8 +9,8 @@ pub struct CountIdentities {
 }
 
 impl Indexer for CountIdentities {
-    fn storage_version(&mut self) -> u32 {
-        1
+    fn version(&mut self) -> u32 {
+        2
     }
 
     fn version_upgrade(&mut self, pg: &mut Client) -> anyhow::Result<()> {

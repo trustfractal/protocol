@@ -108,16 +108,22 @@ fn create_status_table(options: &Options) -> anyhow::Result<()> {
           CREATE TABLE IF NOT EXISTS
           indexing_status (
             id VARCHAR PRIMARY KEY,
-            latest_block INT
+            latest_block INT,
+            version INT NOT NULL
           )
         ",
         &[],
     )?;
-    pg.execute(
-        "
-          ALTER TABLE indexing_status
-          ADD COLUMN IF NOT EXISTS
-          storage_version INT NOT NULL DEFAULT 0
+    pg.execute("
+        DO $$
+        BEGIN
+          IF EXISTS(SELECT *
+            FROM information_schema.columns
+            WHERE table_name='indexing_status' and column_name='storage_version')
+          THEN
+              ALTER TABLE indexing_status RENAME COLUMN storage_version TO version;
+          END IF;
+        END $$;
         ",
         &[],
     )?;
@@ -132,10 +138,10 @@ fn run_indexer(
 ) -> anyhow::Result<Never> {
     let mut pg = options.postgres()?;
 
-    let storage_version = storage_version(id, &mut pg)?;
-    if storage_version != Some(indexer.storage_version()) {
+    let version = get_version(id, &mut pg)?;
+    if version != Some(indexer.version()) {
         indexer.version_upgrade(&mut pg)?;
-        save_storage_version(id, indexer.storage_version(), &mut pg)?;
+        save_version(id, indexer.version(), &mut pg)?;
         save_latest_block_number(id, None, &mut pg)?;
     }
 
@@ -230,10 +236,10 @@ fn save_latest_block_number(id: &str, number: Option<u64>, pg: &mut Client) -> a
     Ok(())
 }
 
-fn storage_version(id: &str, pg: &mut Client) -> anyhow::Result<Option<u32>> {
+fn get_version(id: &str, pg: &mut Client) -> anyhow::Result<Option<u32>> {
     let row = match pg
         .query(
-            "SELECT storage_version FROM indexing_status WHERE id = $1",
+            "SELECT version FROM indexing_status WHERE id = $1",
             &[&id],
         )?
         .into_iter()
@@ -243,16 +249,16 @@ fn storage_version(id: &str, pg: &mut Client) -> anyhow::Result<Option<u32>> {
         None => return Ok(None),
     };
 
-    Ok(Some(row.get::<_, i32>(&"storage_version") as u32))
+    Ok(Some(row.get::<_, i32>(&"version") as u32))
 }
 
-fn save_storage_version(id: &str, storage_version: u32, pg: &mut Client) -> anyhow::Result<()> {
+fn save_version(id: &str, version: u32, pg: &mut Client) -> anyhow::Result<()> {
     pg.execute(
         "
-        INSERT INTO indexing_status (id, storage_version) VALUES ($1, $2)
-        ON CONFLICT (id) DO UPDATE SET storage_version = $2
+        INSERT INTO indexing_status (id, version) VALUES ($1, $2)
+        ON CONFLICT (id) DO UPDATE SET version = $2
     ",
-        &[&id, &(storage_version as i32)],
+        &[&id, &(version as i32)],
     )?;
 
     Ok(())
