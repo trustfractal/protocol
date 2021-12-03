@@ -66,11 +66,15 @@ impl Indexer for CountIdentities {
         let id = extrinsic.args[0].as_str().expect("arg 0 is string");
         let block = self.current_block.unwrap() as i32;
 
-        let rows_modified = pg.execute(
-            "INSERT INTO identity_first_seen (id, block) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING",
+        let already = pg.query_opt(
+            "SELECT 1 FROM identity_first_seen WHERE id = $1 AND block < $2",
             &[&id, &block],
         )?;
-        if rows_modified > 0 {
+        if let None = already {
+            pg.execute(
+                "INSERT INTO identity_first_seen (id, block) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET block = $2",
+                &[&id, &block],
+            )?;
             self.this_count += 1;
         }
 
