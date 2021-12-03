@@ -70,7 +70,7 @@ impl Indexer for CountIdentities {
             "SELECT 1 FROM identity_first_seen WHERE id = $1 AND block < $2",
             &[&id, &block],
         )?;
-        if let None = already {
+        if already.is_none() {
             pg.execute(
                 "INSERT INTO identity_first_seen (id, block) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET block = $2",
                 &[&id, &block],
