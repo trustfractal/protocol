@@ -114,7 +114,8 @@ fn create_status_table(options: &Options) -> anyhow::Result<()> {
         ",
         &[],
     )?;
-    pg.execute("
+    pg.execute(
+        "
         DO $$
         BEGIN
           IF EXISTS(SELECT *
@@ -238,10 +239,7 @@ fn save_latest_block_number(id: &str, number: Option<u64>, pg: &mut Client) -> a
 
 fn get_version(id: &str, pg: &mut Client) -> anyhow::Result<Option<u32>> {
     let row = match pg
-        .query(
-            "SELECT version FROM indexing_status WHERE id = $1",
-            &[&id],
-        )?
+        .query("SELECT version FROM indexing_status WHERE id = $1", &[&id])?
         .into_iter()
         .next()
     {
