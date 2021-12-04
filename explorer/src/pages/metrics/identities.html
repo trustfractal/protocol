@@ -1,17 +1,31 @@
 <h2>Identity Counts</h2>
 
 <style>
-#myChart {
+#identities-chart {
   max-height: 400px;
+}
+
+.deltas {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-around;
+  align-items: flex-start;
+}
+
+.data {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 </style>
 
-<canvas id="myChart"></canvas>
+<canvas id="identities-chart"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.6.1/dist/chart.min.js"></script>
 <script>
-const ctx = document.getElementById('myChart').getContext('2d');
-const myChart = new Chart(ctx, {
+const canvas = document.getElementById('identities-chart').getContext('2d');
+new Chart(canvas, {
     type: 'line',
     xAxisId: 'Block Number',
     data: {
@@ -22,7 +36,8 @@ const myChart = new Chart(ctx, {
             ],
             borderColor: 'darkblue',
             tension: 0.1,
-        }]
+            pointRadius: 0,
+        }],
     },
     options: {
         scales: {
@@ -34,6 +49,26 @@ const myChart = new Chart(ctx, {
             },
         },
         responsive: true,
+        animation: {
+            duration: 0,
+        },
     }
 });
 </script>
+
+<div class="deltas">
+  {{#latest}}
+    <div class="data">
+      <h3>Latest</h3>
+      <p>Block: {{block}}</p>
+      <p>Count: {{count}}</p>
+    </div>
+  {{/latest}}
+
+  {{#deltas}}
+    <div class="data">
+      <h3>Change from Previous {{name}}</h3>
+      <p>+{{amount}} (+{{percent}}%)</p>
+    </div>
+  {{/deltas}}
+</div>

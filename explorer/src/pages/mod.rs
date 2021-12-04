@@ -2,6 +2,7 @@ use actix_web::{error::BlockingError, *};
 use block_pool::Pool;
 use derive_more::*;
 use ramhorns::{Content, Ramhorns};
+use std::collections::BTreeMap;
 
 pub fn service() -> Scope {
     web::scope("/")
@@ -49,40 +50,89 @@ fn html_page(
 #[derive(Content)]
 struct IdentityCounts {
     points: Vec<Point>,
+    latest: Latest,
+    deltas: Vec<Delta>,
 }
 
 #[derive(Content)]
 struct Point {
-    x: f64,
-    y: f64,
+    x: f32,
+    y: f32,
+}
+
+#[derive(Content, Default)]
+struct Latest {
+    block: u64,
+    count: u64,
+}
+
+#[derive(Content)]
+struct Delta {
+    name: String,
+    amount: u64,
+    percent: f32,
+}
+
+impl Delta {
+    fn from_diff_values(block_diff: u64, name: &str, values: &BTreeMap<u64, u64>) -> Option<Self> {
+        let (max_block, max_count) = values.range(..).next_back()?;
+        let prev_block = max_block.checked_sub(block_diff)?;
+        let (_, prev_count) = values.range(..=prev_block).next_back()?;
+        if *prev_count == 0 {
+            return None;
+        }
+
+        Some(Delta {
+            name: name.to_string(),
+            amount: max_count - prev_count,
+            percent: ((*max_count as f32 / *prev_count as f32) - 1.) * 100.,
+        })
+    }
 }
 
 async fn metrics_identities(
     templates: web::Data<Ramhorns>,
     pg: web::Data<Pool<postgres::Client>>,
 ) -> Result<HttpResponse, Error> {
-    let values = loop {
-        let pg = pg.clone();
-        let result = web::block(move || {
-            let mut pg = pg.take();
-            crate::indexing::identities::get_counts(1000, &mut pg)
-        })
-        .await;
-        match result {
-            Ok(v) => break v,
-            Err(BlockingError::Canceled) => continue,
-            Err(BlockingError::Error(e)) => return Err(e)?,
-        }
+    let deltas = {
+        const DAY: u64 = 14400;
+
+        let mut map = BTreeMap::new();
+        map.insert(DAY, "Day");
+        map.insert(DAY * 7, "Week");
+        map.insert(DAY * 91, "Quarter");
+        map.insert(DAY * 365, "Year");
+
+        map
     };
 
+    let include_block_deltas = deltas.keys().cloned().collect::<Vec<_>>();
+    let values = retry_blocking(move || {
+        let mut pg = pg.take();
+        let include = include_block_deltas.clone();
+        crate::indexing::identities::get_counts(1000, include, &mut pg)
+    })
+    .await?;
+
+    let deltas = deltas
+        .into_iter()
+        .filter_map(|(diff, name)| Delta::from_diff_values(diff, name, &values))
+        .collect();
+    let latest = values
+        .range(..)
+        .next_back()
+        .map(|(&block, &count)| Latest { block, count })
+        .unwrap_or_default();
     let counts = IdentityCounts {
         points: values
             .into_iter()
             .map(|(x, y)| Point {
-                x: x as f64,
-                y: y as f64,
+                x: x as f32,
+                y: y as f32,
             })
             .collect(),
+        latest,
+        deltas,
     };
 
     let page = templates
@@ -90,4 +140,35 @@ async fn metrics_identities(
         .ok_or(anyhow::anyhow!("Could not find template"))?
         .render(&counts);
     Ok(html_page(templates, page)?)
+}
+
+async fn retry_blocking<R, E, F>(f: F) -> Result<R, E>
+where
+    F: FnMut() -> Result<R, E> + Send + 'static,
+    R: Send + 'static,
+    E: Send + core::fmt::Debug + 'static,
+{
+    let mut tries = 3;
+    let f = std::sync::Arc::new(std::sync::Mutex::new(f));
+    loop {
+        let f = std::sync::Arc::clone(&f);
+        let result = web::block(move || {
+            let mut f = f.lock().unwrap();
+            f()
+        })
+        .await;
+
+        match result {
+            Ok(v) => return Ok(v),
+            Err(BlockingError::Error(e)) => return Err(e),
+            Err(BlockingError::Canceled) => {
+                tries -= 1;
+                if tries == 0 {
+                    panic!("Blocking call cancelled.");
+                } else {
+                    log::warn!("Blocking call cancelled.");
+                }
+            }
+        }
+    }
 }
