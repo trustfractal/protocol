@@ -1,4 +1,5 @@
-use actix_web::*;
+use actix_web::{error::BlockingError, *};
+use block_pool::Pool;
 use derive_more::*;
 use ramhorns::{Content, Ramhorns};
 
@@ -56,12 +57,32 @@ struct Point {
     y: f64,
 }
 
-async fn metrics_identities(templates: web::Data<Ramhorns>) -> Result<HttpResponse, Error> {
+async fn metrics_identities(
+    templates: web::Data<Ramhorns>,
+    pg: web::Data<Pool<postgres::Client>>,
+) -> Result<HttpResponse, Error> {
+    let values = loop {
+        let pg = pg.clone();
+        let result = web::block(move || {
+            let mut pg = pg.take();
+            crate::indexing::identities::get_counts(1000, &mut pg)
+        })
+        .await;
+        match result {
+            Ok(v) => break v,
+            Err(BlockingError::Canceled) => continue,
+            Err(BlockingError::Error(e)) => return Err(e)?,
+        }
+    };
+
     let counts = IdentityCounts {
-        points: vec![
-            Point { x: 3., y: 5. },
-            Point { x: 10., y: 8. },
-        ],
+        points: values
+            .into_iter()
+            .map(|(x, y)| Point {
+                x: x as f64,
+                y: y as f64,
+            })
+            .collect(),
     };
 
     let page = templates

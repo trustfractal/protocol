@@ -908,6 +908,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
+name = "block_pool"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e561a4a6b2c9f5fe7d81733420c88a08296697505bddcde44adfea40795c4e5"
+
+[[package]]
 name = "blocking"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2113,6 +2119,7 @@ dependencies = [
  "actix-http",
  "actix-web",
  "anyhow",
+ "block_pool",
  "derive_more",
  "log",
  "native-tls",

@@ -18,9 +18,7 @@ const myChart = new Chart(ctx, {
         datasets: [{
             label: '# of Identities',
             data: [
-                {{#points}}
-                  {x:{{x}}, y:{{y}}},
-                {{/points}}
+                {{#points}}{x:{{x}}, y:{{y}}},{{/points}}
             ],
             borderColor: 'darkblue',
             tension: 0.1,
