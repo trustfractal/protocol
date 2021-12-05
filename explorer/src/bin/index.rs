@@ -129,10 +129,17 @@ fn run_indexer(
 
     let version = get_version(id, &mut pg)?;
     if version != Some(indexer.version()) {
+        log::info!(
+            "Transitioning '{id}' from {version:?} to {new_version}",
+            id = id,
+            version = version,
+            new_version = indexer.version()
+        );
         indexer.version_upgrade(&mut pg)?;
         save_version(id, indexer.version(), &mut pg)?;
         save_latest_block_number(id, None, &mut pg)?;
     }
+    log::info!("Starting '{}'", id);
 
     indexer.begin(&mut pg)?;
     let mut log_every = Interval::new(Duration::from_secs(1));
