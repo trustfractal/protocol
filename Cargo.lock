@@ -909,9 +909,9 @@ checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
 name = "block_pool"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e561a4a6b2c9f5fe7d81733420c88a08296697505bddcde44adfea40795c4e5"
+checksum = "7c47779990100a1e991f2fe033558bb899bf5aaa3bdba26b911e0792ca2b6950"
 
 [[package]]
 name = "blocking"
