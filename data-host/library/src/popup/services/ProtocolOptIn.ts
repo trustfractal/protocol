@@ -50,6 +50,13 @@ export class ProtocolOptIn {
     }
   }
 
+  async postOptInLiveness() {
+    await this.tryRegisterIdentity(async () => {
+      //TODO(melatron): implement the windows service
+      //   await this.windows.openTab(this.livenessUrl);
+    });
+  }
+
   async checkOptIn() {
     const mnemonic = await this.getMnemonic();
     if (mnemonic == null) return;

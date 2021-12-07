@@ -3,6 +3,7 @@ import { environment } from '@popup/Environment';
 import { StorageService } from '@popup/services/StorageService';
 import { DataHost } from '@services/DataHost';
 import { FractalAccountConnector } from '@services/FractalAccount';
+import { MintingRegistrar } from '@services/MintingRegistrar';
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
 import { AggregateMultiContext, MultiContext } from '@utils/MultiContext';
@@ -20,6 +21,15 @@ export function getStorageService() {
     storageService = new StorageService();
   }
   return storageService;
+}
+
+let mintingRegistrar: MintingRegistrar;
+export function getMintingRegistrar() {
+  if (mintingRegistrar === undefined) {
+    const sleep = environment.IS_DEV ? 5 : 30 * 60;
+    mintingRegistrar = new MintingRegistrar(storageService, sleep);
+  }
+  return mintingRegistrar;
 }
 
 let dataHost: DataHost;
@@ -48,6 +58,7 @@ export function getProtocolService(mnemonic?: string) {
     const signer = mnemonic
       ? ProtocolService.signerFromMnemonic(mnemonic)
       : null;
+
     protocol = new ProtocolService(getApi(), signer, getDataHost());
 
     getProtocolOptIn()

@@ -1,4 +1,5 @@
 import TopComponent from '@common/TopComponent';
+import DataScreen from "@components/DataScreen";
 import Loading from "@components/Loading";
 import { OptInForm } from "@components/OptInForm";
 import { SetupError, SetupInProgress, SetupSuccess } from "@components/SetupScreen";
@@ -6,11 +7,6 @@ import { mnemonicGenerate } from "@polkadot/util-crypto";
 import { getProtocolOptIn } from "@services/Factory";
 import { useLoadedState } from "@utils/ReactHooks";
 import { useState } from "react";
-
-// TODO(melatron): Implement DataScreen
-function DataScreen() {
-    return <div>Data Screen</div>
-}
 
 function ProtocolState() {
     const [pageOverride, setPageOverride] = useState<JSX.Element | null>(null);
