@@ -1,7 +1,6 @@
+import Text, { TextHeights, TextSizes } from "@popup/components/common/Text";
 import React from "react";
-
 import styled, { css } from "styled-components";
-import Text, { TextSizes, TextHeights } from "@popup/components/common/Text";
 
 const Root = styled.div`
   position: relative;
@@ -83,6 +82,7 @@ export type InputProps = {
 
 Input.defaultProps = {
   underlined: true,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onEnter: () => {},
 };
 

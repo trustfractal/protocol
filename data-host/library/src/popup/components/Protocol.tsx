@@ -1,12 +1,14 @@
 import TopComponent from '@common/TopComponent';
 import DataScreen from "@components/DataScreen";
 import Loading from "@components/Loading";
+import { NoLiveness } from "@components/NoLiveness";
 import { OptInForm } from "@components/OptInForm";
 import { SetupError, SetupInProgress, SetupSuccess } from "@components/SetupScreen";
 import { mnemonicGenerate } from "@polkadot/util-crypto";
 import { getProtocolOptIn } from "@services/Factory";
 import { useLoadedState } from "@utils/ReactHooks";
 import { useState } from "react";
+
 
 function ProtocolState() {
     const [pageOverride, setPageOverride] = useState<JSX.Element | null>(null);
@@ -43,6 +45,31 @@ function ProtocolState() {
       }
     };
 
+    const doLiveness = async () => {
+        try {
+          setPageOverride(<SetupInProgress onRetry={doLiveness} />);
+
+          await getProtocolOptIn().postOptInLiveness();
+          completedLiveness.reload();
+
+          setPageOverride(null);
+        } catch (e: any) {
+          handleError(e, doLiveness);
+        }
+      };
+
+
+      /*TODO(melatron): We need logic similar to this pseudo code:
+      function showLiveness() {
+        if (!optedIn) return requestOptIn();
+        if (!identityRegistered(address)) {
+            return requestLiveness({
+            onClick: redirectTo(`fractal.id/protocol-liveness?address=${address}`)
+            });
+        }
+        return renderProtocolData();
+      }
+    */
     if (pageOverride != null) {
         return pageOverride;
       }
@@ -50,6 +77,11 @@ function ProtocolState() {
     if (!serviceOptedIn.isLoaded) return <Loading />;
     if (!serviceOptedIn.value) {
       return <OptInForm onOptIn={() => optInWithMnemonic()} />;
+    }
+
+    if (!completedLiveness.isLoaded) return <Loading />;
+    if (!completedLiveness.value) {
+      return <NoLiveness onClick={doLiveness} />;
     }
 
     return <DataScreen />;
