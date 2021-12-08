@@ -1,4 +1,4 @@
-import { UserAlerts } from "@components/Alerts";
+import { UserAlerts } from '@components/Alerts';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { environment } from '@popup/Environment';
 import { StorageService } from '@popup/services/StorageService';
