@@ -1,3 +1,6 @@
+use postgres::{fallible_iterator::FallibleIterator, types::ToSql};
+use std::collections::BTreeMap;
+
 use super::*;
 use crate::data::Extrinsic;
 
@@ -94,4 +97,44 @@ impl Indexer for CountIdentities {
 
         Ok(())
     }
+}
+
+/// Returns map of block_number to id_count.
+pub fn get_counts(
+    data_points: usize,
+    include_previous: impl IntoIterator<Item = u64>,
+    pg: &mut Client,
+) -> anyhow::Result<BTreeMap<u64, u64>> {
+    let max_block = pg
+        .query_one(
+            "SELECT MAX(block_number) AS max FROM unique_identity_counts",
+            &[],
+        )?
+        .get::<_, i32>("max");
+    let size = max_block as usize / data_points;
+
+    let include_blocks = include_previous
+        .into_iter()
+        .filter_map(|delta| max_block.checked_sub(delta as i32))
+        .filter(|&block| block >= 0)
+        .chain(std::iter::once(max_block))
+        .collect::<Vec<_>>();
+
+    let mut rows = pg.query_raw(
+        "SELECT block_number, id_count
+        FROM unique_identity_counts
+        WHERE block_number % $1 = 0 OR
+            block_number = ANY($2)",
+        [&(size as i32) as &dyn ToSql, &include_blocks],
+    )?;
+
+    let mut map = BTreeMap::new();
+
+    while let Some(row) = rows.next()? {
+        map.insert(
+            row.get::<_, i32>("block_number") as u64,
+            row.get::<_, i32>("id_count") as u64,
+        );
+    }
+    Ok(map)
 }

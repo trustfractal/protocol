@@ -1,5 +1,4 @@
 use fractal_explorer::{indexing, ingested};
-use native_tls::*;
 use postgres::Client;
 use std::{
     sync::{atomic::*, mpsc::*, Arc},
@@ -22,18 +21,7 @@ struct Options {
 
 impl Options {
     fn postgres(&self) -> anyhow::Result<Client> {
-        let connector = TlsConnector::builder()
-            // Heroku generates a self-signed certificate for the machines running this.
-            // We need to allow that as an "invalid" certificate.
-            .danger_accept_invalid_certs(true)
-            .build()?;
-        let connector = postgres_native_tls::MakeTlsConnector::new(connector);
-
-        Ok(self
-            .postgres
-            .parse::<postgres::Config>()?
-            .ssl_mode(postgres::config::SslMode::Require)
-            .connect(connector)?)
+        fractal_explorer::postgres::connect(&self.postgres)
     }
 }
 
@@ -141,10 +129,17 @@ fn run_indexer(
 
     let version = get_version(id, &mut pg)?;
     if version != Some(indexer.version()) {
+        log::info!(
+            "Transitioning '{id}' from {version:?} to {new_version}",
+            id = id,
+            version = version,
+            new_version = indexer.version()
+        );
         indexer.version_upgrade(&mut pg)?;
         save_version(id, indexer.version(), &mut pg)?;
         save_latest_block_number(id, None, &mut pg)?;
     }
+    log::info!("Starting '{}'", id);
 
     indexer.begin(&mut pg)?;
     let mut log_every = Interval::new(Duration::from_secs(1));
