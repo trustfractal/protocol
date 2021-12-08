@@ -58,7 +58,7 @@ export function getProtocolService(mnemonic?: string) {
     const signer = mnemonic
       ? ProtocolService.signerFromMnemonic(mnemonic)
       : null;
-    
+
     protocol = new ProtocolService(getApi(), signer, getDataHost());
 
     getProtocolOptIn()

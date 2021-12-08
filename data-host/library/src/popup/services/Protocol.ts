@@ -122,9 +122,10 @@ export class ProtocolService {
   private async registeredFractalId(): Promise<u64 | null> {
     if (this.fractalIdCache != null) return this.fractalIdCache;
 
-    const keys = await this.withApi((api) =>
-      api.query.fractalMinting.accountIds.keys(this.address())
-    );
+    const keys = await this.withApi((api) => {
+      return api.query.fractalMinting.accountIds.keys(this.address());
+    });
+
     if (keys.length !== 1) return null;
 
     const fractalId = keys[0].args[1] as u64;
