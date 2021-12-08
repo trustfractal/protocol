@@ -65,7 +65,7 @@ create_genesis_spec() {
 }
 
 get_bootnode_peer_id() {
-  ssh $node_boot "docker-compose logs | grep 'Local node identity is' | awk '{print \$10}' | head -n1"
+  ssh $node_boot "docker-compose logs | head -n100 | grep 'Local node identity is' | awk '{print \$10}' | head -n1"
 }
 
 replace_build_id() {

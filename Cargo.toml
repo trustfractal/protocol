@@ -3,6 +3,7 @@ members = [
   'blockchain/node',
   'blockchain/pallets/*',
   'blockchain/runtime',
+  'explorer',
   'support/*',
 ]
 

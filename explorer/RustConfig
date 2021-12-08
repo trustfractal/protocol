@@ -1,0 +1,3 @@
+#! /bin/sh
+
+RUST_CARGO_BUILD_FLAGS='--manifest-path explorer/Cargo.toml --release'

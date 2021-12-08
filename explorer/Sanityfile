@@ -1,0 +1,12 @@
+heroku:
+  buildpacks:
+    - https://github.com/emk/heroku-buildpack-rust
+    - heroku/nodejs
+  app: fractal-protocol-explorer
+  copy_to_root:
+    - package.json
+    - yarn.lock
+    - RustConfig
+    - Procfile
+  addons:
+    - heroku-postgresql

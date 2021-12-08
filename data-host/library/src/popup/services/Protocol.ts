@@ -45,9 +45,7 @@ export class ProtocolService {
     private readonly api: Promise<ApiPromise>,
     public signer: KeyringPair | null,
     private readonly dataHost: DataHost
-  ) {
-    console.log('signer: ', signer);
-  }
+  ) {}
 
   public async registerForMinting(): Promise<string | undefined> {
     const latestProof = await this.latestExtensionProof();
@@ -104,7 +102,6 @@ export class ProtocolService {
     if (this.signer == null) {
       throw new Error('Method requires signer to be defined');
     } else {
-      console.log('we have a signer');
       return this.signer;
     }
   }
@@ -125,11 +122,9 @@ export class ProtocolService {
   private async registeredFractalId(): Promise<u64 | null> {
     if (this.fractalIdCache != null) return this.fractalIdCache;
 
-    const keys = await this.withApi((api) => {
-      console.log('in promise', this.address());
-      return api.query.fractalMinting.accountIds.keys(this.address());
-    });
-    console.log(`-------------------------------------------{0}`, keys);
+    const keys = await this.withApi((api) =>
+      api.query.fractalMinting.accountIds.keys(this.address())
+    );
     if (keys.length !== 1) return null;
 
     const fractalId = keys[0].args[1] as u64;

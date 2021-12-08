@@ -19,8 +19,6 @@ import Welcome from "@assets/welcome.svg";
 import React from "react";
 import styled, { css } from "styled-components";
 
-
-
 const Root = styled.div<{
   clickable: boolean;
 }>`
