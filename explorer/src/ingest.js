@@ -113,6 +113,11 @@ class PostgresStorage {
       await storage.setKey('ingestion/version', 1);
     }
 
+    console.log('Cleaning block/extrinsic keys');
+    await postgres.query(`DELETE FROM key_values WHERE key ~ 'block/\\d+$'`);
+    await postgres.query(`DELETE FROM key_values WHERE key ~ 'block/\\d+/extrinsic/\\d+$'`);
+
+    console.log('Done with migrations');
     return storage;
   }
 

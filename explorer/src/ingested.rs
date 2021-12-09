@@ -80,7 +80,9 @@ impl Ingested {
             )?;
 
             let mut largest_unseen_extrinsic = HashMap::<u64, u64>::new();
+            let mut extrinsic_count = 0;
             while let Some(extr_row) = extrinsics.next()? {
+                extrinsic_count += 1;
                 let extrinsic: Extrinsic = serde_json::from_str(extr_row.get(&"json"))?;
 
                 let block_number = extr_row.get::<_, i64>(&"block_number") as u64;
@@ -108,7 +110,8 @@ impl Ingested {
             }
 
             let seen_extrinsics_for_next_block = largest_unseen_extrinsic.keys().any(|&k| k > load_block);
-            if seen_extrinsics_for_next_block {
+            let fewer_extrinsics_than_limit = extrinsic_count < limit;
+            if seen_extrinsics_for_next_block || fewer_extrinsics_than_limit {
                 return Ok(result);
             }
 
