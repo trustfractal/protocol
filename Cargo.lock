@@ -7404,9 +7404,9 @@ dependencies = [
 
 [[package]]
 name = "shared_lru"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bba4240f0a494305a21b23bbebb9213d425764ecb0af309f5cdb36aaf5b3c38"
+checksum = "6d378496961dfffba56778a5cd8919aefe7f20208876d6077e4618587aa351d7"
 dependencies = [
  "owning_ref",
  "rand 0.8.4",
