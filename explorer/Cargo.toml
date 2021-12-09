@@ -20,6 +20,7 @@ serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.72"
 simple_logger = "1.15.0"
 structopt = "0.3.25"
+shared_lru = { version = "0.1.2", features = ["serde_json"] }
 
 [[bin]]
 name = "fractal_explorer_web"

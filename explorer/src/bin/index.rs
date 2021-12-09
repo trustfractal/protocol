@@ -17,6 +17,10 @@ struct Options {
 
     #[structopt(long, default_value = "2000")]
     no_blocks_wait_ms: u64,
+
+    // Default 200MB
+    #[structopt(long, default_value = "200000000")]
+    cache_byte_limit: usize,
 }
 
 impl Options {
@@ -33,6 +37,12 @@ fn main() -> anyhow::Result<()> {
 
     let indexers = indexing::indexers();
 
+    let lru_storage = shared_lru::SharedLru::with_byte_limit(options.cache_byte_limit);
+    let ingested = Arc::new(ingested::Ingested::create(
+        &lru_storage,
+        options.postgres()?,
+    ));
+
     let (error_tx, error_rx) = channel();
     let unpark = UnparkOnDrop::current();
 
@@ -40,8 +50,9 @@ fn main() -> anyhow::Result<()> {
         let error_tx = error_tx.clone();
         let unpark = unpark.clone();
         let options = options.clone();
+        let ingested = Arc::clone(&ingested);
         Builder::new().name(id.to_string()).spawn(move || {
-            match run_indexer(&id, indexer, options) {
+            match run_indexer(&id, indexer, &ingested, options) {
                 Err(e) => {
                     error_tx.send(e).unwrap();
                 }
@@ -123,6 +134,7 @@ fn create_status_table(options: &Options) -> anyhow::Result<()> {
 fn run_indexer(
     id: &str,
     mut indexer: Box<dyn indexing::Indexer>,
+    ingested: &ingested::Ingested,
     options: Options,
 ) -> anyhow::Result<Never> {
     let mut pg = options.postgres()?;
@@ -142,10 +154,10 @@ fn run_indexer(
     log::info!("Starting '{}'", id);
 
     indexer.begin(&mut pg)?;
-    let mut log_every = Interval::new(Duration::from_secs(1));
+    let mut one_second = Interval::new(Duration::from_secs(1));
 
     loop {
-        let latest_ingested = match ingested::latest(&mut pg)? {
+        let latest_ingested = match ingested.latest(&mut pg)? {
             Some(i) => i,
             None => {
                 log::info!("No ingested blocks, waiting");
@@ -162,19 +174,23 @@ fn run_indexer(
         let next_block = latest_block_number.map(|b| b + 1).unwrap_or(0);
 
         for block_number in next_block..=latest_ingested {
-            let block = ingested::load_block(block_number, &mut pg)?
+            let block = ingested
+                .load_block(block_number)?
                 .expect("loaded block that doesn't exist");
+
             indexer.begin_block(&block, &mut pg)?;
 
             let mut index = 0;
-            while let Some(extr) = ingested::load_extrinsic(block_number, index, &mut pg)? {
+            while let Some(extr) = ingested.load_extrinsic(block_number, index)? {
                 indexer.visit_extrinsic(&extr, &mut pg)?;
                 index += 1;
             }
 
             indexer.end_block(&block, &mut pg)?;
-            save_latest_block_number(id, Some(block_number), &mut pg)?;
-            if log_every.is_time() {
+
+            if one_second.is_time() {
+                save_latest_block_number(id, Some(block_number), &mut pg)?;
+
                 log::info!("Indexer '{}' finished block {}", id, block_number);
             }
         }

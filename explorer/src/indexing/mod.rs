@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 pub mod identities;
 
+/// Implementors of this interface should assume that they may revisit previously visited
+/// blocks/extrinsics.
 pub trait Indexer: Send {
     /// Whenever this value changes, and the first time run, this indexer will be restarted from
     /// block 0 and `[version_upgrade]` will be called.
