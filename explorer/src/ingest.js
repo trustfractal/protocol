@@ -74,7 +74,7 @@ class PostgresStorage {
       await postgres.query(`DROP TABLE IF EXISTS block_json`);
       await postgres.query(`DROP TABLE IF EXISTS extrinsic_json`);
 
-      console.log('Migrating block_json');
+      console.log('Creating block_json');
       await postgres.query(`
         CREATE TABLE IF NOT EXISTS
         block_json (
@@ -91,7 +91,7 @@ class PostgresStorage {
         WHERE key ~ 'block/\\d+$'
       `);
 
-      console.log('Migrating extrinsic_json');
+      console.log('Creating extrinsic_json');
       await postgres.query(`
         CREATE TABLE IF NOT EXISTS
         extrinsic_json (
