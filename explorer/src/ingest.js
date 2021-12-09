@@ -54,14 +54,66 @@ class PostgresStorage {
   }
 
   static async create(postgres) {
-    await postgres.query(`
-      CREATE TABLE IF NOT EXISTS
-      key_values (
-        key VARCHAR PRIMARY KEY,
-        value VARCHAR NOT NULL
-      )
-    `);
-    return new PostgresStorage(postgres);
+    const storage = new PostgresStorage(postgres);
+
+    const versionValue = await storage.getKey('ingestion/version');
+    const version = versionValue == null ? 0 : JSON.parse(versionValue);
+
+    if (versionValue == null) {
+      await postgres.query(`
+        CREATE TABLE IF NOT EXISTS
+        key_values (
+          key VARCHAR PRIMARY KEY,
+          value VARCHAR NOT NULL
+        )
+      `);
+      await storage.setKey('ingestion/version', 0);
+    }
+
+    if (version < 1) {
+      await postgres.query(`DROP TABLE IF EXISTS block_json`);
+      await postgres.query(`DROP TABLE IF EXISTS extrinsic_json`);
+
+      console.log('Migrating block_json');
+      await postgres.query(`
+        CREATE TABLE IF NOT EXISTS
+        block_json (
+          number BIGINT PRIMARY KEY,
+          json VARCHAR NOT NULL
+        )
+      `);
+      await postgres.query(`
+        INSERT INTO block_json
+        SELECT
+          CAST((REGEXP_MATCH(key, 'block/(\\d+)'))[1] AS BIGINT),
+          value
+        FROM key_values
+        WHERE key ~ 'block/\\d+$'
+      `);
+
+      console.log('Migrating extrinsic_json');
+      await postgres.query(`
+        CREATE TABLE IF NOT EXISTS
+        extrinsic_json (
+          block_number BIGINT NOT NULL,
+          index BIGINT NOT NULL,
+          json VARCHAR NOT NULL,
+          PRIMARY KEY(block_number, index)
+        )
+      `);
+      await postgres.query(`
+        INSERT INTO extrinsic_json
+        SELECT
+          CAST((REGEXP_MATCH(key, 'block/(\\d+)'))[1] AS BIGINT),
+          CAST((REGEXP_MATCH(key, 'block/\\d+/extrinsic/(\\d+)'))[1] AS BIGINT),
+          value
+        FROM key_values
+        WHERE key ~ 'block/\\d+/extrinsic/\\d+$'
+      `);
+      await storage.setKey('ingestion/version', 1);
+    }
+
+    return storage;
   }
 
   async fullyIngested() {
@@ -91,12 +143,18 @@ class PostgresStorage {
 
   async saveBlock(number, blockData) {
     const json = JSON.stringify(blockData);
-    await this.setKey(`block/${number}`, json);
+    await this.pg.query(`
+      INSERT INTO block_json(number, json) VALUES (${number}, '${json}')
+      ON CONFLICT (number) DO UPDATE SET json = '${json}'
+    `);
   }
 
   async saveExtrinsic(blockNumber, index, extrinsicData) {
     const json = JSON.stringify(extrinsicData);
-    await this.setKey(`block/${blockNumber}/extrinsic/${index}`, json);
+    await this.pg.query(`
+      INSERT INTO extrinsic_json (block_number, index, json) VALUES (${blockNumber}, ${index}, '${json}')
+      ON CONFLICT (block_number, index) DO UPDATE SET json = '${json}'
+    `);
   }
 }
 

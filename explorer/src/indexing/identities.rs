@@ -17,9 +17,12 @@ impl Indexer for CountIdentities {
     }
 
     fn version_upgrade(&mut self, pg: &mut Client) -> anyhow::Result<()> {
+        log::info!("Dropping identity_first_seen");
         pg.execute("DROP TABLE IF EXISTS identity_first_seen", &[])?;
+        log::info!("Dropping unique_identity_counts");
         pg.execute("DROP TABLE IF EXISTS unique_identity_counts", &[])?;
 
+        log::info!("Creating identity_first_seen");
         pg.execute(
             "
             CREATE TABLE IF NOT EXISTS
@@ -30,6 +33,8 @@ impl Indexer for CountIdentities {
         ",
             &[],
         )?;
+
+        log::info!("Creating unique_identity_counts");
         pg.execute(
             "
             CREATE TABLE IF NOT EXISTS
@@ -88,7 +93,7 @@ impl Indexer for CountIdentities {
         pg.execute(
             "INSERT INTO unique_identity_counts (block_number, id_count)
             VALUES ($1, $2)
-            ON CONFLICT (block_number) DO NOTHING",
+            ON CONFLICT (block_number) DO UPDATE SET id_count = $2",
             &[
                 &(block.number as i32),
                 &(self.previous_count + self.this_count),
