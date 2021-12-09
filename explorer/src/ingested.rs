@@ -109,7 +109,8 @@ impl Ingested {
                 }
             }
 
-            let seen_extrinsics_for_next_block = largest_unseen_extrinsic.keys().any(|&k| k > load_block);
+            let seen_extrinsics_for_next_block =
+                largest_unseen_extrinsic.keys().any(|&k| k > load_block);
             let fewer_extrinsics_than_limit = extrinsic_count < limit;
             if seen_extrinsics_for_next_block || fewer_extrinsics_than_limit {
                 return Ok(result);
