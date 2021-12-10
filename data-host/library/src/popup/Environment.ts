@@ -5,7 +5,7 @@ const FRACTAL_WEBSITE_URL = 'https://staging.sandbox.fractal.id';
 const PROTOCOL_RPC_ENDPOINT = 'wss://nodes.testnet.fractalprotocol.com';
 
 const PROTOCOL_CURRENCY = 'FCL';
-
+const PROTOCOL_JOURNEY_URL = 'https://staging.sandbox.fractal.id';
 const NODE_ENV = 'development';
 
 const environment: Environment = {
@@ -13,6 +13,7 @@ const environment: Environment = {
   IS_DEV: NODE_ENV === 'development',
   PROTOCOL_RPC_ENDPOINT,
   PROTOCOL_CURRENCY,
+  PROTOCOL_JOURNEY_URL,
 };
 
 function changeEnviroment(value: Environment) {

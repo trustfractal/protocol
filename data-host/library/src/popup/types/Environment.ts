@@ -3,4 +3,5 @@ export type Environment = {
   IS_DEV: boolean;
   PROTOCOL_RPC_ENDPOINT: string;
   PROTOCOL_CURRENCY: string;
+  PROTOCOL_JOURNEY_URL: string;
 };
