@@ -20,6 +20,8 @@ impl MemorySize for Block {
 #[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Extrinsic {
+    pub hash: String,
+
     pub block: String,
     pub index_in_block: u64,
 

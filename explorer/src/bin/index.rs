@@ -162,13 +162,20 @@ fn run_indexer(
             None => {
                 log::info!("No ingested blocks, waiting");
                 sleep(Duration::from_millis(options.no_blocks_wait_ms));
+                log::info!("Done waiting");
                 continue;
             }
         };
         let latest_block_number = latest_block_number(id, &mut pg)?;
-        if latest_block_number == Some(latest_ingested) {
-            sleep(Duration::from_millis(options.caught_up_sleep_ms));
-            continue;
+        if let Some(latest_for_indexer) = latest_block_number {
+            if latest_for_indexer == latest_ingested {
+                sleep(Duration::from_millis(options.caught_up_sleep_ms));
+                continue;
+            } else if latest_for_indexer > latest_ingested {
+                // Ingestion restarted, we should reindex.
+                save_latest_block_number(id, None, &mut pg)?;
+                continue;
+            }
         }
 
         let next_block = latest_block_number.map(|b| b + 1).unwrap_or(0);
@@ -182,16 +189,18 @@ fn run_indexer(
 
             let mut index = 0;
             while let Some(extr) = ingested.load_extrinsic(block_number, index)? {
-                indexer.visit_extrinsic(&extr, &mut pg)?;
                 index += 1;
+                indexer.visit_extrinsic(&extr, &mut pg)?;
             }
 
             indexer.end_block(&block, &mut pg)?;
 
             if one_second.is_time() {
+                indexer.commit(&mut pg)?;
                 save_latest_block_number(id, Some(block_number), &mut pg)?;
 
                 log::info!("Indexer '{}' finished block {}", id, block_number);
+                break;
             }
         }
     }
