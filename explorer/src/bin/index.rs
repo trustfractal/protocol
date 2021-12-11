@@ -168,13 +168,18 @@ fn run_indexer(
         };
         let latest_block_number = latest_block_number(id, &mut pg)?;
         if let Some(latest_for_indexer) = latest_block_number {
-            if latest_for_indexer == latest_ingested {
-                sleep(Duration::from_millis(options.caught_up_sleep_ms));
-                continue;
-            } else if latest_for_indexer > latest_ingested {
-                // Ingestion restarted, we should reindex.
-                save_latest_block_number(id, None, &mut pg)?;
-                continue;
+            use std::cmp::Ordering;
+            match latest_for_indexer.cmp(&latest_ingested) {
+                Ordering::Equal => {
+                    sleep(Duration::from_millis(options.caught_up_sleep_ms));
+                    continue;
+                }
+                Ordering::Greater => {
+                    // Ingestion restarted, we should reindex.
+                    save_latest_block_number(id, None, &mut pg)?;
+                    continue;
+                }
+                Ordering::Less => {}
             }
         }
 
