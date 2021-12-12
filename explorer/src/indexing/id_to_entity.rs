@@ -29,6 +29,15 @@ impl super::Indexer for IdToEntity {
         Ok(())
     }
 
+    fn begin(&mut self, pg: &mut Client) -> anyhow::Result<()> {
+        pg.execute(
+            "CREATE INDEX IF NOT EXISTS id_to_entity_id_textops
+            ON id_to_entity (id varchar_pattern_ops)",
+            &[],
+        )?;
+        Ok(())
+    }
+
     fn begin_block(&mut self, block: &Block, _: &mut Client) -> anyhow::Result<()> {
         self.current_block_number = block.number;
         self.uncommitted
