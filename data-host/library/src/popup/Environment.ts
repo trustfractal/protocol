@@ -3,6 +3,7 @@ import { Environment } from '@popup/types/Environment';
 //TODO(melatron): Expose these to clients as configuration with production values being the default.
 const FRACTAL_WEBSITE_URL = 'https://staging.sandbox.fractal.id';
 const PROTOCOL_RPC_ENDPOINT = 'wss://nodes.testnet.fractalprotocol.com';
+const LIVELNESS_CHECK_URL = `https://staging.sandbox.fractal.id/protocol?substrate_address=`
 
 const PROTOCOL_CURRENCY = 'FCL';
 const PROTOCOL_JOURNEY_URL = 'https://staging.sandbox.fractal.id';
@@ -14,6 +15,7 @@ const environment: Environment = {
   PROTOCOL_RPC_ENDPOINT,
   PROTOCOL_CURRENCY,
   PROTOCOL_JOURNEY_URL,
+  LIVELNESS_CHECK_URL,
 };
 
 function changeEnviroment(value: Environment) {

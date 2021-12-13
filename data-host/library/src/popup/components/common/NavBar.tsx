@@ -11,7 +11,6 @@ import Text, {
 } from "@popup/components/common/Text";
 import { ActivityStackContext } from "@popup/containers/ActivityStack";
 import {
-  getFractalAccountConnector,
   getProtocolOptIn,
   getProtocolService,
   getUserAlerts,
@@ -133,11 +132,12 @@ function DropdownMenu() {
   ];
 
   if (environment.IS_DEV) {
-    menuItems.push({
-      label: "Clear Tokens",
-      icon: IconNames.INVALID,
-      onClick: () => getFractalAccountConnector().clearTokens(),
-    });
+       //TODO(melatron): Remove
+    // menuItems.push({
+    //   label: "Clear Tokens",
+    //   icon: IconNames.INVALID,
+    //   onClick: () => getFractalAccountConnector().clearTokens(),
+    // });
   }
 
   return <Menu items={menuItems} />;

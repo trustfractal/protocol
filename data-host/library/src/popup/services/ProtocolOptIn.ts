@@ -1,5 +1,5 @@
-import { NotConnectedError } from '@services/FractalAccount';
-import { ProtocolService } from '@services/Protocol';
+import { IdentityRegistrationFailed, ProtocolService } from '@services/Protocol';
+import { WindowsService } from "@services/WindowsService";
 import { Storage } from '@utils/StorageArray';
 
 export class MissingLiveness extends Error {}
@@ -11,16 +11,22 @@ export class ProtocolOptIn {
 
   constructor(
     private readonly storage: Storage,
-    private readonly protocol: ProtocolService
+    private readonly protocol: ProtocolService,
+    private readonly windows: WindowsService,
+    private readonly livenessUrl: string,
   ) {}
 
   async isOptedIn() {
-    return await this.storage.hasItem(await this.mnemonicKey());
+    return await this.storage.hasItem(this.mnemonicKey());
   }
 
-  private async mnemonicKey() {
-    const network = 'network'; //TODO(melatron): get the current network
-    return `opt-in/${network}/mnemonic`;
+  private mnemonicKey() {
+    //TODO(melatron): old key for mnemonic was opt-in/{maguro.getNetwork()}/mnemonic
+    return `opt-in/mnemonic`;
+  }
+
+  getAddress(): string {
+      return this.protocol.address()
   }
 
   async hasCompletedLiveness() {
@@ -34,11 +40,11 @@ export class ProtocolOptIn {
   }
 
   async getMnemonic() {
-    return await this.storage.getItem(await this.mnemonicKey());
+    return await this.storage.getItem(this.mnemonicKey());
   }
 
   async optIn(mnemonic: string) {
-    await this.storage.setItem(await this.mnemonicKey(), mnemonic);
+    await this.storage.setItem(this.mnemonicKey(), mnemonic);
     await this.runCallbacks(mnemonic);
     await this.tryRegisterIdentity();
   }
@@ -53,10 +59,12 @@ export class ProtocolOptIn {
   async postOptInLiveness() {
     await this.tryRegisterIdentity(async () => {
       //TODO(melatron): implement the windows service
-      //   await this.windows.openTab(this.livenessUrl);
+        console.log(this.livenessUrl + this.getAddress());
+        console.log(this.windows)
+        await this.windows.openTab(this.livenessUrl + this.getAddress());
     });
   }
-
+  //TODO(melatron) the background process for adding facts uses this check.
   async checkOptIn() {
     const mnemonic = await this.getMnemonic();
     if (mnemonic == null) return;
@@ -65,17 +73,14 @@ export class ProtocolOptIn {
 
   private async tryRegisterIdentity(onMissingLiveness?: () => Promise<void>) {
     try {
+        console.log('--------------------------------------------')
       await this.protocol.ensureIdentityRegistered();
       this.completedLivenessOverride = true;
     } catch (e) {
-      if (e instanceof MissingLiveness) {
+      if (e instanceof IdentityRegistrationFailed) {
         if (onMissingLiveness != null) {
           await onMissingLiveness();
         }
-        return;
-      }
-
-      if (e instanceof NotConnectedError) {
         return;
       }
 

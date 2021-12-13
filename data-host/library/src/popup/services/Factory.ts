@@ -3,11 +3,10 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { environment } from '@popup/Environment';
 import { StorageService } from '@popup/services/StorageService';
 import { DataHost } from '@services/DataHost';
-import { FractalAccountConnector } from '@services/FractalAccount';
 import { MintingRegistrar } from '@services/MintingRegistrar';
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
-import { AggregateMultiContext, MultiContext } from '@utils/MultiContext';
+import { WindowsService } from "@services/WindowsService";
 import { ValueCache } from '@utils/ReactHooks';
 
 //TODO(melatron): We should import these from our source of truth, /blockchain/types.json.
@@ -61,7 +60,7 @@ export function getProtocolService(mnemonic?: string) {
       : null;
 
     protocol = new ProtocolService(getApi(), signer, getDataHost());
-
+    //TODO(melatron): The way signer is set feels really wrong. Needs to be refactored. Currently
     getProtocolOptIn()
       .getMnemonic()
       .then(async (mnemonic) => {
@@ -75,12 +74,22 @@ export function getProtocolService(mnemonic?: string) {
   return protocol;
 }
 
+let windows: WindowsService;
+export function getWindowsService() {
+  if (windows === undefined) {
+    windows = new WindowsService();
+  }
+  return windows;
+}
+
 let protocolOptIn: ProtocolOptIn;
 export function getProtocolOptIn() {
   if (protocolOptIn === undefined) {
     protocolOptIn = new ProtocolOptIn(
       getStorageService(),
-      getProtocolService()
+      getProtocolService(),
+      getWindowsService(),
+      environment.LIVELNESS_CHECK_URL,
     );
 
     protocolOptIn.postOptInCallbacks.push(async () => {
@@ -100,22 +109,6 @@ export function getUserAlerts() {
     userAlerts = new UserAlerts();
   }
   return userAlerts;
-}
-
-let fractalAccountConnector: FractalAccountConnector;
-export function getFractalAccountConnector() {
-  if (fractalAccountConnector == null) {
-    fractalAccountConnector = new FractalAccountConnector(getStorageService());
-  }
-  return fractalAccountConnector;
-}
-
-let multiContext: MultiContext;
-export function getMultiContext() {
-  if (multiContext == null) {
-    multiContext = new AggregateMultiContext([getFractalAccountConnector()]);
-  }
-  return multiContext;
 }
 
 let valueCache: ValueCache;
