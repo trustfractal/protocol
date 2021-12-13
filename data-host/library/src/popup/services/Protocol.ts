@@ -149,7 +149,7 @@ export class ProtocolService {
     return fractalId != null;
   }
 
-  public address() : string {
+  public address(): string {
     return this.requireSigner().address;
   }
 

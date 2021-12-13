@@ -1,4 +1,4 @@
-import { environment } from "@popup/Environment";
+import { environment } from '@popup/Environment';
 
 import {
   ERROR_CLOSE_WINDOW,
@@ -15,13 +15,12 @@ import {
   ERROR_UPDATE_WINDOW,
   ERROR_UPDATE_WINDOW_POSITION,
   ERROR_UPDATE_WINDOW_SIZE,
-} from "./Errors";
-
+} from './Errors';
 
 export enum PopupSizes {
-  SMALL = "small",
-  MEDIUM = "medium",
-  LARGE = "large",
+  SMALL = 'small',
+  MEDIUM = 'medium',
+  LARGE = 'large',
 }
 
 export const PopupSizesValues: Record<
@@ -46,7 +45,7 @@ export class WindowsService {
   private popupId?: number;
 
   createWindow(
-    config: chrome.windows.CreateData = {},
+    config: chrome.windows.CreateData = {}
   ): Promise<chrome.windows.Window | undefined> {
     return new Promise((resolve, reject) => {
       chrome.windows.create(config, (window) => {
@@ -61,7 +60,7 @@ export class WindowsService {
   }
 
   getCurrentWindow(
-    config: chrome.windows.GetInfo = {},
+    config: chrome.windows.GetInfo = {}
   ): Promise<chrome.windows.Window> {
     return new Promise((resolve, reject) => {
       chrome.windows.getCurrent(config, (window) => {
@@ -89,7 +88,7 @@ export class WindowsService {
   }
 
   getAllWindows(
-    config: chrome.windows.GetInfo = {},
+    config: chrome.windows.GetInfo = {}
   ): Promise<Array<chrome.windows.Window>> {
     return new Promise((resolve, reject) => {
       chrome.windows.getAll(config, (windows) => {
@@ -119,7 +118,7 @@ export class WindowsService {
   async updateWindowPosition(
     windowId: number,
     left: number,
-    top: number,
+    top: number
   ): Promise<void> {
     try {
       await this.updateWindow(windowId, { left, top });
@@ -135,7 +134,7 @@ export class WindowsService {
   async updateWindowSize(
     windowId: number,
     width: number,
-    height: number,
+    height: number
   ): Promise<void> {
     try {
       await this.updateWindow(windowId, { width, height });
@@ -172,7 +171,7 @@ export class WindowsService {
   }
 
   async closeCurrentPopup(): Promise<chrome.windows.Window> {
-    const window = await this.getCurrentWindow({ windowTypes: ["popup"] });
+    const window = await this.getCurrentWindow({ windowTypes: ['popup'] });
 
     if (window) await this.closeWindow(window.id);
 
@@ -192,11 +191,11 @@ export class WindowsService {
   }
 
   async isNativePopupOpen() {
-    return chrome.extension.getViews({ type: "popup" }).length > 0;
+    return chrome.extension.getViews({ type: 'popup' }).length > 0;
   }
 
   async createPopup(
-    size: PopupSizes = PopupSizes.SMALL,
+    size: PopupSizes = PopupSizes.SMALL
   ): Promise<chrome.windows.Window | undefined> {
     const popup = await this.getPopup();
     const popupSize = PopupSizesValues[size];
@@ -234,8 +233,8 @@ export class WindowsService {
 
     // create new notification popup
     const popupWindow = await this.createWindow({
-      url: "popup.html",
-      type: "popup",
+      url: 'popup.html',
+      type: 'popup',
       width: popupSize.width,
       height: popupSize.height,
       left,
@@ -243,7 +242,7 @@ export class WindowsService {
     });
 
     if (popupWindow !== undefined) {
-      if (popupWindow.left !== left && popupWindow.state !== "fullscreen") {
+      if (popupWindow.left !== left && popupWindow.state !== 'fullscreen') {
         await this.updateWindowPosition(popupWindow.id, left, top);
       }
 
@@ -269,13 +268,13 @@ export class WindowsService {
     }
 
     return windows.find(
-      (win) => win && win.type === "popup" && win.id === this.popupId,
+      (win) => win && win.type === 'popup' && win.id === this.popupId
     );
   }
 
   async getAllPopups(): Promise<Array<chrome.windows.Window>> {
     return this.getAllWindows({
-      windowTypes: ["popup"],
+      windowTypes: ['popup'],
     });
   }
 
@@ -293,7 +292,7 @@ export class WindowsService {
 
   getWindow(
     windowId: number,
-    config: chrome.windows.GetInfo = {},
+    config: chrome.windows.GetInfo = {}
   ): Promise<chrome.windows.Window> {
     return new Promise((resolve, reject) => {
       chrome.windows.get(windowId, config, (window) => {
@@ -309,7 +308,7 @@ export class WindowsService {
 
   updateWindow(
     windowId: number,
-    config: chrome.windows.UpdateInfo,
+    config: chrome.windows.UpdateInfo
   ): Promise<chrome.windows.Window | undefined> {
     return new Promise((resolve, reject) => {
       chrome.windows.update(windowId, config, (updateWindow) => {
@@ -337,7 +336,7 @@ export class WindowsService {
   }
 
   createTab(
-    properties: chrome.tabs.CreateProperties,
+    properties: chrome.tabs.CreateProperties
   ): Promise<chrome.tabs.Tab> {
     return new Promise((resolve, reject) => {
       chrome.tabs.create(properties, (tab) => {
@@ -353,7 +352,7 @@ export class WindowsService {
 
   updateTab(
     tabId: number,
-    config: chrome.tabs.UpdateProperties,
+    config: chrome.tabs.UpdateProperties
   ): Promise<chrome.tabs.Tab | undefined> {
     return new Promise((resolve, reject) => {
       chrome.tabs.update(tabId, config, (updatedtab) => {
@@ -389,7 +388,7 @@ export class WindowsService {
       // get last normal window focused
       chrome.windows.getLastFocused(
         {
-          windowTypes: ["normal"],
+          windowTypes: ['normal'],
         },
         async (lastWindowFocused) => {
           // get window active tab
@@ -399,7 +398,7 @@ export class WindowsService {
           });
 
           resolve(tabs);
-        },
+        }
       );
     });
   }
@@ -407,7 +406,7 @@ export class WindowsService {
   async getFractalTabs(): Promise<chrome.tabs.Tab[]> {
     const { hostname } = new URL(environment.FRACTAL_WEBSITE_URL);
 
-    const senderHostname = hostname.startsWith("www.")
+    const senderHostname = hostname.startsWith('www.')
       ? hostname.substr(4)
       : hostname;
 
@@ -432,7 +431,7 @@ export class WindowsService {
       return this.createTab({ url });
     }
 
-    if (activeTab.url?.includes("fractal.id")) {
+    if (activeTab.url?.includes('fractal.id')) {
       return this.redirectTab(activeTab.id, url);
     }
 

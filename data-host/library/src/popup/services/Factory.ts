@@ -6,7 +6,7 @@ import { DataHost } from '@services/DataHost';
 import { MintingRegistrar } from '@services/MintingRegistrar';
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
-import { WindowsService } from "@services/WindowsService";
+import { WindowsService } from '@services/WindowsService';
 import { ValueCache } from '@utils/ReactHooks';
 
 //TODO(melatron): We should import these from our source of truth, /blockchain/types.json.
@@ -89,7 +89,7 @@ export function getProtocolOptIn() {
       getStorageService(),
       getProtocolService(),
       getWindowsService(),
-      environment.LIVELNESS_CHECK_URL,
+      environment.LIVELNESS_CHECK_URL
     );
 
     protocolOptIn.postOptInCallbacks.push(async () => {

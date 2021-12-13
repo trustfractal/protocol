@@ -1,5 +1,8 @@
-import { IdentityRegistrationFailed, ProtocolService } from '@services/Protocol';
-import { WindowsService } from "@services/WindowsService";
+import {
+  IdentityRegistrationFailed,
+  ProtocolService,
+} from '@services/Protocol';
+import { WindowsService } from '@services/WindowsService';
 import { Storage } from '@utils/StorageArray';
 
 export class MissingLiveness extends Error {}
@@ -13,7 +16,7 @@ export class ProtocolOptIn {
     private readonly storage: Storage,
     private readonly protocol: ProtocolService,
     private readonly windows: WindowsService,
-    private readonly livenessUrl: string,
+    private readonly livenessUrl: string
   ) {}
 
   async isOptedIn() {
@@ -26,7 +29,7 @@ export class ProtocolOptIn {
   }
 
   getAddress(): string {
-      return this.protocol.address()
+    return this.protocol.address();
   }
 
   async hasCompletedLiveness() {
@@ -59,9 +62,9 @@ export class ProtocolOptIn {
   async postOptInLiveness() {
     await this.tryRegisterIdentity(async () => {
       //TODO(melatron): implement the windows service
-        console.log(this.livenessUrl + this.getAddress());
-        console.log(this.windows)
-        await this.windows.openTab(this.livenessUrl + this.getAddress());
+      console.log(this.livenessUrl + this.getAddress());
+      console.log(this.windows);
+      await this.windows.openTab(this.livenessUrl + this.getAddress());
     });
   }
   //TODO(melatron) the background process for adding facts uses this check.
@@ -73,10 +76,11 @@ export class ProtocolOptIn {
 
   private async tryRegisterIdentity(onMissingLiveness?: () => Promise<void>) {
     try {
-        console.log('--------------------------------------------')
+      console.log('--------------------------------------------');
       await this.protocol.ensureIdentityRegistered();
       this.completedLivenessOverride = true;
     } catch (e) {
+        //TODO(melatron): The MissingLiveness error is not used any more, check if IdentityRegistrationFailed will cause problems.
       if (e instanceof IdentityRegistrationFailed) {
         if (onMissingLiveness != null) {
           await onMissingLiveness();
