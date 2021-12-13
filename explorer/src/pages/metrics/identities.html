@@ -17,7 +17,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: center;
+    align-items: stretch;
   }
 }
 
@@ -25,7 +25,6 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
 }
 </style>
 
@@ -71,7 +70,7 @@ new Chart(canvas, {
       <div class="card-content">
         <span class="card-title">Latest</span>
 
-        <p>Block: {{block}}</p>
+        <p>Block: <a href="/block/{{block}}">{{block}}</a></p>
         <p>Count: {{count}}</p>
       </div>
     </div>

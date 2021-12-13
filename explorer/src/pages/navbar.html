@@ -1,7 +1,15 @@
+<style>
+.brand-logo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+
 <div class="navbar-fixed">
   <nav class="indigo">
     <div class="nav-wrapper container">
-      <a class="brand-logo" href="/">Fractal Protocol Explorer</a>
+      <a class="brand-logo" href="/">FCL Explorer</a>
+      <a href="#" data-target="mobile-demo" class="sidenav-trigger"><i class="material-icons">menu</i></a>
 
       <ul id="nav-mobile" class="right hide-on-med-and-down">
         <li><a href="/metrics/identities">Identities Metrics</a></li>
@@ -9,3 +17,14 @@
     </div>
   </nav>
 </div>
+
+<ul class="sidenav" id="mobile-demo">
+  <li><a href="/metrics/identities">Identities Metrics</a></li>
+</ul>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var elems = document.querySelectorAll('.sidenav');
+    M.Sidenav.init(elems, {});
+  });
+</script>
