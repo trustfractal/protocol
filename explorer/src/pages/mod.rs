@@ -4,10 +4,8 @@ use derive_more::*;
 use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
-pub fn service() -> Scope {
-    web::scope("/metrics")
-        .data(templates().unwrap())
-        .service(web::resource("/identities").to(metrics_identities))
+pub fn resources() -> Vec<Resource> {
+    vec![web::resource("/metrics/identities").to(metrics_identities)]
 }
 
 #[derive(Debug, Display, Error)]
@@ -23,7 +21,7 @@ impl From<anyhow::Error> for Error {
 
 impl error::ResponseError for Error {}
 
-fn templates() -> anyhow::Result<Ramhorns> {
+pub fn templates() -> anyhow::Result<Ramhorns> {
     let mod_file = std::path::PathBuf::from(file!());
     let pages = mod_file.parent().unwrap();
     Ok(Ramhorns::from_folder(pages)?)
