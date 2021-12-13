@@ -355,13 +355,13 @@ export class WindowsService {
     config: chrome.tabs.UpdateProperties
   ): Promise<chrome.tabs.Tab | undefined> {
     return new Promise((resolve, reject) => {
-      chrome.tabs.update(tabId, config, (updatedtab) => {
+      chrome.tabs.update(tabId, config, (updatedTab) => {
         if (chrome.runtime.lastError !== undefined) {
           console.error(chrome.runtime.lastError);
           reject(ERROR_UPDATE_TAB(chrome.runtime.lastError, tabId));
         }
 
-        resolve(updatedtab);
+        resolve(updatedTab);
       });
     });
   }

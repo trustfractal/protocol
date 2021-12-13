@@ -102,7 +102,6 @@ function DataScreen() {
       <AddLiveness />
       <Minting />
       <WebpageViews />
-      //TODO(melatron): Not sure if address is correctly send
       <Address address={address} />
       <Button
         onClick={() =>

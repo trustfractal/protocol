@@ -89,7 +89,7 @@ export function getProtocolOptIn() {
       getStorageService(),
       getProtocolService(),
       getWindowsService(),
-      environment.LIVELNESS_CHECK_URL
+      environment.LIVENESS_CHECK_URL
     );
 
     protocolOptIn.postOptInCallbacks.push(async () => {

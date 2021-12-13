@@ -24,7 +24,7 @@ export class ProtocolOptIn {
   }
 
   private mnemonicKey() {
-    //TODO(melatron): old key for mnemonic was opt-in/{maguro.getNetwork()}/mnemonic
+    //TODO(melatron): old key for mnemonic was opt-in/{getNetwork()}/mnemonic
     return `opt-in/mnemonic`;
   }
 
@@ -80,7 +80,7 @@ export class ProtocolOptIn {
       await this.protocol.ensureIdentityRegistered();
       this.completedLivenessOverride = true;
     } catch (e) {
-        //TODO(melatron): The MissingLiveness error is not used any more, check if IdentityRegistrationFailed will cause problems.
+      //TODO(melatron): The MissingLiveness error is not used any more, check if IdentityRegistrationFailed will cause problems.
       if (e instanceof IdentityRegistrationFailed) {
         if (onMissingLiveness != null) {
           await onMissingLiveness();
