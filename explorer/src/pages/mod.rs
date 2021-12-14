@@ -5,9 +5,9 @@ use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
 pub fn service() -> Scope {
-    web::scope("/")
+    web::scope("/metrics")
         .data(templates().unwrap())
-        .service(web::resource("/metrics/identities").to(metrics_identities))
+        .service(web::resource("/identities").to(metrics_identities))
 }
 
 #[derive(Debug, Display, Error)]
@@ -171,4 +171,8 @@ where
             }
         }
     }
+}
+
+pub async fn not_found() -> actix_web::Result<String> {
+    Err(error::ErrorNotFound("Not Found"))
 }
