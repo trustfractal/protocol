@@ -25,11 +25,16 @@ async fn main() -> std::io::Result<()> {
                 .unwrap(),
         );
 
-        App::new()
+        let mut app = App::new()
             .data(pool)
             .data(options.clone())
-            .service(pages::service())
-            .service(indexing::id_to_entity::redirect_id)
+            .data(pages::templates().unwrap());
+
+        app = pages::resources()
+            .into_iter()
+            .fold(app, |a, resource| a.service(resource));
+
+        app.service(indexing::id_to_entity::redirect_id)
             .service(web::resource("*").route(web::get().to(pages::not_found)))
     })
     .bind(("0.0.0.0", port))?

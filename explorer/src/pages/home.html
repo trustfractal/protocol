@@ -1,0 +1,65 @@
+<style>
+.collection-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hash {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+
+  max-width: 300px;
+}
+
+.collection-item p {
+  margin: 0;
+}
+
+.transactions .block.hash {
+  max-width: 80px;
+}
+
+.additional-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: 8px;
+}
+</style>
+
+<div class="latest-events row">
+  <div class="blocks col l6 s12">
+    <ul class="collection with-header">
+      <li class="collection-header"><h4>Recent Blocks</h4></li>
+
+      {{#blocks}}
+        <li class="collection-item">
+          <a class="hash" href="/{{hash}}">{{hash}}</a>
+          <p>{{number}}</p>
+        </li>
+      {{/blocks}}
+    </ul>
+  </div>
+
+  <div class="transactions col l6 s12">
+    <ul class="collection with-header">
+      <li class="collection-header"><h4>Recent Transactions</h4></li>
+
+      {{#extrinsics}}
+        <li class="collection-item">
+          <a class="hash" href="/{{hash}}">{{hash}}</a>
+
+          <div class="additional-info">
+            <p>{{method}}</p>
+
+            <a class="block hash" href="/{{block}}">{{block}}</a>
+            <p>#{{index_in_block}}</p>
+          </div>
+        </li>
+      {{/extrinsics}}
+    </ul>
+  </div>
+</div>
