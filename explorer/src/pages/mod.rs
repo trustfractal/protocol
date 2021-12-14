@@ -36,7 +36,7 @@ fn html_page(
         .body(
             templates
                 .get("root.html")
-                .ok_or(ErrorInternalServerError("Could not find template"))?
+                .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
                 .render(&page),
         ))
 }
@@ -132,7 +132,7 @@ async fn metrics_identities(
 
     let page = templates
         .get("metrics/identities.html")
-        .ok_or(ErrorInternalServerError("Could not find template"))?
+        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&counts);
     Ok(html_page(templates, page)?)
 }
@@ -188,7 +188,7 @@ async fn home(
 
     let page = templates
         .get("home.html")
-        .ok_or(ErrorInternalServerError("Could not find template"))?
+        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&home_data);
     Ok(html_page(templates, page)?)
 }
