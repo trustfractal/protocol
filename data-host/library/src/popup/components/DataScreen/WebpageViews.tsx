@@ -18,7 +18,7 @@ function HistoryList({ n }: { n: number }) {
   const history = useLoadedState(async () => {
     const items = [];
     for await (const item of getDataHost().iterBack()) {
-      if (item.pageView == null) continue;
+      if (!item || item.pageView == null) continue;
       items.push(item.pageView);
       if (items.length >= n) break;
     }

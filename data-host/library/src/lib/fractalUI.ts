@@ -4,6 +4,7 @@ import { changeEnviroment } from '@popup/Environment';
 import { Environment } from '@popup/types/Environment';
 import ReactDOM from 'react-dom';
 
+
 export class FractalUI {
   init(settings: Environment) {
     changeEnviroment(settings);
