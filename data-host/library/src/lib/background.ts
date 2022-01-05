@@ -1,9 +1,8 @@
 import {
-    getDataHost,
-    getMintingRegistrar,
-    getProtocolOptIn,
-  } from "@services/Factory";
-
+  getDataHost,
+  getMintingRegistrar,
+  getProtocolOptIn,
+} from '@services/Factory';
 
 export class Background {
   async setup(): Promise<void> {
@@ -24,12 +23,16 @@ export class Background {
     await getMintingRegistrar().maybeTryRegister();
   }
   addListeners() {
-      //TODO(melatron): Create more generic method that handles all type of messages (for different facts)
+    //TODO(melatron): Create more generic method that handles all type of messages (for different facts)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
-    chrome.runtime.onMessage.addListener(function(request, _sender, sendResponse) {
-        self.addWebpage(request.content.hostname);
-        sendResponse();
+    chrome.runtime.onMessage.addListener(function (
+      request,
+      _sender,
+      sendResponse
+    ) {
+      self.addWebpage(request.content.hostname);
+      sendResponse();
     });
   }
 }

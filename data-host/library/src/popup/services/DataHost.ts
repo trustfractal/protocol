@@ -1,15 +1,25 @@
-import { Storage, StorageArray } from "@utils/StorageArray";
-import {
-  build,
-  extend_multiple,
-  prune_balanced,
-  strict_extension_proof,
-} from "@vendor/merklex-js/merklex_js.js";
+import { Storage, StorageArray } from '@utils/StorageArray';
 
+import {
+    build,
+    extend_multiple,
+    prune_balanced,
+    strict_extension_proof
+} from '../../vendor/merklex_js/merklex_js';
+// console.log('----------------------------------------------')
+// console.log(build, extend_multiple, prune_balanced, strict_extension_proof)
+// const extend_multiple = (_a: any, _b: any) => { console.log('')};
+// const  prune_balanced= (_: any) => {console.log('')};
+// const  strict_extension_proof= (_: any, _b: any) => {console.log('')};
+// const build = (_: any) => {console.log('')};
+// await init();
+console.log('----------------------------------------------')
+console.log(build)
+console.log('----------------------------------------------')
 export class DataHost {
   constructor(
     private readonly metadata: Storage,
-    private readonly sensitive: Storage,
+    private readonly sensitive: Storage
   ) {}
 
   private key(key: string) {
@@ -17,16 +27,16 @@ export class DataHost {
   }
 
   async enable() {
-    await this.metadata.setItem(this.key("enabled"), "true");
+    await this.metadata.setItem(this.key('enabled'), 'true');
   }
 
   async disable() {
-    await this.metadata.setItem(this.key("enabled"), "false");
+    await this.metadata.setItem(this.key('enabled'), 'false');
   }
 
   async isEnabled(): Promise<boolean> {
-    const value = await this.metadata.getItem(this.key("enabled"));
-    return value === "true";
+    const value = await this.metadata.getItem(this.key('enabled'));
+    return value === 'true';
   }
 
   async storeFact(fact: any) {
@@ -36,7 +46,7 @@ export class DataHost {
   }
 
   private array() {
-    return new StorageArray(this.sensitive, this.key("facts"));
+    return new StorageArray(this.sensitive, this.key('facts'));
   }
 
   public iter() {
@@ -48,7 +58,7 @@ export class DataHost {
   }
 
   async extensionProof(
-    latestProof: string | null,
+    latestProof: string | null
   ): Promise<string | undefined> {
     const currentTree = await this.currentTree();
     if (currentTree == null) return;
@@ -56,11 +66,11 @@ export class DataHost {
     if (latestProof == null) {
       return hexPrefix(prune_balanced(currentTree)!);
     } else {
-      const previousTree = latestProof.includes("x")
-        ? latestProof.split("x")[1]
+      const previousTree = latestProof.includes('x')
+        ? latestProof.split('x')[1]
         : latestProof;
-      const proof = strict_extension_proof(currentTree, previousTree);
-      return proof && hexPrefix(proof);
+      const proof = strict_extension_proof(currentTree, previousTree) as any as string;
+      return (proof && hexPrefix(proof)) as any as (Promise<string | undefined>);
     }
   }
 

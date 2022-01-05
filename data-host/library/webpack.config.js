@@ -1,7 +1,6 @@
 const path = require('path');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-
 module.exports = {
 
     target: 'web',
@@ -31,6 +30,10 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.wasm$/,
+        type: "webassembly/async"
+      }
     ],
   },
   resolve: {
@@ -57,13 +60,14 @@ module.exports = {
     globalObject: 'this',
     umdNamedDefine: true,
   },
-//   experiments: {
-    // asyncWebAssembly: true,
+  experiments: {
+    asyncWebAssembly: true,
+    syncWebAssembly: true,
     // buildHttp: true,
     // layers: true,
     // lazyCompilation: true,
     // outputModule: true,
     // futureDefaults: true,
-    // topLevelAwait: true,
-//   },
+    topLevelAwait: true,
+  },
 };

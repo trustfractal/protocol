@@ -11,6 +11,7 @@ import { Background } from '@trustfractal/data-host';
 
 //   console.log(store.getState())
     const background = new Background();
+console.log(background)
     background.addListeners();
     // store.subscribe(() => {
     //     // store.getState().webpages

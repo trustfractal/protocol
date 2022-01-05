@@ -15,7 +15,7 @@
     "dependencies": {
         "@hot-loader/react-dom": "^17.0.1",
         "@reduxjs/toolkit": "^1.6.0",
-        "@trustfractal/data-host": "file:../library/dist/",
+        "@trustfractal/data-host": "file:../library/dist",
         "@types/chrome": "0.0.132",
         "@types/react": "^17.0.2",
         "@types/react-dom": "^17.0.1",
@@ -43,7 +43,7 @@
         "babel-loader": "^8.2.2",
         "babel-preset-react-app": "^10.0.0",
         "clean-webpack-plugin": "^3.0.0",
-        "copy-webpack-plugin": "^7.0.0",
+        "copy-webpack-plugin": "^10.2.0",
         "css-loader": "^5.0.2",
         "eslint": "^7.20.0",
         "eslint-config-react-app": "^6.0.0",

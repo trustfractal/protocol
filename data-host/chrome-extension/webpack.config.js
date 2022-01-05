@@ -150,15 +150,6 @@ var options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'src/pages/Content/content.styles.css',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-      ],
-    }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
           from: 'src/assets/img/icon-128.png',
           to: path.join(__dirname, 'build'),
           force: true,
@@ -170,6 +161,16 @@ var options = {
         {
           from: 'src/assets/img/icon-34.png',
           to: path.join(__dirname, 'build'),
+          force: true,
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "*wasm",
+          context: "node_modules/@trustfractal/data-host/",
+          to:  path.join(__dirname, 'build'),
           force: true,
         },
       ],
@@ -208,15 +209,15 @@ var options = {
   infrastructureLogging: {
     level: 'info',
   },
-//   experiments: {
+  experiments: {
     // asyncWebAssembly: true,
     // buildHttp: true,
     // layers: true,
     // lazyCompilation: true,
     // outputModule: true,
-    // futureDefaults: true,
-    // topLevelAwait: true,
-//   },
+    futureDefaults: true,
+    topLevelAwait: true,
+  },
 };
 
 if (env.NODE_ENV === 'development') {
