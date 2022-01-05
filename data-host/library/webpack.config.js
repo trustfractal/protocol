@@ -57,13 +57,13 @@ module.exports = {
     globalObject: 'this',
     umdNamedDefine: true,
   },
-  experiments: {
-    asyncWebAssembly: true,
+//   experiments: {
+    // asyncWebAssembly: true,
     // buildHttp: true,
     // layers: true,
     // lazyCompilation: true,
     // outputModule: true,
-    // syncWebAssembly: true,
+    // futureDefaults: true,
     // topLevelAwait: true,
-  },
+//   },
 };

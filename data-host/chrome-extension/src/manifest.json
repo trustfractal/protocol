@@ -35,7 +35,7 @@
         }
     ],
     "devtools_page": "devtools.html",
-    "content_security_policy": "script-src 'self' blob: 'unsafe-eval' 'wasm-eval'; object-src 'self'",
+    "content_security_policy": "script-src 'self' 'wasm-eval' 'unsafe-eval'; object-src 'self'",
     "web_accessible_resources": [
         "content.styles.css",
         "icon-128.png",

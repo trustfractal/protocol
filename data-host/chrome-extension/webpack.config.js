@@ -208,6 +208,15 @@ var options = {
   infrastructureLogging: {
     level: 'info',
   },
+//   experiments: {
+    // asyncWebAssembly: true,
+    // buildHttp: true,
+    // layers: true,
+    // lazyCompilation: true,
+    // outputModule: true,
+    // futureDefaults: true,
+    // topLevelAwait: true,
+//   },
 };
 
 if (env.NODE_ENV === 'development') {
