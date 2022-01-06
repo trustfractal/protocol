@@ -1,1 +1,0 @@
-export const REDUX_PORT_NAME = 'REDUX_FRACTAL_DATA_HOST';

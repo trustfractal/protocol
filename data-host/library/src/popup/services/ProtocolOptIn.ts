@@ -67,7 +67,7 @@ export class ProtocolOptIn {
       await this.windows.openTab(this.livenessUrl + this.getAddress());
     });
   }
-  //TODO(melatron) the background process for adding facts uses this check.
+
   async checkOptIn() {
     const mnemonic = await this.getMnemonic();
     if (mnemonic == null) return;

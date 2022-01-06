@@ -3,10 +3,8 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 module.exports = {
-
-    target: 'web',
+  target: 'web',
   entry: './src/index.ts',
-//   devtool: 'inline-source-map',
   plugins: [
     new CleanWebpackPlugin({
       cleanStaleWebpackAssets: false,
@@ -56,14 +54,5 @@ module.exports = {
     libraryTarget: 'umd',
     globalObject: 'this',
     umdNamedDefine: true,
-  },
-//   experiments: {
-    // asyncWebAssembly: true,
-    // buildHttp: true,
-    // layers: true,
-    // lazyCompilation: true,
-    // outputModule: true,
-    // futureDefaults: true,
-    // topLevelAwait: true,
-//   },
+  }
 };

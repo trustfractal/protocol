@@ -59,18 +59,6 @@ function ProtocolState() {
         }
       };
 
-
-      /*TODO(melatron): We need logic similar to this pseudo code:
-      function showLiveness() {
-        if (!optedIn) return requestOptIn();
-        if (!identityRegistered(address)) {
-            return requestLiveness({
-            onClick: redirectTo(`fractal.id/protocol-liveness?address=${address}`)
-            });
-        }
-        return renderProtocolData();
-      }
-    */
     if (pageOverride != null) {
         return pageOverride;
       }
