@@ -1,9 +1,9 @@
-import styled from "styled-components";
-import { useState, useEffect } from "react";
 import { getUserAlerts } from "@services/Factory";
+import { useEffect, useState } from "react";
+import styled from "styled-components";
 
 export class UserAlerts {
-  public onMessage = (_: string) => {};
+  public onMessage = (_: string) => { console.log('onMessage')};
 
   send(message: string) {
     this.onMessage(message);

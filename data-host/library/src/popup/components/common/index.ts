@@ -11,3 +11,4 @@ export { default as PasswordInput } from '@common/PasswordInput';
 export { default as Text } from '@common/Text';
 export { default as Title } from '@common/Title';
 export { default as TopComponent } from '@common/TopComponent';
+export { default as Link } from '@common/Link';

@@ -10,6 +10,7 @@ import Text, {
   TextWeights,
 } from "@popup/components/common/Text";
 import { ActivityStackContext } from "@popup/containers/ActivityStack";
+import RoutesPaths from "@popup/routes/paths";
 import {
   getProtocolOptIn,
   getProtocolService,
@@ -18,6 +19,7 @@ import {
 import { formatBalance } from "@utils/FormatUtils";
 import { useLoadedState } from "@utils/ReactHooks";
 import React, { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 const NavbarContainer = styled.div`
@@ -97,8 +99,8 @@ const BalanceReservedLabel = styled.span`
 `;
 
 function DropdownMenu() {
+  const navigate = useNavigate();
   const mnemonic = useLoadedState(() => getProtocolOptIn().getMnemonic());
-
   const { updater: activityStack } = useContext(ActivityStackContext);
 
   const menuItems = [
@@ -125,9 +127,8 @@ function DropdownMenu() {
       label: "About",
       icon: IconNames.ABOUT,
       onClick: () => {
-          //TODO(melatron): Figure out how to show the about screen and then remove the console.log
-          console.log('About clicked.')
-      },
+          navigate(RoutesPaths.ABOUT)
+        },
     },
   ];
 

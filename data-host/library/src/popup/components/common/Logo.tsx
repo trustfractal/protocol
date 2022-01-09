@@ -1,4 +1,4 @@
-import Icon, { IconNames } from "@popup/components/common/Icon";
+import Icon, { IconNames } from "@common/Icon";
 import React from "react";
 import styled, { css } from "styled-components";
 
