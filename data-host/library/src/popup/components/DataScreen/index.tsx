@@ -8,10 +8,10 @@ import {
 } from "@components/Common";
 import { Minting } from "@components/DataScreen/Minting";
 import WebpageViews from "@components/DataScreen/WebpageViews";
-import { SendTokens } from "@components/SendTokens";
-import { ActivityStackContext } from "@containers/ActivityStack";
+import RoutesPaths from "@popup/routes/paths";
 import { getProtocolOptIn } from "@services/Factory";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components"
 
 const AddressContainer = styled.div`
@@ -86,7 +86,7 @@ function AddLiveness() {
 
 function DataScreen() {
   const [address, setAddress] = useState<string>();
-  const { updater: activityStack } = useContext(ActivityStackContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (() => {
@@ -105,9 +105,7 @@ function DataScreen() {
       <Address address={address} />
       <Button
         onClick={() =>
-          activityStack.push(
-            <SendTokens onFinish={() => activityStack.pop()} />,
-          )
+            navigate(RoutesPaths.SEND)
         }
       >
         Send FCL

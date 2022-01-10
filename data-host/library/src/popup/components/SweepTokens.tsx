@@ -11,19 +11,20 @@ import {
 import { getProtocolService } from "@services/Factory";
 import { useLoadedState } from "@utils/ReactHooks";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-
 const FCL_UNIT = BigInt(10 ** 12);
 
-export function SweepTokens(props: { onFinish: () => void }) {
+export function SweepTokens(props: { onFinish: string }) {
+    const navigate = useNavigate();
   const [page, setPage] = useState<JSX.Element | null>(null);
 
   const specifySend = (
     <SpecifyFrom
       onComplete={(hash) => {
-        setPage(<SendComplete onFinish={props.onFinish} hash={hash} />);
+        setPage(<SendComplete onFinish={() => navigate(props.onFinish)} hash={hash} />);
       }}
-      onCancel={props.onFinish}
+      onCancel={() => navigate(props.onFinish)}
     />
   );
 

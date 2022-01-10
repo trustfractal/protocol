@@ -11,11 +11,13 @@ import {
 } from "@popup/components/Common";
 import { getProtocolService } from "@services/Factory";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 const FCL_UNIT = BigInt(10 ** 12);
 
-export function SendTokens(props: { onFinish: () => void }) {
+export function SendTokens(props: { onFinish: string }) {
+    const navigate = useNavigate();
   const [page, setPage] = useState<"specify" | "confirm" | JSX.Element>(
     "specify",
   );
@@ -32,6 +34,7 @@ export function SendTokens(props: { onFinish: () => void }) {
       amount={amount}
       onChangeAmount={setAmount}
       onContinue={() => setPage("confirm")}
+      onCancel={() => navigate(props.onFinish)}
     />
   );
 
@@ -45,7 +48,7 @@ export function SendTokens(props: { onFinish: () => void }) {
           destination,
           amount,
         );
-        setPage(<SendComplete onFinish={props.onFinish} hash={hash} />);
+        setPage(<SendComplete onFinish={() => navigate(props.onFinish)} hash={hash} />);
         setLoading(false);
       }}
       onCancel={() => setPage("specify")}
@@ -68,11 +71,12 @@ function SpecifySend(props: {
   amount: bigint;
   onChangeAmount: (a: bigint) => void;
   onContinue: () => void;
+  onCancel: () => void;
 }) {
   const addressError = getAddressError(props.address);
   const validAmount = props.amount > BigInt(0);
   const isValid = addressError == null && validAmount;
-
+  const [loading] = useState(false);
   return (
     <ScreenContainer>
       <VerticalSequence>
@@ -111,10 +115,14 @@ function SpecifySend(props: {
             <BreakStrong>{props.address}</BreakStrong>
           </>
         ) : null}
-
+        <HorizontalContainer>
+        <Button alternative loading={loading} onClick={props.onCancel}>
+            Cancel
+        </Button>
         <Cta disabled={!isValid} onClick={props.onContinue}>
           Send
         </Cta>
+        </HorizontalContainer>
       </VerticalSequence>
     </ScreenContainer>
   );
