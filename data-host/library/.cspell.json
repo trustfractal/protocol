@@ -42,7 +42,8 @@
         "focusring",
         "textfield",
         "melatron",
-        "Enviroment"
+        "Enviroment",
+        "Discardable"
     ],
     "flagWords": [],
     "ignorePaths": [
