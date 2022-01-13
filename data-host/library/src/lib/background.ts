@@ -24,11 +24,7 @@ export class Background {
     //TODO(melatron): Create more generic method that handles all type of messages (for different facts)
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
-    chrome.runtime.onMessage.addListener((
-      request,
-      _sender,
-      sendResponse
-    ) => {
+    chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       self.addWebpage(request.content.hostname);
       sendResponse();
     });
