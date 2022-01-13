@@ -61,13 +61,10 @@ export class ProtocolOptIn {
 
   async postOptInLiveness() {
     await this.tryRegisterIdentity(async () => {
-      //TODO(melatron): implement the windows service as interface so that it is not chrome extension specific.
-      console.log(this.livenessUrl + this.getAddress());
-      console.log(this.windows);
       await this.windows.openTab(this.livenessUrl + this.getAddress());
     });
   }
-
+  //TODO(melatron) the background process for adding facts uses this check.
   async checkOptIn() {
     const mnemonic = await this.getMnemonic();
     if (mnemonic == null) return;

@@ -40,7 +40,10 @@ impl Ingested {
     pub fn load_block(&self, number: u64) -> anyhow::Result<Option<Block>> {
         match self.blocks.get(&number) {
             Some(block) => Ok(Some(block.clone())),
-            None => Ok(self.load(number)?.map(|(block, _extrinsics)| block)),
+            None => {
+                log::debug!("Loading block {}", number);
+                Ok(self.load(number)?.map(|(block, _extrinsics)| block))
+            }
         }
     }
 
@@ -62,13 +65,13 @@ impl Ingested {
 
             while let Some(block_row) = blocks.next()? {
                 let block: Block = serde_json::from_str(block_row.get(&"json"))?;
-                let number: i64 = block_row.get(&"number");
+                let number = block_row.get::<_, i64>(&"number") as u64;
 
-                if (number as u64) == load_block {
+                if number == load_block {
                     result = Some((block.clone(), HashMap::new()));
                 }
 
-                self.blocks.insert(number as u64, block);
+                self.blocks.insert(number, block);
             }
             drop(blocks);
 
@@ -103,15 +106,18 @@ impl Ingested {
                 *unseen = std::cmp::max(index + 1, *unseen);
             }
 
+            let fewer_extrinsics_than_limit = extrinsic_count < limit;
+
             for (block, unseen) in &largest_unseen_extrinsic {
-                if largest_unseen_extrinsic.contains_key(&(block + 1)) {
+                if largest_unseen_extrinsic.contains_key(&(block + 1))
+                    || fewer_extrinsics_than_limit
+                {
                     self.extrinsics.insert((*block, *unseen), None);
                 }
             }
 
             let seen_extrinsics_for_next_block =
                 largest_unseen_extrinsic.keys().any(|&k| k > load_block);
-            let fewer_extrinsics_than_limit = extrinsic_count < limit;
             if seen_extrinsics_for_next_block || fewer_extrinsics_than_limit {
                 return Ok(result);
             }
@@ -127,6 +133,7 @@ impl Ingested {
         if let Some(extr) = self.extrinsics.get(&(block, index)) {
             return Ok(extr.clone());
         }
+        log::debug!("Loading extrinsic {}/{}", block, index);
         Ok(self
             .load(block)?
             .and_then(|(_block, mut extrs)| extrs.remove(&index)))
