@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 export class UserAlerts {
-  public onMessage = (_: string) => { console.log('onMessage')};
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  public onMessage = (_: string) => { };
 
   send(message: string) {
     this.onMessage(message);

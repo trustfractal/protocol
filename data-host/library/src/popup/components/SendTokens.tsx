@@ -76,7 +76,6 @@ function SpecifySend(props: {
   const addressError = getAddressError(props.address);
   const validAmount = props.amount > BigInt(0);
   const isValid = addressError == null && validAmount;
-  const [loading] = useState(false);
   return (
     <ScreenContainer>
       <VerticalSequence>
@@ -116,7 +115,7 @@ function SpecifySend(props: {
           </>
         ) : null}
         <HorizontalContainer>
-        <Button alternative loading={loading} onClick={props.onCancel}>
+        <Button onClick={props.onCancel}>
             Cancel
         </Button>
         <Cta disabled={!isValid} onClick={props.onContinue}>
