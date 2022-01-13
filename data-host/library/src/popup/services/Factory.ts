@@ -60,7 +60,7 @@ export function getProtocolService(mnemonic?: string) {
       : null;
 
     protocol = new ProtocolService(getApi(), signer, getDataHost());
-    //TODO(melatron): The way signer is set feels really wrong. Needs to be refactored. Currently
+    //TODO(melatron): Refactor dependencies between different services.
     getProtocolOptIn()
       .getMnemonic()
       .then(async (mnemonic) => {

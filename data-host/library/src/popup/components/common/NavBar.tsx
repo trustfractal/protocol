@@ -131,15 +131,6 @@ function DropdownMenu() {
     },
   ];
 
-  if (environment.IS_DEV) {
-       //TODO(melatron): Remove
-    // menuItems.push({
-    //   label: "Clear Tokens",
-    //   icon: IconNames.INVALID,
-    //   onClick: () => getFractalAccountConnector().clearTokens(),
-    // });
-  }
-
   return <Menu items={menuItems} />;
 }
 
