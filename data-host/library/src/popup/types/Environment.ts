@@ -4,4 +4,5 @@ export type Environment = {
   PROTOCOL_RPC_ENDPOINT: string;
   PROTOCOL_CURRENCY: string;
   PROTOCOL_JOURNEY_URL: string;
+  LIVENESS_CHECK_URL: string;
 };

@@ -10,15 +10,9 @@ import { Minting } from "@components/DataScreen/Minting";
 import WebpageViews from "@components/DataScreen/WebpageViews";
 import { SendTokens } from "@components/SendTokens";
 import { ActivityStackContext } from "@containers/ActivityStack";
-import Wallet from "@models/Wallet";
 import { getProtocolOptIn } from "@services/Factory";
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components"
-
-
-interface AddressProps {
-  wallet: Wallet;
-}
 
 const AddressContainer = styled.div`
   display: flex;
@@ -42,15 +36,19 @@ const LineWithCopy = styled.div`
   }
 `;
 
-function Address({ wallet }: AddressProps) {
+interface AddressProps {
+    address: string;
+}
+
+function Address({ address }: AddressProps) {
   return (
     <AddressContainer>
       <BoldText>Your Address</BoldText>
 
       <LineWithCopy>
-        <Subsubtitle>{wallet.address}</Subsubtitle>
+        <Subsubtitle>{address}</Subsubtitle>
 
-        <Copy onClick={() => navigator.clipboard.writeText(wallet.address)} />
+        <Copy onClick={() => navigator.clipboard.writeText(address)} />
       </LineWithCopy>
     </AddressContainer>
   );
@@ -87,24 +85,24 @@ function AddLiveness() {
 }
 
 function DataScreen() {
-  const [wallet, setWallet] = useState<Wallet>();
+  const [address, setAddress] = useState<string>();
   const { updater: activityStack } = useContext(ActivityStackContext);
 
   useEffect(() => {
-    (async () => {
-      const mnemonic = await getProtocolOptIn().getMnemonic();
-      if (mnemonic) setWallet(Wallet.fromMnemonic(mnemonic));
+    (() => {
+      const address = getProtocolOptIn().getAddress();
+      if (address) setAddress(address);
     })();
   }, []);
 
-  if (!wallet || !wallet.address) return <></>;
+  if (!address) return <></>;
 
   return (
     <VerticalSequence>
       <AddLiveness />
       <Minting />
       <WebpageViews />
-      <Address wallet={wallet} />
+      <Address address={address} />
       <Button
         onClick={() =>
           activityStack.push(

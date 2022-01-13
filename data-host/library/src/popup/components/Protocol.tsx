@@ -1,3 +1,4 @@
+import withNavBar from '@common/NavBar';
 import TopComponent from '@common/TopComponent';
 import DataScreen from "@components/DataScreen";
 import Loading from "@components/Loading";
@@ -95,4 +96,4 @@ function Protocol() {
     );
   }
 
-  export default Protocol;
+  export default withNavBar(Protocol);
