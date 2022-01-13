@@ -1,7 +1,8 @@
+use derive_more::*;
 use serde::*;
 use shared_lru::MemorySize;
 
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Clone, PartialEq, Eq, Debug, ramhorns::Content)]
 #[serde(deny_unknown_fields)]
 pub struct Block {
     pub hash: String,
@@ -17,9 +18,24 @@ impl MemorySize for Block {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Deserialize, Clone, PartialEq, Eq, Debug, Deref, DerefMut)]
 #[serde(deny_unknown_fields)]
 pub struct Extrinsic {
+    #[serde(flatten)]
+    #[deref]
+    #[deref_mut]
+    pub without_json: ExtrinsicNoJson,
+
+    pub args: serde_json::Value,
+    pub error: Option<serde_json::Value>,
+}
+
+// TODO(shelbyd): Remove once ramhorns supports serde_json::Value.
+#[derive(Deserialize, Clone, PartialEq, Eq, Debug, ramhorns::Content)]
+#[serde(deny_unknown_fields)]
+pub struct ExtrinsicNoJson {
+    pub hash: String,
+
     pub block: String,
     pub index_in_block: u64,
 
@@ -29,9 +45,6 @@ pub struct Extrinsic {
     pub section: String,
     pub method: String,
     pub success: bool,
-
-    pub args: serde_json::Value,
-    pub error: Option<serde_json::Value>,
 }
 
 impl MemorySize for Extrinsic {

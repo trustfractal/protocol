@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-around;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 @media screen and (max-width: 768px) {
@@ -17,7 +17,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: center;
+    align-items: stretch;
   }
 }
 
@@ -25,7 +25,6 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
 }
 </style>
 
@@ -67,17 +66,23 @@ new Chart(canvas, {
 
 <div class="deltas">
   {{#latest}}
-    <div class="data">
-      <h3>Latest</h3>
-      <p>Block: {{block}}</p>
-      <p>Count: {{count}}</p>
+    <div class="card data">
+      <div class="card-content">
+        <span class="card-title">Latest</span>
+
+        <p>Block: <a href="/block/{{block}}">{{block}}</a></p>
+        <p>Count: {{count}}</p>
+      </div>
     </div>
   {{/latest}}
 
   {{#deltas}}
-    <div class="data">
-      <h3>Change from Previous {{name}}</h3>
-      <p>+{{amount}} (+{{percent}}%)</p>
+    <div class="card data">
+      <div class="card-content">
+        <span class="card-title">Change from Previous {{name}}</span>
+
+        <p>+{{amount}} (+{{percent}}%)</p>
+      </div>
     </div>
   {{/deltas}}
 </div>

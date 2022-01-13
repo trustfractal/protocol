@@ -1,29 +1,18 @@
-use actix_web::{error::BlockingError, *};
+use actix_web::{error::*, *};
 use block_pool::Pool;
-use derive_more::*;
 use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
-pub fn service() -> Scope {
-    web::scope("/")
-        .data(templates().unwrap())
-        .service(web::resource("/metrics/identities").to(metrics_identities))
+use crate::data::*;
+
+pub fn resources() -> Vec<Resource> {
+    vec![
+        web::resource("/").to(home),
+        web::resource("/metrics/identities").to(metrics_identities),
+    ]
 }
 
-#[derive(Debug, Display, Error)]
-struct Error {
-    error: anyhow::Error,
-}
-
-impl From<anyhow::Error> for Error {
-    fn from(error: anyhow::Error) -> Self {
-        Error { error }
-    }
-}
-
-impl error::ResponseError for Error {}
-
-fn templates() -> anyhow::Result<Ramhorns> {
+pub fn templates() -> anyhow::Result<Ramhorns> {
     let mod_file = std::path::PathBuf::from(file!());
     let pages = mod_file.parent().unwrap();
     Ok(Ramhorns::from_folder(pages)?)
@@ -37,14 +26,19 @@ struct Page {
 fn html_page(
     templates: web::Data<Ramhorns>,
     content: impl ToString,
-) -> anyhow::Result<HttpResponse> {
+) -> actix_web::Result<HttpResponse> {
     let page = Page {
         page: content.to_string(),
     };
 
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(templates.get("root.html").unwrap().render(&page)))
+        .body(
+            templates
+                .get("root.html")
+                .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
+                .render(&page),
+        ))
 }
 
 #[derive(Content)]
@@ -93,7 +87,7 @@ impl Delta {
 async fn metrics_identities(
     templates: web::Data<Ramhorns>,
     pg: web::Data<Pool<postgres::Client>>,
-) -> Result<HttpResponse, Error> {
+) -> actix_web::Result<HttpResponse> {
     let deltas = {
         const DAY: u64 = 14400;
 
@@ -112,7 +106,8 @@ async fn metrics_identities(
         let include = include_block_deltas.clone();
         crate::indexing::identities::get_counts(1000, include, &mut pg)
     })
-    .await?;
+    .await
+    .map_err(ErrorInternalServerError)?;
 
     let deltas = deltas
         .into_iter()
@@ -137,7 +132,7 @@ async fn metrics_identities(
 
     let page = templates
         .get("metrics/identities.html")
-        .ok_or(anyhow::anyhow!("Could not find template"))?
+        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&counts);
     Ok(html_page(templates, page)?)
 }
@@ -171,4 +166,55 @@ where
             }
         }
     }
+}
+
+pub async fn not_found() -> actix_web::Result<String> {
+    Err(error::ErrorNotFound("Not Found"))
+}
+
+#[derive(Content)]
+struct HomeData {
+    blocks: Vec<Block>,
+    extrinsics: Vec<ExtrinsicNoJson>,
+}
+
+async fn home(
+    templates: web::Data<Ramhorns>,
+    pg: web::Data<Pool<postgres::Client>>,
+) -> actix_web::Result<HttpResponse> {
+    let home_data = retry_blocking(move || get_home_data(&mut pg.take()))
+        .await
+        .map_err(ErrorInternalServerError)?;
+
+    let page = templates
+        .get("home.html")
+        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
+        .render(&home_data);
+    Ok(html_page(templates, page)?)
+}
+
+fn get_home_data(pg: &mut postgres::Client) -> anyhow::Result<HomeData> {
+    let blocks = pg
+        .query(
+            "SELECT json FROM block_json ORDER BY number DESC LIMIT 20",
+            &[],
+        )?
+        .into_iter()
+        .map(|row| serde_json::from_str(row.get(&"json")))
+        .collect::<Result<_, _>>()?;
+
+    let extrinsics = pg
+        .query(
+            "SELECT json FROM extrinsic_json
+            WHERE
+                CAST(json AS json)->>'section' != 'timestamp' AND
+                CAST(json AS json)->>'success' = 'true'
+            ORDER BY block_number DESC, index LIMIT 20",
+            &[],
+        )?
+        .into_iter()
+        .map(|row| serde_json::from_str(row.get(&"json")).map(|e: Extrinsic| e.without_json))
+        .collect::<Result<_, _>>()?;
+
+    Ok(HomeData { blocks, extrinsics })
 }

@@ -117,6 +117,13 @@ class PostgresStorage {
     await postgres.query(`DELETE FROM key_values WHERE key ~ 'block/\\d+$'`);
     await postgres.query(`DELETE FROM key_values WHERE key ~ 'block/\\d+/extrinsic/\\d+$'`);
 
+    if (version < 2) {
+      // Restart ingestion to include Extrinsic hash.
+      await storage.setFullyIngested(null);
+      await postgres.query(`TRUNCATE extrinsic_json`);
+      await storage.setKey('ingestion/version', 2);
+    }
+
     console.log('Done with migrations');
     return storage;
   }
@@ -132,18 +139,28 @@ class PostgresStorage {
   }
 
   async setKey(key, value) {
+    if (value == null) {
+      return await this.pg.query(`DELETE FROM key_values WHERE key = '${key}'`);
+    }
+
+    let string;
+    if (typeof value === 'string') {
+      string = value;
+    } else {
+      string = JSON.stringify(value);
+    }
     await this.pg.query(`
-      INSERT INTO key_values (key, value) VALUES ('${key}', '${value}')
-      ON CONFLICT (key) DO UPDATE SET value='${value}'
+      INSERT INTO key_values (key, value) VALUES ('${key}', '${string}')
+      ON CONFLICT (key) DO UPDATE SET value='${string}'
     `);
   }
 
   async setFullyIngested(number) {
-    await this.setKey('ingestion/fully_ingested', number.toString());
+    await this.setKey('ingestion/fully_ingested', number);
   }
 
   async setLargestBlock(number) {
-    await this.setKey('ingestion/largest', number.toString());
+    await this.setKey('ingestion/largest', number);
   }
 
   async saveBlock(number, blockData) {
@@ -289,6 +306,7 @@ async function ingestBlock(blockNumber, api, storage) {
     }
 
     const extrData = {
+      hash: extr.hash.toHex(),
       block: hash.toHex(),
       index_in_block: index,
       signer: extr.toHuman().signer?.Id,
