@@ -8,7 +8,6 @@ module.exports = {
     "<rootDir>/src"
   ],
   testRegex: "(\\.(test|spec))\\.(ts|tsx|js)$",
-
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths , { prefix: '<rootDir>/' }  ),
   preset: 'ts-jest/presets/js-with-babel',
   transformIgnorePatterns: ['<rootDir>/node_modules/(?!@polkadot|@babel/runtime/helpers/esm/)'],
