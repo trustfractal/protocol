@@ -1,7 +1,7 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
 // In the following statement, replace `./tsconfig` with the path to your `tsconfig` file
 // which contains the path mapping (ie the `compilerOptions.paths` option):
-const { compilerOptions } = require('./tsconfig.test.json');
+const { compilerOptions } = require('./tsconfig.json');
 
 module.exports = {
   roots: [
@@ -11,10 +11,5 @@ module.exports = {
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths , { prefix: '<rootDir>/' }  ),
   preset: 'ts-jest/presets/js-with-babel',
   transformIgnorePatterns: ['<rootDir>/node_modules/(?!@polkadot|@babel/runtime/helpers/esm/)'],
-  setupFilesAfterEnv: ["<rootDir>/setupTests.ts"],
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.test.json'
-    }
-  }
+  setupFilesAfterEnv: ["<rootDir>/setupTests.ts"]
 };
