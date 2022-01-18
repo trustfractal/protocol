@@ -1399,6 +1399,7 @@
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/@trustfractal/data-host/-/data-host-1.0.6.tgz#a3eefaf54f5cd36bb32d1f0168892e33d4457325"
   integrity sha512-03/OMZNKSS8HSUS7ffvIxlh8aZmrryzGDFdvOq2qRRyW73NfOeUTQWt2u04Ll+Dc5rAZCbIIvq4rjp1l7Zb4Kw==
+
   dependencies:
     "@hot-loader/react-dom" "^17.0.1"
     "@polkadot/api" "^6.8.1"
