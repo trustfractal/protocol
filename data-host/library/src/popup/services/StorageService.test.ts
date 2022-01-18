@@ -8,8 +8,8 @@ import {
 } from '@services/StorageService';
 import { chrome } from 'jest-chrome';
 
-console.error = jest.fn();
 describe('Unit Storage Service', () => {
+  console.error = jest.fn();
   describe('hasItem()', () => {
     afterEach(() => {
       jest.resetAllMocks();

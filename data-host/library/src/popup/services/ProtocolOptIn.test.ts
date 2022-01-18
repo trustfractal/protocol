@@ -14,13 +14,13 @@ class MockStorage {
   }
 }
 
-type testOptions = {
+type TestOptions = {
   [key: string]: jest.Mock<any, any>;
 };
 
 describe('ProtocolOptIn', () => {
   function createSpyObj(props: any[]) {
-    const obj: testOptions = {};
+    const obj: TestOptions = {};
     for (const prop of props) {
       obj[prop] = jest.fn().mockName(prop);
     }
@@ -89,16 +89,6 @@ describe('ProtocolOptIn', () => {
 
   describe('postOptInLiveness', () => {
     it('tries to ensureIdentityRegistered', async () => {
-      const { protocol, optIn } = graph();
-
-      await optIn.optIn('some mnemonic');
-
-      await optIn.postOptInLiveness();
-
-      expect(protocol.ensureIdentityRegistered).toHaveBeenCalled();
-    });
-
-    it('sets liveness on instances', async () => {
       const { protocol, optIn } = graph();
 
       await optIn.optIn('some mnemonic');
