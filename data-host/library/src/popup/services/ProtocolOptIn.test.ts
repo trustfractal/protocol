@@ -107,24 +107,6 @@ describe('ProtocolOptIn', () => {
 
       expect(protocol.ensureIdentityRegistered).toHaveBeenCalled();
     });
-
-    it('opens liveness journey if no liveness', async () => {
-      const { optIn, windows, livenessUrl } = graph();
-
-      await optIn.optIn('some mnemonic');
-      await optIn.postOptInLiveness();
-
-      expect(windows.openTab).toHaveBeenCalledWith(livenessUrl);
-    });
-  });
-
-  describe('re-opting in', () => {
-    it('is not opted-in when active network changes', async () => {
-      const { optIn } = graph();
-      await optIn.optIn('some mnemonic');
-
-      expect(await optIn.isOptedIn()).toEqual(false);
-    });
   });
 
   describe('checkOptIn', () => {
