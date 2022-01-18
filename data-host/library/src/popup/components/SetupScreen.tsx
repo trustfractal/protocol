@@ -1,4 +1,3 @@
-
 import {
   Cta,
   Icon,
@@ -6,9 +5,8 @@ import {
   Subtitle,
   Title,
   VerticalSequence,
-} from "@components/Common";
-import { useEffect, useState } from "react";
-
+} from '@components/Common';
+import { useEffect, useState } from 'react';
 
 export function SetupSuccess({
   onContinue,

@@ -61,7 +61,6 @@ export class ProtocolOptIn {
 
   async postOptInLiveness() {
     await this.tryRegisterIdentity(async () => {
-      //TODO(melatron): implement the windows service as interface so that it is not chrome extension specific.
       await this.windows.openTab(this.livenessUrl + this.getAddress());
     });
   }

@@ -1,12 +1,7 @@
-
-import Icon, { IconNames } from "@common/Icon";
-import LevelIcon from "@common/LevelIcon";
-import Text, {
-  TextHeights,
-  TextSizes,
-  TextWeights,
-} from "@common/Text";
-import styled from "styled-components";
+import Icon, { IconNames } from '@common/Icon';
+import LevelIcon from '@common/LevelIcon';
+import Text, { TextHeights, TextSizes, TextWeights } from '@common/Text';
+import styled from 'styled-components';
 
 export interface HeroProps {
   title: string;
@@ -23,7 +18,7 @@ export function Hero(props: HeroProps) {
             <LevelIcon level="plus" />
           </HeaderIcon>
           <Text
-            style={{ color: "var(--c-dark-blue)" }}
+            style={{ color: 'var(--c-dark-blue)' }}
             weight={TextWeights.BOLD}
           >
             {props.title}
@@ -92,7 +87,7 @@ export function Activated({ text, icon }: { text?: string; icon?: string }) {
   return (
     <ActivatedContainer>
       <Text size={TextSizes.SMALL} height={TextHeights.SMALL}>
-        {text || "Activated"}
+        {text || 'Activated'}
       </Text>
       <ActivationIcon>
         <Icon name={icon || IconNames.VALID} width="24" height="24" />
@@ -129,15 +124,15 @@ export function HeroLink(props: HeroLinkProps) {
 
 const LinkContainer = styled.button<{ isExit?: boolean }>`
   display: flex;
-  flex-direction: ${(props) => (props.isExit ? "row-reverse" : "row")};
+  flex-direction: ${(props) => (props.isExit ? 'row-reverse' : 'row')};
   align-items: center;
   justify-content: space-between;
 
   padding: var(--s-20) var(--s-12);
 
   background-color: ${(props) =>
-    props.isExit ? "var(--c-orange)" : "var(--c-white)"};
-  color: ${(props) => (props.isExit ? "var(--c-white)" : "var(--c-orange)")};
+    props.isExit ? 'var(--c-orange)' : 'var(--c-white)'};
+  color: ${(props) => (props.isExit ? 'var(--c-white)' : 'var(--c-orange)')};
 
   text-transform: uppercase;
   border-bottom: 1px solid rgba(19, 44, 83, 0.2);

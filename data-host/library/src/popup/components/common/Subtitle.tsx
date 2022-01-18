@@ -1,5 +1,5 @@
-import React from "react";
-import styled from "styled-components";
+import React from 'react';
+import styled from 'styled-components';
 
 interface Props {
   underline?: boolean;
@@ -11,12 +11,12 @@ interface Props {
 }
 
 const Root = styled.h3<Props>`
-  font-size: ${(props) => props.fontSize || "var(--s-16)"};
-  font-variant: ${(props) => (props.uppercase ? "small-caps" : "normal")};
-  line-height: ${(props) => props.lineHeight || "var(--s-24)"};
-  text-transform: ${(props) => (props.uppercase ? "uppercase" : "none")};
-  text-decoration: ${(props) => (props.underline ? "underline" : "none")};
-  text-align: ${(props) => (props.center ? "center" : "inherit")};
+  font-size: ${(props) => props.fontSize || 'var(--s-16)'};
+  font-variant: ${(props) => (props.uppercase ? 'small-caps' : 'normal')};
+  line-height: ${(props) => props.lineHeight || 'var(--s-24)'};
+  text-transform: ${(props) => (props.uppercase ? 'uppercase' : 'none')};
+  text-decoration: ${(props) => (props.underline ? 'underline' : 'none')};
+  text-align: ${(props) => (props.center ? 'center' : 'inherit')};
 
   color: var(--c-white);
   opacity: 0.6;
@@ -37,7 +37,7 @@ function Subtitle(props: React.HTMLProps<HTMLHeadingElement> & Props) {
 }
 
 export function Subsubtitle(
-  props: React.HTMLProps<HTMLHeadingElement> & Props,
+  props: React.HTMLProps<HTMLHeadingElement> & Props
 ) {
   const { children, underline, uppercase, center } = props;
 
@@ -48,6 +48,7 @@ export function Subsubtitle(
       underline={underline}
       uppercase={uppercase}
       center={center}
+      // eslint-disable-next-line react/prop-types
       style={props.style}
     >
       {children}

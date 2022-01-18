@@ -1,24 +1,24 @@
-import Menu from "@common/Menu";
-import { SweepTokens } from "@components/SweepTokens";
-import type { AccountData, Balance } from "@polkadot/types/interfaces";
+import Menu from '@common/Menu';
+import type { AccountData, Balance } from '@polkadot/types/interfaces';
 import { environment } from '@popup/Environment';
-import { IconNames } from "@popup/components/common/Icon";
-import Logo, { LogoSizes } from "@popup/components/common/Logo";
+import { IconNames } from '@popup/components/common/Icon';
+import Logo, { LogoSizes } from '@popup/components/common/Logo';
 import Text, {
   TextHeights,
   TextSizes,
   TextWeights,
-} from "@popup/components/common/Text";
-import { ActivityStackContext } from "@popup/containers/ActivityStack";
+} from '@popup/components/common/Text';
+import { RoutesPaths } from '@popup/routes';
 import {
   getProtocolOptIn,
   getProtocolService,
   getUserAlerts,
-} from "@services/Factory";
-import { formatBalance } from "@utils/FormatUtils";
-import { useLoadedState } from "@utils/ReactHooks";
-import React, { useContext, useEffect, useState } from "react";
-import styled from "styled-components";
+} from '@services/Factory';
+import { formatBalance } from '@utils/FormatUtils';
+import { useLoadedState } from '@utils/ReactHooks';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 
 const NavbarContainer = styled.div`
   display: flex;
@@ -88,7 +88,7 @@ const BalanceFree = styled.span`
 `;
 
 const BalanceReserved = styled.span<{ isPositive: boolean }>`
-  color: ${(props) => (props.isPositive ? "var(--c-green)" : "var(--c-red)")};
+  color: ${(props) => (props.isPositive ? 'var(--c-green)' : 'var(--c-red)')};
   margin-right: var(--s-3);
 `;
 
@@ -97,36 +97,32 @@ const BalanceReservedLabel = styled.span`
 `;
 
 function DropdownMenu() {
+  const navigate = useNavigate();
   const mnemonic = useLoadedState(() => getProtocolOptIn().getMnemonic());
-
-  const { updater: activityStack } = useContext(ActivityStackContext);
 
   const menuItems = [
     {
-      label: "Backup protocol wallet",
+      label: 'Backup protocol wallet',
       icon: IconNames.IMPORT,
       onClick: async () => {
-        await navigator.clipboard.writeText(mnemonic.unwrapOrDefault("")!);
-        getUserAlerts().send("Mnemonic copied to clipboard!");
+        await navigator.clipboard.writeText(mnemonic.unwrapOrDefault('')!);
+        getUserAlerts().send('Mnemonic copied to clipboard!');
       },
       disabled: !mnemonic.isLoaded || mnemonic.value == null,
     },
     {
-      label: "Sweep funds",
+      label: 'Sweep funds',
       icon: IconNames.FRACTAL_TOKEN,
       onClick: () => {
-        activityStack.push(
-          <SweepTokens onFinish={() => activityStack.pop()} />,
-        );
+        navigate(RoutesPaths.SWEEP);
       },
       disabled: !mnemonic.isLoaded || mnemonic.value == null,
     },
     {
-      label: "About",
+      label: 'About',
       icon: IconNames.ABOUT,
       onClick: () => {
-          //TODO(melatron): Figure out how to show the about screen and then remove the console.log
-          console.log('About clicked.')
+        navigate(RoutesPaths.ABOUT);
       },
     },
   ];
@@ -151,7 +147,7 @@ function ProtocolReservedBalance({ reserved }: { reserved: Balance }) {
           height={TextHeights.MEDIUM}
           weight={TextWeights.BOLD}
         >
-          {isPositive ? "+" : "-"}
+          {isPositive ? '+' : '-'}
           {formatBalance(reservedHuman)}
         </Text>
       </BalanceReserved>
@@ -262,8 +258,9 @@ function Navbar() {
 const withNavBar =
   <P extends object>(
     Component: React.ComponentType<P>,
-    withNavBarComponent = true,
+    withNavBarComponent = true
   ) =>
+  // eslint-disable-next-line react/display-name
   (props: any) => {
     const ref = React.createRef<HTMLDivElement>();
 
@@ -277,4 +274,4 @@ const withNavBar =
     );
   };
 
-  export default withNavBar
+export default withNavBar;

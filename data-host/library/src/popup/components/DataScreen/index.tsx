@@ -1,18 +1,18 @@
-import Copy from "@assets/copy.svg";
-import Button from "@common/Button";
+import Copy from '@assets/copy.svg';
+import Button from '@common/Button';
 import {
   BoldText,
   Subsubtitle,
   Text,
   VerticalSequence,
-} from "@components/Common";
-import { Minting } from "@components/DataScreen/Minting";
-import WebpageViews from "@components/DataScreen/WebpageViews";
-import { SendTokens } from "@components/SendTokens";
-import { ActivityStackContext } from "@containers/ActivityStack";
-import { getProtocolOptIn } from "@services/Factory";
-import { useContext, useEffect, useState } from "react";
-import styled from "styled-components"
+} from '@components/Common';
+import { Minting } from '@components/DataScreen/Minting';
+import WebpageViews from '@components/DataScreen/WebpageViews';
+import { RoutesPaths } from '@popup/routes';
+import { getProtocolOptIn } from '@services/Factory';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 
 const AddressContainer = styled.div`
   display: flex;
@@ -37,7 +37,7 @@ const LineWithCopy = styled.div`
 `;
 
 interface AddressProps {
-    address: string;
+  address: string;
 }
 
 function Address({ address }: AddressProps) {
@@ -86,7 +86,7 @@ function AddLiveness() {
 
 function DataScreen() {
   const [address, setAddress] = useState<string>();
-  const { updater: activityStack } = useContext(ActivityStackContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (() => {
@@ -103,15 +103,7 @@ function DataScreen() {
       <Minting />
       <WebpageViews />
       <Address address={address} />
-      <Button
-        onClick={() =>
-          activityStack.push(
-            <SendTokens onFinish={() => activityStack.pop()} />,
-          )
-        }
-      >
-        Send FCL
-      </Button>
+      <Button onClick={() => navigate(RoutesPaths.SEND)}>Send FCL</Button>
     </VerticalSequence>
   );
 }

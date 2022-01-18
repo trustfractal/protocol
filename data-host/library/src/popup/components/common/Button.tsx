@@ -1,6 +1,6 @@
-import Spinner from "@popup/components/common/Spinner";
-import React from "react";
-import styled, { css } from "styled-components";
+import Spinner from '@popup/components/common/Spinner';
+import React from 'react';
+import styled, { css } from 'styled-components';
 
 const Root = styled.button<{
   alternative: boolean;
@@ -78,7 +78,7 @@ Button.defaultProps = {
 };
 
 export function Button(
-  props: ButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>,
+  props: ButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>
 ) {
   const { loading, disabled, children, leftIcon, rightIcon, ...otherProps } =
     props;

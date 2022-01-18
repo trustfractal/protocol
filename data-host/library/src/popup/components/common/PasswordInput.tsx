@@ -1,7 +1,7 @@
-import Icon, { IconNames } from "@common/Icon";
-import Input, { InputProps } from "@common/Input";
-import React, { useState } from "react";
-import styled from "styled-components";
+import Icon, { IconNames } from '@common/Icon';
+import Input, { InputProps } from '@common/Input';
+import React, { useState } from 'react';
+import styled from 'styled-components';
 
 const Root = styled.div`
   position: relative;
@@ -26,7 +26,7 @@ PasswordInput.defaultProps = {
 function PasswordInput(
   props: PasswordInputProps &
     InputProps &
-    React.InputHTMLAttributes<HTMLInputElement>,
+    React.InputHTMLAttributes<HTMLInputElement>
 ) {
   const { children, defaultVisible, ...otherProps } = props;
 
@@ -34,7 +34,7 @@ function PasswordInput(
 
   return (
     <Root className={props.className}>
-      <Input type={visible ? "text" : "password"} {...otherProps} />
+      <Input type={visible ? 'text' : 'password'} {...otherProps} />
       <IconContainer onClick={() => setVisible(!visible)}>
         <Icon name={visible ? IconNames.EYE : IconNames.EYE_SLASH} />
       </IconContainer>

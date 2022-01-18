@@ -1,11 +1,13 @@
-import Protocol from '@components/Protocol';
-import GlobalStyle from "@styles/GlobalStyle";
-function App() {
+import { AlertsDisplay } from '@components/Alerts';
+import { Router } from '@popup/routes';
+import GlobalStyle from '@styles/GlobalStyle';
 
+function App() {
   return (
     <>
-    <GlobalStyle />
-    <Protocol />
+      <AlertsDisplay />
+      <GlobalStyle />
+      <Router />
     </>
   );
 }

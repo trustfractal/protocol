@@ -1,6 +1,6 @@
-import Icon, { IconNames } from "@popup/components/common/Icon";
-import React from "react";
-import styled, { css } from "styled-components";
+import Icon, { IconNames } from '@common/Icon';
+import React from 'react';
+import styled, { css } from 'styled-components';
 
 const Root = styled.div<{ height: string; width: string; clickable?: boolean }>`
   background: var(--c-white);
@@ -23,8 +23,8 @@ const Root = styled.div<{ height: string; width: string; clickable?: boolean }>`
 `;
 
 export enum LogoSizes {
-  SMALL = "small",
-  MEDIUM = "medium",
+  SMALL = 'small',
+  MEDIUM = 'medium',
 }
 
 type LogoProps = {
@@ -38,23 +38,23 @@ const Sizes = {
   [LogoSizes.SMALL]: {
     name: IconNames.LOGO_SMALL,
     container: {
-      width: "32px",
-      height: "32px",
+      width: '32px',
+      height: '32px',
     },
     logo: {
-      width: "20px",
-      height: "16px",
+      width: '20px',
+      height: '16px',
     },
   },
   [LogoSizes.MEDIUM]: {
     name: IconNames.LOGO,
     container: {
-      width: "80px",
-      height: "80px",
+      width: '80px',
+      height: '80px',
     },
     logo: {
-      width: "46px",
-      height: "40px",
+      width: '46px',
+      height: '40px',
     },
   },
 };

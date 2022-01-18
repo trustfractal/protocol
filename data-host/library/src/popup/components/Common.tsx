@@ -1,17 +1,13 @@
+import Button, { ButtonProps } from '@common/Button';
+import { Subsubtitle } from '@common/Subtitle';
+import Text, { TextWeights } from '@common/Text';
+import styled from 'styled-components';
 
-import Button, { ButtonProps } from "@common/Button";
-import { Subsubtitle } from "@common/Subtitle";
-import Text, { TextWeights } from "@common/Text";
-import styled from "styled-components";
-
-export { default as Text } from "@common/Text";
-export {
-  default as Subtitle,
-  Subsubtitle,
-} from "@common/Subtitle";
-export { default as Icon, IconNames } from "@common/Icon";
-export { default as Input } from "@common/Input";
-export { default as Title } from "@common/Title";
+export { default as Text } from '@common/Text';
+export { default as Subtitle, Subsubtitle } from '@common/Subtitle';
+export { default as Icon, IconNames } from '@common/Icon';
+export { default as Input } from '@common/Input';
+export { default as Title } from '@common/Title';
 
 const Container = styled.div`
   width: 100%;
@@ -47,9 +43,9 @@ export function VerticalSequence(props: React.HTMLProps<HTMLDivElement>) {
     <Container>
       {props.children}
 
-      <Subsubtitle center style={{ alignSelf: "flex-end" }}>
+      <Subsubtitle center style={{ alignSelf: 'flex-end' }}>
         If you need help on anything related to Fractal ID Wallet, please
-        contact us at{" "}
+        contact us at{' '}
         <Link href="mailto:support@fractal.id">support@fractal.id</Link>
       </Subsubtitle>
     </Container>
@@ -62,7 +58,7 @@ Cta.defaultProps = {
 };
 
 export function Cta(
-  props: React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonProps,
+  props: React.ButtonHTMLAttributes<HTMLButtonElement> & ButtonProps
 ) {
   const { children, ...other } = props;
   return <Button {...other}>{children}</Button>;

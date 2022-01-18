@@ -27,7 +27,7 @@ let mintingRegistrar: MintingRegistrar;
 export function getMintingRegistrar() {
   if (mintingRegistrar === undefined) {
     const sleep = environment.IS_DEV ? 5 : 30 * 60;
-    mintingRegistrar = new MintingRegistrar(storageService, sleep);
+    mintingRegistrar = new MintingRegistrar(getStorageService(), sleep);
   }
   return mintingRegistrar;
 }
@@ -35,7 +35,7 @@ export function getMintingRegistrar() {
 let dataHost: DataHost;
 export function getDataHost() {
   if (dataHost === undefined) {
-    dataHost = new DataHost(storageService, storageService);
+    dataHost = new DataHost(getStorageService(), getStorageService());
   }
   return dataHost;
 }

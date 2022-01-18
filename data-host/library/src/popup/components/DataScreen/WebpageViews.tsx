@@ -1,9 +1,9 @@
-import Text, { TextHeights, TextSizes } from "@common/Text";
-import { Activated, Hero, HeroLink } from "@components/DataScreen/Hero";
-import { getDataHost } from "@services/Factory";
-import { useLoadedState } from "@utils/ReactHooks";
-import { useState } from "react";
-import styled from "styled-components";
+import Text, { TextHeights, TextSizes } from '@common/Text';
+import { Activated, Hero, HeroLink } from '@components/DataScreen/Hero';
+import { getDataHost } from '@services/Factory';
+import { useLoadedState } from '@utils/ReactHooks';
+import { useState } from 'react';
+import styled from 'styled-components';
 
 interface PageView {
   url: string;

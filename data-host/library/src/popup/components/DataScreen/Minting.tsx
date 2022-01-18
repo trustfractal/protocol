@@ -1,20 +1,20 @@
-import { Button } from "@common/Button";
-import { IconNames } from "@common/Icon";
-import Text, { TextHeights, TextSizes } from "@common/Text";
-import { Activated, Hero } from "@components/DataScreen/Hero";
-import { getMintingRegistrar, getProtocolService } from "@services/Factory";
-import { MintingError as RegistrarMintingError } from "@services/MintingRegistrar";
+import { Button } from '@common/Button';
+import { IconNames } from '@common/Icon';
+import Text, { TextHeights, TextSizes } from '@common/Text';
+import { Activated, Hero } from '@components/DataScreen/Hero';
+import { getMintingRegistrar, getProtocolService } from '@services/Factory';
+import { MintingError as RegistrarMintingError } from '@services/MintingRegistrar';
 import {
   MintingHistoryEvent,
   MintingReceived,
   MintingRegistered,
-} from "@services/Protocol";
-import { formatFloat } from "@utils/FormatUtils";
-import { useLoadedState } from "@utils/ReactHooks";
-import { useState } from "react";
-import { BarLoader as Loader } from "react-spinners";
-import ReactTooltip from "react-tooltip";
-import styled from "styled-components";
+} from '@services/Protocol';
+import { formatFloat } from '@utils/FormatUtils';
+import { useLoadedState } from '@utils/ReactHooks';
+import { useState } from 'react';
+import { BarLoader as Loader } from 'react-spinners';
+import ReactTooltip from 'react-tooltip';
+import styled from 'styled-components';
 
 export function Minting() {
   const isRegistered = useLoadedState(async () => {
@@ -27,7 +27,7 @@ export function Minting() {
         <Activated text="Registered" icon={IconNames.VALID} />
       ) : (
         <NotRegistered />
-      ),
+      )
     )
     .unwrapOrDefault(<Activated text="Loading" icon={IconNames.PENDING} />);
 
@@ -42,8 +42,8 @@ export function Minting() {
     })
     .unwrapOrDefault(
       <div className="loader">
-        <Loader width={"100%"} color={"var(--c-orange)"} />
-      </div>,
+        <Loader width={'100%'} color={'var(--c-orange)'} />
+      </div>
     );
 
   const [registering, setRegistering] = useState(false);
@@ -88,6 +88,7 @@ function NotRegistered() {
   });
 
   const errorMessage = error
+    // eslint-disable-next-line react/jsx-key
     .map((e) => <MintingError error={e} />)
     .unwrapOrDefault(<p>Loading</p>);
 
@@ -108,7 +109,7 @@ function MintingError({ error }: { error: RegistrarMintingError | null }) {
   if (error == null) {
     return <p>Registration has not been attempted.</p>;
   }
-  if (error.type === "unknown") {
+  if (error.type === 'unknown') {
     return (
       <>
         <p>Unhandled error:</p>
@@ -116,13 +117,13 @@ function MintingError({ error }: { error: RegistrarMintingError | null }) {
       </>
     );
   }
-  if (error.type === "identity_registration") {
+  if (error.type === 'identity_registration') {
     return <p>Identity registration failed.</p>;
   }
-  if (error.type === "minting_registration") {
+  if (error.type === 'minting_registration') {
     return <p>Minting registration failed for unknown reasons.</p>;
   }
-  if (error.type === "cant_extend_dataset") {
+  if (error.type === 'cant_extend_dataset') {
     return <p>Could not extend existing dataset.</p>;
   }
 
@@ -155,7 +156,7 @@ function HistoryItem({ event }: { event: MintingHistoryEvent }) {
     received: (event: MintingReceived) => {
       return (
         <Text size={TextSizes.SMALL} height={TextHeights.SMALL}>
-          Received{" "}
+          Received{' '}
           <strong>{formatFloat(event.amount / 10 ** 12, 3)} FCL</strong>
         </Text>
       );

@@ -1,27 +1,28 @@
-
-import Button from "@common/Button";
-import Input from "@common/Input";
-import { decodeAddress, encodeAddress } from "@polkadot/keyring";
+import Button from '@common/Button';
+import Input from '@common/Input';
+import { decodeAddress, encodeAddress } from '@polkadot/keyring';
 import {
   Cta,
   Icon,
   IconNames,
   Title,
   VerticalSequence,
-} from "@popup/components/Common";
-import { getProtocolService } from "@services/Factory";
-import { useState } from "react";
-import styled from "styled-components";
+} from '@popup/components/Common';
+import { getProtocolService } from '@services/Factory';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 
 const FCL_UNIT = BigInt(10 ** 12);
 
-export function SendTokens(props: { onFinish: () => void }) {
-  const [page, setPage] = useState<"specify" | "confirm" | JSX.Element>(
-    "specify",
+export function SendTokens() {
+  const navigate = useNavigate();
+  const [page, setPage] = useState<'specify' | 'confirm' | JSX.Element>(
+    'specify'
   );
 
   const [amount, setAmount] = useState(BigInt(0));
-  const [destination, setDestination] = useState("");
+  const [destination, setDestination] = useState('');
 
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +32,8 @@ export function SendTokens(props: { onFinish: () => void }) {
       onChangeAddress={setDestination}
       amount={amount}
       onChangeAmount={setAmount}
-      onContinue={() => setPage("confirm")}
+      onContinue={() => setPage('confirm')}
+      onCancel={() => navigate(-1)}
     />
   );
 
@@ -43,19 +45,19 @@ export function SendTokens(props: { onFinish: () => void }) {
         setLoading(true);
         const hash = await getProtocolService().sendToAddress(
           destination,
-          amount,
+          amount
         );
-        setPage(<SendComplete onFinish={props.onFinish} hash={hash} />);
+        setPage(<SendComplete onFinish={() => navigate(-1)} hash={hash} />);
         setLoading(false);
       }}
-      onCancel={() => setPage("specify")}
+      onCancel={() => setPage('specify')}
       loading={loading}
     />
   );
 
-  if (page === "specify") {
+  if (page === 'specify') {
     return specifySend;
-  } else if (page === "confirm") {
+  } else if (page === 'confirm') {
     return confirmSend;
   } else {
     return page;
@@ -68,11 +70,11 @@ function SpecifySend(props: {
   amount: bigint;
   onChangeAmount: (a: bigint) => void;
   onContinue: () => void;
+  onCancel: () => void;
 }) {
   const addressError = getAddressError(props.address);
   const validAmount = props.amount > BigInt(0);
   const isValid = addressError == null && validAmount;
-
   return (
     <ScreenContainer>
       <VerticalSequence>
@@ -92,7 +94,7 @@ function SpecifySend(props: {
             type="number"
             value={
               props.amount === BigInt(0)
-                ? ""
+                ? ''
                 : (props.amount / FCL_UNIT).toString()
             }
             onChange={(e) => {
@@ -104,27 +106,29 @@ function SpecifySend(props: {
         {isValid ? (
           <>
             <p>
-              Will send{" "}
+              Will send{' '}
               <strong>{(props.amount / FCL_UNIT).toString()} FCL</strong> to
               address
             </p>
             <BreakStrong>{props.address}</BreakStrong>
           </>
         ) : null}
-
-        <Cta disabled={!isValid} onClick={props.onContinue}>
-          Send
-        </Cta>
+        <HorizontalContainer>
+          <Button onClick={props.onCancel}>Cancel</Button>
+          <Cta disabled={!isValid} onClick={props.onContinue}>
+            Send
+          </Cta>
+        </HorizontalContainer>
       </VerticalSequence>
     </ScreenContainer>
   );
 }
 
 function getAddressError(address: string): string | undefined {
-  const isEthAddress = address.startsWith("0x");
-  if (isEthAddress) return "Can only send to Substrate addresses (5FcL...)";
+  const isEthAddress = address.startsWith('0x');
+  if (isEthAddress) return 'Can only send to Substrate addresses (5FcL...)';
 
-  if (!isValidAddress(address)) return "Invalid address";
+  if (!isValidAddress(address)) return 'Invalid address';
 
   return;
 }
