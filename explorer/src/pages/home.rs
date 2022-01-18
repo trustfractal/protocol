@@ -49,7 +49,7 @@ impl HomeData {
     fn url<'a>(extrs: impl Iterator<Item = &'a str>) -> String {
         let filters = extrs.collect::<Vec<_>>().join(",");
         if filters.is_empty() {
-            format!(".")
+            ".".to_string()
         } else {
             format!("?hide_extrinsics={}", filters)
         }
@@ -75,7 +75,7 @@ impl ActiveFilters {
     fn iter(&self) -> impl Iterator<Item = &str> {
         self.hide_extrinsics
             .iter()
-            .flat_map(|s| s.split(","))
+            .flat_map(|s| s.split(','))
             .filter(|s| !s.is_empty())
     }
 }
@@ -91,7 +91,7 @@ pub async fn home(
 
     let page = templates
         .get("home.html")
-        .ok_or(ErrorInternalServerError("Could not find template"))?
+        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&home_data);
     Ok(html_page(templates, page)?)
 }
