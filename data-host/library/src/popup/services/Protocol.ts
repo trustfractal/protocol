@@ -134,12 +134,7 @@ export class ProtocolService {
   }
 
   public async ensureIdentityRegistered(): Promise<void> {
-    if (await this.isIdentityRegistered()) return;
-
-    console.log('Identity is not registered, trying to register');
-    if (await this.isIdentityRegistered()) {
-      console.log('Identity successfully registered');
-    } else {
+    if (!(await this.isIdentityRegistered())) {
       throw new IdentityRegistrationFailed();
     }
   }

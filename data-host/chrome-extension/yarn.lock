@@ -1395,12 +1395,12 @@
     redux-thunk "^2.4.1"
     reselect "^4.1.5"
 
-"@trustfractal/data-host@1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@trustfractal/data-host/-/data-host-1.0.6.tgz#a3eefaf54f5cd36bb32d1f0168892e33d4457325"
-  integrity sha512-03/OMZNKSS8HSUS7ffvIxlh8aZmrryzGDFdvOq2qRRyW73NfOeUTQWt2u04Ll+Dc5rAZCbIIvq4rjp1l7Zb4Kw==
-
+"@trustfractal/data-host@1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@trustfractal/data-host/-/data-host-1.0.7.tgz#ccf01c5a11a1e79209bb65d583c96d70c426804c"
+  integrity sha512-bl9t8BNZtJnCO35ViXKTqD94/mC/PkD81SoLpjiWf+dmr/okvr1yknReF6HK6LHL3vV5md3XRQgcrtKI2uzbGg==
   dependencies:
+    "@babel/plugin-transform-modules-commonjs" "^7.16.8"
     "@hot-loader/react-dom" "^17.0.1"
     "@polkadot/api" "^6.8.1"
     "@polkadot/keyring" "^8.1.2"
