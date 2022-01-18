@@ -1,12 +1,11 @@
-
-import Button from "@common/Button";
-import Icon, { IconNames } from "@common/Icon";
-import Link from "@common/Link";
-import withNavBar from "@common/NavBar";
-import Text from "@common/Text";
-import Title from "@common/Title";
-import TopComponent from "@common/TopComponent";
-import styled from "styled-components";
+import Button from '@common/Button';
+import Icon, { IconNames } from '@common/Icon';
+import Link from '@common/Link';
+import withNavBar from '@common/NavBar';
+import Text from '@common/Text';
+import Title from '@common/Title';
+import TopComponent from '@common/TopComponent';
+import styled from 'styled-components';
 
 const ContentContainer = styled.div`
   margin-top: var(--s-24);
@@ -14,6 +13,7 @@ const ContentContainer = styled.div`
 `;
 const Version = styled.span``;
 const IconsContainer = styled.div`
+  margin-top: var(--s-24);
   display: flex;
   justify-content: space-evenly;
 `;
@@ -38,31 +38,25 @@ function About(props: AboutProps) {
     <TopComponent>
       <ContentContainer>
         <Title>
-          Fractal Wallet{" "}
+          Fractal Wallet{' '}
           <Version>
             <Text>{`v${version}`}</Text>
           </Version>
         </Title>
         <Text>
-          <br />
-        </Text>
-        <Text>
           The Fractal Wallet is a browser extension that allows users to store
           their validated decentralized identity (DID) credentials. Verification
-          checks can be completed on{" "}
+          checks can be completed on{' '}
           <Link onClick={onClickFractalLink} span>
             https://fractal.id/
           </Link>
           . Integrated with Fractal Protocol, the Fractal ID Wallet also logs
           browsing activity locally in a privacy-preserving way and lets you
           earn FCL through our community programs. Please follow our official
-          Telegram channel for more details:{" "}
+          Telegram channel for more details:{' '}
           <Link onClick={onClickFractalTelegram} span>
             https://t.me/fractal_protocol
           </Link>
-        </Text>
-        <Text>
-          <br />
         </Text>
         <IconsContainer>
           <Icon name={IconNames.FRACTAL_FULL_LOGO} />

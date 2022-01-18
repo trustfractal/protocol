@@ -1,14 +1,19 @@
+import About from '@components/About';
+import { environment } from '@popup/Environment';
+import { RoutesPaths } from '@popup/routes';
+import { getWindowsService } from '@services/Factory';
+import { useNavigate } from 'react-router';
 
-import About from "@components/About";
-import { environment } from "@popup/Environment";
-import RoutesPaths from "@popup/routes/paths";
-import { getWindowsService } from "@services/Factory";
-import { useNavigate } from "react-router";
+declare const DATA_HOST_VERSION: string;
 
 function AboutScreen() {
   const navigate = useNavigate();
-  //TODO(melatron): Do we need a version?
-  const version = 1;
+  let version = '1';
+  try {
+    version = DATA_HOST_VERSION;
+  } catch (error) {
+    console.log('Cannot get version of application.');
+  }
 
   const onNext = () => navigate(RoutesPaths.PROTOCOL);
   const onClickFractalLink = () =>
@@ -17,7 +22,7 @@ function AboutScreen() {
     });
   const onClickFractalTelegram = () =>
     getWindowsService().createTab({
-      url: "https://t.me/fractal_protocol",
+      url: 'https://t.me/fractal_protocol',
     });
 
   return (

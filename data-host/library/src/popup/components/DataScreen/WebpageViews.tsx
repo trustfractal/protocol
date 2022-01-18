@@ -1,9 +1,9 @@
-import Text, { TextHeights, TextSizes } from "@common/Text";
-import { Activated, Hero, HeroLink } from "@components/DataScreen/Hero";
-import { getDataHost } from "@services/Factory";
-import { useLoadedState } from "@utils/ReactHooks";
-import { useState } from "react";
-import styled from "styled-components";
+import Text, { TextHeights, TextSizes } from '@common/Text';
+import { Activated, Hero, HeroLink } from '@components/DataScreen/Hero';
+import { getDataHost } from '@services/Factory';
+import { useLoadedState } from '@utils/ReactHooks';
+import { useState } from 'react';
+import styled from 'styled-components';
 
 interface PageView {
   url: string;
@@ -18,7 +18,7 @@ function HistoryList({ n }: { n: number }) {
   const history = useLoadedState(async () => {
     const items = [];
     for await (const item of getDataHost().iterBack()) {
-      if (!item || item.pageView == null) continue;
+      if (item.pageView == null) continue;
       items.push(item.pageView);
       if (items.length >= n) break;
     }

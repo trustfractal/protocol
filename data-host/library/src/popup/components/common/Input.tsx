@@ -1,6 +1,6 @@
-import Text, { TextHeights, TextSizes } from "@popup/components/common/Text";
-import React from "react";
-import styled, { css } from "styled-components";
+import Text, { TextHeights, TextSizes } from '@popup/components/common/Text';
+import React from 'react';
+import styled, { css } from 'styled-components';
 
 const Root = styled.div`
   position: relative;
@@ -87,7 +87,7 @@ Input.defaultProps = {
 };
 
 function Input(
-  props: InputProps & React.InputHTMLAttributes<HTMLInputElement>,
+  props: InputProps & React.InputHTMLAttributes<HTMLInputElement>
 ) {
   const {
     error,
@@ -108,7 +108,7 @@ function Input(
   const hasHint = hint !== undefined && hint.length > 0;
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
+    if (event.key === 'Enter') {
       if (disabled || onEnter === undefined) {
         return;
       }

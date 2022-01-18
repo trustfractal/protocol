@@ -1,5 +1,5 @@
-import React from "react";
-import styled, { css } from "styled-components";
+import React from 'react';
+import styled, { css } from 'styled-components';
 
 const Root = styled.div<{
   paddingTop: string;
@@ -25,14 +25,14 @@ type TopComponentProps = {
 };
 
 TopComponent.defaultProps = {
-  paddingTop: "var(--s-24)",
-  paddingBottom: "var(--s-24)",
-  paddingLeft: "var(--s-24)",
-  paddingRight: "var(--s-24)",
+  paddingTop: 'var(--s-24)',
+  paddingBottom: 'var(--s-24)',
+  paddingLeft: 'var(--s-24)',
+  paddingRight: 'var(--s-24)',
 };
 
 function TopComponent(
-  props: TopComponentProps & React.HTMLProps<HTMLDivElement>,
+  props: TopComponentProps & React.HTMLProps<HTMLDivElement>
 ) {
   const { children, paddingTop, paddingBottom, paddingLeft, paddingRight } =
     props;

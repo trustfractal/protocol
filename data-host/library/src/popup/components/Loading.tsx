@@ -1,9 +1,9 @@
-import Logo from "@common/Logo";
-import Spinner from "@common/Spinner";
-import Text, { TextHeights, TextSizes } from "@common/Text";
-import { environment } from "@popup/Environment";
-import { useEffect } from "react";
-import styled from "styled-components";
+import Logo from '@common/Logo';
+import Spinner from '@common/Spinner';
+import Text, { TextHeights, TextSizes } from '@common/Text';
+import { environment } from '@popup/Environment';
+import { useEffect } from 'react';
+import styled from 'styled-components';
 
 const RootContainer = styled.div`
   min-width: 352px;
@@ -34,9 +34,9 @@ function Loading() {
     return () => {
       if (!environment.IS_DEV) return;
       console.info(
-        "Showed loading for",
+        'Showed loading for',
         window.performance.now() - start,
-        "ms",
+        'ms'
       );
     };
   }, []);

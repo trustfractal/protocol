@@ -1,7 +1,6 @@
-import Icon, { IconNames } from "@common/Icon";
-import React from "react";
-import styled, { css } from "styled-components";
-
+import Icon, { IconNames } from '@common/Icon';
+import React from 'react';
+import styled, { css } from 'styled-components';
 
 const RootContainer = styled.div<{ icon: IconNames }>`
   border-radius: 100%;
@@ -60,8 +59,8 @@ const RootContainer = styled.div<{ icon: IconNames }>`
 `;
 
 export enum LevelIconSizes {
-  SMALL = "small",
-  MEDIUM = "medium",
+  SMALL = 'small',
+  MEDIUM = 'medium',
 }
 
 type LevelIconProps = {
@@ -74,12 +73,12 @@ LevelIcon.defaultProps = {
 };
 
 function LevelIcon(
-  props: LevelIconProps & React.HtmlHTMLAttributes<HTMLImageElement>,
+  props: LevelIconProps & React.HtmlHTMLAttributes<HTMLImageElement>
 ) {
   const { level, size } = props;
   let icon;
 
-  if (level === "basic") {
+  if (level === 'basic') {
     if (size === LevelIconSizes.SMALL) {
       icon = IconNames.ID_BASIC_SMALL;
     } else {

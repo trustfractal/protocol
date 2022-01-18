@@ -73,7 +73,6 @@ export class ProtocolOptIn {
 
   private async tryRegisterIdentity(onMissingLiveness?: () => Promise<void>) {
     try {
-      console.log('--------------------------------------------');
       await this.protocol.ensureIdentityRegistered();
       this.completedLivenessOverride = true;
     } catch (e) {

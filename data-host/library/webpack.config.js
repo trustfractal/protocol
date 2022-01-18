@@ -1,4 +1,5 @@
 const path = require('path');
+var webpack = require("webpack");
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
@@ -9,6 +10,9 @@ module.exports = {
     new CleanWebpackPlugin({
       cleanStaleWebpackAssets: false,
       cleanOnceBeforeBuildPatterns: [path.resolve(__dirname, './dist')],
+    }),
+    new webpack.DefinePlugin({
+      DATA_HOST_VERSION: JSON.stringify(require("./package.json").version),
     }),
   ],
   module: {

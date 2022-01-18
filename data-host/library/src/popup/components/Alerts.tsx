@@ -1,10 +1,10 @@
-import { getUserAlerts } from "@services/Factory";
-import { useEffect, useState } from "react";
-import styled from "styled-components";
+import { getUserAlerts } from '@services/Factory';
+import { useEffect, useState } from 'react';
+import styled from 'styled-components';
 
 export class UserAlerts {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onMessage = (_: string) => { };
+  public onMessage = (_: string) => {};
 
   send(message: string) {
     this.onMessage(message);

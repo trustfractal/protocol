@@ -1,4 +1,3 @@
-
 import {
   BoldText,
   Cta,
@@ -8,8 +7,8 @@ import {
   Subtitle,
   VerticalSequence,
 } from '@components/Common';
-import { environment } from "@popup/Environment";
-import styled from "styled-components";
+import { environment } from '@popup/Environment';
+import styled from 'styled-components';
 
 const List = styled.ul`
   list-style: none;
@@ -28,7 +27,7 @@ const List = styled.ul`
     }
 
     &::before {
-      content: "🚀";
+      content: '🚀';
     }
   }
 `;
@@ -55,7 +54,7 @@ export function OptInForm({ onOptIn }: { onOptIn: () => void }) {
       </List>
 
       <Subsubtitle uppercase center>
-        By clicking “Join the Protocol” you agree to our{" "}
+        By clicking “Join the Protocol” you agree to our{' '}
         <a
           href={`${environment.FRACTAL_WEBSITE_URL}/documents/mainnet-launch-special-user-agreement`}
           target="_blank"

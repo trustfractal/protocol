@@ -1,30 +1,29 @@
-
-import Button from "@common/Button";
-import PasswordInput from "@common/PasswordInput";
+import Button from '@common/Button';
+import PasswordInput from '@common/PasswordInput';
 import {
   Cta,
   Icon,
   IconNames,
   Title,
   VerticalSequence,
-} from "@components/Common";
-import { getProtocolService } from "@services/Factory";
-import { useLoadedState } from "@utils/ReactHooks";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
+} from '@components/Common';
+import { getProtocolService } from '@services/Factory';
+import { useLoadedState } from '@utils/ReactHooks';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 const FCL_UNIT = BigInt(10 ** 12);
 
-export function SweepTokens(props: { onFinish: string }) {
-    const navigate = useNavigate();
+export function SweepTokens() {
+  const navigate = useNavigate();
   const [page, setPage] = useState<JSX.Element | null>(null);
 
   const specifySend = (
     <SpecifyFrom
       onComplete={(hash) => {
-        setPage(<SendComplete onFinish={() => navigate(props.onFinish)} hash={hash} />);
+        setPage(<SendComplete onFinish={() => navigate(-1)} hash={hash} />);
       }}
-      onCancel={() => navigate(props.onFinish)}
+      onCancel={() => navigate(-1)}
     />
   );
 
@@ -35,7 +34,7 @@ function SpecifyFrom(props: {
   onComplete: (hash: string) => void;
   onCancel: () => void;
 }) {
-  const [mnemonic, setMnemonic] = useState("");
+  const [mnemonic, setMnemonic] = useState('');
   const [loading, setLoading] = useState(false);
 
   const address = (() => {
@@ -54,10 +53,10 @@ function SpecifyFrom(props: {
 
   const amount = balance
     .map((b) => {
-      if (b == null) return "?";
+      if (b == null) return '?';
       return (b.free.toBigInt() / FCL_UNIT).toString();
     })
-    .unwrapOrDefault("?");
+    .unwrapOrDefault('?');
 
   const isValid = address != null;
 
@@ -79,7 +78,7 @@ function SpecifyFrom(props: {
           label="From Mnemonic"
           value={mnemonic}
           error={
-            isValid || mnemonic.length === 0 ? undefined : "Invalid mnemonic"
+            isValid || mnemonic.length === 0 ? undefined : 'Invalid mnemonic'
           }
           spellCheck="false"
           autoFocus

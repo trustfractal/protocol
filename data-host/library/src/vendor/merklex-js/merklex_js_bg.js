@@ -1,4 +1,4 @@
-import * as wasm from "./merklex_js_bg.wasm";
+import * as wasm from './merklex_js_bg.wasm';
 
 const heap = new Array(32).fill(undefined);
 
@@ -22,14 +22,14 @@ function getUint8Memory0() {
 }
 
 const lTextEncoder =
-  typeof TextEncoder === "undefined"
-    ? (0, module.require)("util").TextEncoder
+  typeof TextEncoder === 'undefined'
+    ? (0, module.require)('util').TextEncoder
     : TextEncoder;
 
-let cachedTextEncoder = new lTextEncoder("utf-8");
+let cachedTextEncoder = new lTextEncoder('utf-8');
 
 const encodeString =
-  typeof cachedTextEncoder.encodeInto === "function"
+  typeof cachedTextEncoder.encodeInto === 'function'
     ? function (arg, view) {
         return cachedTextEncoder.encodeInto(arg, view);
       }
@@ -107,11 +107,11 @@ function takeObject(idx) {
 }
 
 const lTextDecoder =
-  typeof TextDecoder === "undefined"
-    ? (0, module.require)("util").TextDecoder
+  typeof TextDecoder === 'undefined'
+    ? (0, module.require)('util').TextDecoder
     : TextDecoder;
 
-let cachedTextDecoder = new lTextDecoder("utf-8", {
+let cachedTextDecoder = new lTextDecoder('utf-8', {
   ignoreBOM: true,
   fatal: true,
 });
@@ -131,7 +131,7 @@ export function build(s) {
     var ptr0 = passStringToWasm0(
       s,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len0 = WASM_VECTOR_LEN;
     wasm.build(retptr, ptr0, len0);
@@ -159,13 +159,13 @@ export function extend(mtree, s) {
     var ptr0 = passStringToWasm0(
       mtree,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len0 = WASM_VECTOR_LEN;
     var ptr1 = passStringToWasm0(
       s,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len1 = WASM_VECTOR_LEN;
     wasm.extend(retptr, ptr0, len0, ptr1, len1);
@@ -201,7 +201,7 @@ export function extend_multiple(mtree, leaves) {
     var ptr0 = passStringToWasm0(
       mtree,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len0 = WASM_VECTOR_LEN;
     wasm.extend_multiple(retptr, ptr0, len0, addHeapObject(leaves));
@@ -229,13 +229,13 @@ export function strict_extension_proof(mtree_a, mtree_b) {
     var ptr0 = passStringToWasm0(
       mtree_a,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len0 = WASM_VECTOR_LEN;
     var ptr1 = passStringToWasm0(
       mtree_b,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len1 = WASM_VECTOR_LEN;
     wasm.strict_extension_proof(retptr, ptr0, len0, ptr1, len1);
@@ -262,7 +262,7 @@ export function prune_balanced(tree) {
     var ptr0 = passStringToWasm0(
       tree,
       wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_realloc
     );
     var len0 = WASM_VECTOR_LEN;
     wasm.prune_balanced(retptr, ptr0, len0);
@@ -285,7 +285,7 @@ export function __wbindgen_json_serialize(arg0, arg1) {
   var ptr0 = passStringToWasm0(
     ret,
     wasm.__wbindgen_malloc,
-    wasm.__wbindgen_realloc,
+    wasm.__wbindgen_realloc
   );
   var len0 = WASM_VECTOR_LEN;
   getInt32Memory0()[arg0 / 4 + 1] = len0;

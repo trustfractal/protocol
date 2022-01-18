@@ -1,13 +1,11 @@
-import React from "react";
-
 import Text, {
+  TextHeights,
   TextProps,
   TextSizes,
-  TextHeights,
   TextWeights,
-} from "@common/Text";
-
-import styled from "styled-components";
+} from '@common/Text';
+import React from 'react';
+import styled from 'styled-components';
 
 const Root = styled.span`
   cursor: pointer;
@@ -27,7 +25,7 @@ Link.defaultProps = {
 };
 
 function Link(
-  props: LinkProps & TextProps & React.HTMLAttributes<HTMLDivElement>,
+  props: LinkProps & TextProps & React.HTMLAttributes<HTMLDivElement>
 ) {
   const { children, onClick, ...otherProps } = props;
 

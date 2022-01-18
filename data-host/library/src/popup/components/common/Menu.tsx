@@ -1,8 +1,7 @@
-import Icon, { IconNames } from "@common/Icon";
-import { useOutsideAlerter } from "@services/UseOutsideAlerter";
-import React, { useState } from "react";
-import styled, { css } from "styled-components";
-
+import Icon, { IconNames } from '@common/Icon';
+import { useOutsideAlerter } from '@services/UseOutsideAlerter';
+import React, { useState } from 'react';
+import styled, { css } from 'styled-components';
 
 const MenuButton = styled.button<{ active: boolean }>`
   position: absolute;
@@ -13,7 +12,7 @@ const MenuButton = styled.button<{ active: boolean }>`
   border-radius: 50%;
   cursor: pointer;
   background: ${(props) =>
-    props.active ? "var(--c-orange)" : "var(--c-transparent)"};
+    props.active ? 'var(--c-orange)' : 'var(--c-transparent)'};
   transition-color: background 0.3s ease-in-out;
 `;
 
@@ -27,7 +26,7 @@ const MenuContainer = styled.div<{ active: boolean }>`
   border-radius: var(--s-12);
   background: var(--c-orange);
   transform: ${(props) =>
-    props.active ? "translateX(0)" : "translateX(calc(100% + var(--s-12)))"};
+    props.active ? 'translateX(0)' : 'translateX(calc(100% + var(--s-12)))'};
   transition: transform 0.3s ease-in-out;
   z-index: 2;
 `;
@@ -40,7 +39,7 @@ const MenuOverlay = styled.div<{ active: boolean }>`
   width: 100%;
   height: 100%;
   background: var(--c-dark-blue);
-  opacity: ${(props) => (props.active ? "0.2" : "0")};
+  opacity: ${(props) => (props.active ? '0.2' : '0')};
   transition: opacity 0.3s ease-in-out;
   z-index: 1;
   pointer-events: none;
@@ -74,7 +73,7 @@ const SubMenuLink = styled.button<{ disabled?: boolean }>`
   color: var(--c-white);
   cursor: pointer;
 
-  :not(:first-child){
+  :not(:first-child) {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
 
@@ -104,7 +103,7 @@ type MenuProps = {
 };
 
 function Menu(
-  props: MenuProps & React.ButtonHTMLAttributes<HTMLButtonElement>,
+  props: MenuProps & React.ButtonHTMLAttributes<HTMLButtonElement>
 ) {
   const { items } = props;
 

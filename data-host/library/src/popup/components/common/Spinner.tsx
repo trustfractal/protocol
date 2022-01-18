@@ -1,5 +1,5 @@
-import React from "react";
-import styled, { css, keyframes } from "styled-components";
+import React from 'react';
+import styled, { css, keyframes } from 'styled-components';
 
 const rotation = keyframes`
   0% {
@@ -54,7 +54,7 @@ const Root = styled.p<SpinnerProps>`
     position: absolute;
     top: 0;
     left: 0;
-    content: "";
+    content: '';
   }
 
   :after {
@@ -67,7 +67,7 @@ const Root = styled.p<SpinnerProps>`
     width: 75%;
     height: 75%;
     border-radius: 50%;
-    content: "";
+    content: '';
     margin: auto;
     position: absolute;
     top: 0;
