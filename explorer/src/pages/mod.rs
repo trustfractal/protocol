@@ -3,11 +3,11 @@ use block_pool::Pool;
 use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
-use crate::data::*;
+mod home;
 
 pub fn resources() -> Vec<Resource> {
     vec![
-        web::resource("/").to(home),
+        web::resource("/").to(home::home),
         web::resource("/metrics/identities").to(metrics_identities),
     ]
 }
@@ -170,51 +170,4 @@ where
 
 pub async fn not_found() -> actix_web::Result<String> {
     Err(error::ErrorNotFound("Not Found"))
-}
-
-#[derive(Content)]
-struct HomeData {
-    blocks: Vec<Block>,
-    extrinsics: Vec<ExtrinsicNoJson>,
-}
-
-async fn home(
-    templates: web::Data<Ramhorns>,
-    pg: web::Data<Pool<postgres::Client>>,
-) -> actix_web::Result<HttpResponse> {
-    let home_data = retry_blocking(move || get_home_data(&mut pg.take()))
-        .await
-        .map_err(ErrorInternalServerError)?;
-
-    let page = templates
-        .get("home.html")
-        .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
-        .render(&home_data);
-    Ok(html_page(templates, page)?)
-}
-
-fn get_home_data(pg: &mut postgres::Client) -> anyhow::Result<HomeData> {
-    let blocks = pg
-        .query(
-            "SELECT json FROM block_json ORDER BY number DESC LIMIT 20",
-            &[],
-        )?
-        .into_iter()
-        .map(|row| serde_json::from_str(row.get(&"json")))
-        .collect::<Result<_, _>>()?;
-
-    let extrinsics = pg
-        .query(
-            "SELECT json FROM extrinsic_json
-            WHERE
-                CAST(json AS json)->>'section' != 'timestamp' AND
-                CAST(json AS json)->>'success' = 'true'
-            ORDER BY block_number DESC, index LIMIT 20",
-            &[],
-        )?
-        .into_iter()
-        .map(|row| serde_json::from_str(row.get(&"json")).map(|e: Extrinsic| e.without_json))
-        .collect::<Result<_, _>>()?;
-
-    Ok(HomeData { blocks, extrinsics })
 }
