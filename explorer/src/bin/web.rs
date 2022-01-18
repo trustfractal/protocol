@@ -13,6 +13,8 @@ struct Options {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    ::simple_logger::init_with_level(log::Level::Info).unwrap();
+
     let options = Options::from_args();
     let port = options.port;
 

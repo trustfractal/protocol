@@ -9,8 +9,11 @@ pub fn connect(url: &str) -> anyhow::Result<Client> {
         .build()?;
     let connector = postgres_native_tls::MakeTlsConnector::new(connector);
 
-    Ok(url
+    let mut connection = url
         .parse::<postgres::Config>()?
         .ssl_mode(postgres::config::SslMode::Require)
-        .connect(connector)?)
+        .connect(connector)?;
+    connection.execute("SET statement_timeout=10000", &[])?;
+
+    Ok(connection)
 }

@@ -28,6 +28,10 @@
   align-items: center;
   column-gap: 8px;
 }
+
+.btn {
+  text-transform: none;
+}
 </style>
 
 <div class="latest-events row">
@@ -46,7 +50,23 @@
 
   <div class="transactions col l6 s12">
     <ul class="collection with-header">
-      <li class="collection-header"><h4>Recent Transactions</h4></li>
+      <li class="collection-header">
+        <h4>Recent Transactions</h4>
+
+        {{#active_filters}}
+          <a class="waves-effect green btn" href="{{url}}">
+            <i class="material-icons left">visibility</i>
+            {{text}}
+          </a>
+        {{/active_filters}}
+
+        {{#potential_filters}}
+          <a class="waves-effect red btn" href="{{url}}">
+            <i class="material-icons left">visibility_off</i>
+            {{text}}
+          </a>
+        {{/potential_filters}}
+      </li>
 
       {{#extrinsics}}
         <li class="collection-item">
