@@ -1,6 +1,7 @@
 import withNavBar from '@common/NavBar';
 import TopComponent from '@common/TopComponent';
 import DataScreen from '@components/DataScreen';
+import { ExtensionSetup } from '@components/ExtensionSetupScreen';
 import Loading from '@components/Loading';
 import { NoLiveness } from '@components/NoLiveness';
 import { OptInForm } from '@components/OptInForm';
@@ -11,12 +12,16 @@ import {
 } from '@components/SetupScreen';
 import { mnemonicGenerate } from '@polkadot/util-crypto';
 import { getProtocolOptIn } from '@services/Factory';
+import { getExtensionSetup } from '@services/Factory';
 import { useLoadedState } from '@utils/ReactHooks';
 import { useState } from 'react';
 
 function ProtocolState() {
   const [pageOverride, setPageOverride] = useState<JSX.Element | null>(null);
 
+  const extensionSetup = useLoadedState(() =>
+    getExtensionSetup().isExtensionSetup()
+  );
   const serviceOptedIn = useLoadedState(() => getProtocolOptIn().isOptedIn());
   const completedLiveness = useLoadedState(() =>
     getProtocolOptIn().hasCompletedLiveness()
@@ -64,6 +69,13 @@ function ProtocolState() {
 
   if (pageOverride != null) {
     return pageOverride;
+  }
+
+  if (!extensionSetup.isLoaded) return <Loading />;
+  if (!extensionSetup.value) {
+    return (
+      <ExtensionSetup onOptIn={() => getExtensionSetup().setupExtension()} />
+    );
   }
 
   if (!serviceOptedIn.isLoaded) return <Loading />;

@@ -1,13 +1,19 @@
+import { ExtensionSetupData } from '@services/ExtensionSetup';
 import {
   getDataHost,
+  getExtensionSetup,
   getMintingRegistrar,
   getProtocolOptIn,
 } from '@services/Factory';
 
+import { Message } from './Message';
+
 export class Background {
-  async setup(): Promise<void> {
-    console.log('Background initialized.');
-    //TODO(melatron): Initialize everything needed for facts storage.
+  async initialize(data: ExtensionSetupData): Promise<void> {
+    if (!(await getExtensionSetup().isExtensionSetup())) {
+      await getExtensionSetup().setupExtensionData(data);
+      console.log('Background initialized.');
+    }
   }
   async addWebpage(url: string): Promise<void> {
     await getProtocolOptIn().checkOptIn();
@@ -26,7 +32,17 @@ export class Background {
     const self = this;
     chrome.runtime.onMessage.addListener(
       async (request, _sender, sendResponse) => {
-        await self.addWebpage(request.content.hostname);
+        switch (request.type) {
+          case Message.PAGE_VIEW: {
+            await self.addWebpage(request.content.hostname);
+            break;
+          }
+          case Message.INITIALIZE: {
+            await self.initialize(request.extensionData);
+            break;
+          }
+        }
+
         sendResponse();
       }
     );

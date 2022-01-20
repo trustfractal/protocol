@@ -3,6 +3,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { environment } from '@popup/Environment';
 import { StorageService } from '@popup/services/StorageService';
 import { DataHost } from '@services/DataHost';
+import { ExtensionSetup } from '@services/ExtensionSetup';
 import { MintingRegistrar } from '@services/MintingRegistrar';
 import { ProtocolService } from '@services/Protocol';
 import { ProtocolOptIn } from '@services/ProtocolOptIn';
@@ -80,6 +81,18 @@ export function getWindowsService() {
     windows = new WindowsService();
   }
   return windows;
+}
+
+let extensionSetup: ExtensionSetup;
+export function getExtensionSetup() {
+  if (extensionSetup === undefined) {
+    extensionSetup = new ExtensionSetup(
+      getStorageService(),
+      getWindowsService(),
+      environment.FRACTAL_WEBSITE_URL
+    );
+  }
+  return extensionSetup;
 }
 
 let protocolOptIn: ProtocolOptIn;

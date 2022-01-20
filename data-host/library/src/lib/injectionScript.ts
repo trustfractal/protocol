@@ -1,12 +1,41 @@
+import { ExtensionSetupData } from '@services/ExtensionSetup';
+
+import { Message } from './Message';
 export class InjectionScript {
-  // substrateAddress is going to be used to send funds
-  async setup(substrateAddress: string): Promise<void> {
-    console.log(
-      `InjectionScript initialized with address: ${substrateAddress}.`
-    );
+  getFractalData(substrateAddress: string): ExtensionSetupData {
+      //TODO: sync all the extensions that contain Fractal Protocol.
+      return {
+        extensionId: chrome.runtime.id,
+        isMain: true,
+        substrateAddress,
+      };
   }
+  async initialize(substrateAddress: string): Promise<void> {
+    const data = this.getFractalData(substrateAddress);
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(
+        {
+          type: Message.INITIALIZE,
+          extensionData: data,
+        },
+        (response: any) => {
+          if (!response) {
+            reject();
+          }
+
+          console.log(
+            `InjectionScript initialized with address: ${substrateAddress}.`
+          );
+          resolve();
+        }
+      );
+    });
+  }
+
   sendCurrentPageView() {
-    //TODO(melatron): add type as a Enum with all the different facts we would send as a message
-    chrome.runtime.sendMessage({ type: 'pageView', content: window.location });
+    chrome.runtime.sendMessage({
+      type: Message.PAGE_VIEW,
+      content: window.location,
+    });
   }
 }

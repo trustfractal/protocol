@@ -15,7 +15,7 @@
     "dependencies": {
         "@hot-loader/react-dom": "^17.0.1",
         "@reduxjs/toolkit": "^1.6.0",
-        "@trustfractal/data-host": "1.0.7",
+        "@trustfractal/data-host": "file:../library/dist/",
         "@types/chrome": "0.0.132",
         "@types/react": "^17.0.2",
         "@types/react-dom": "^17.0.1",
