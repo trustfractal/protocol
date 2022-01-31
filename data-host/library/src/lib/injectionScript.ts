@@ -2,34 +2,43 @@ import { ExtensionSetupData } from '@services/ExtensionSetup';
 
 import { Message } from './Message';
 export class InjectionScript {
-  getFractalData(substrateAddress: string): ExtensionSetupData {
-      //TODO: sync all the extensions that contain Fractal Protocol.
-      return {
-        extensionId: chrome.runtime.id,
-        isMain: true,
-        substrateAddress,
-      };
+  async getFractalData(substrateAddress: string): Promise<ExtensionSetupData> {
+    //TODO: sync all the extensions that contain Fractal Protocol.
+    return {
+      extensionId: chrome.runtime.id,
+      isMain: true,
+      substrateAddress,
+    };
   }
   async initialize(substrateAddress: string): Promise<void> {
-    const data = this.getFractalData(substrateAddress);
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        {
-          type: Message.INITIALIZE,
-          extensionData: data,
-        },
-        (response: any) => {
-          if (!response) {
-            reject();
-          }
+    const script = document.createElement('script');
+    script.setAttribute('type', 'text/javascript');
+    script.setAttribute(
+      'id',
+      'fractal-protocol-injected-script-' + chrome.runtime.id
+    );
+    const data = await this.getFractalData(substrateAddress);
+    const src = `
+            console.log('Injected script from Fractal Protocol with chrome extension id: ${
+              chrome.runtime.id
+            }');
+            if(!window.hasOwnProperty('GLOBAL_FRACTAL_PROTOCOL_DATA')) {
+                GLOBAL_FRACTAL_PROTOCOL_DATA = ${JSON.stringify(data)};
+                console.log('Initialized Fractal global variable.')
+            }
+            setTimeout(() => {
+                chrome.runtime.sendMessage('${chrome.runtime.id}', {
+                        type: '${Message.INITIALIZE}',
+                        extensionData: GLOBAL_FRACTAL_PROTOCOL_DATA,
+                    },
+                    () => { console.log('sent message from script')}
+                );
+            }, 1000)
 
-          console.log(
-            `InjectionScript initialized with address: ${substrateAddress}.`
-          );
-          resolve();
-        }
-      );
-    });
+        `;
+    script.innerHTML = src;
+
+    document.head.appendChild(script);
   }
 
   sendCurrentPageView() {
