@@ -90,9 +90,8 @@ impl Parser {
         let (type_name, fields, values) =
             Parser::transform_serde_value(json.as_object().ok_or(Error::InvalidJson)?);
         let json_def = StructDef { type_name, fields };
-        let rw_def = Arc::new(json_def);
-        let id = rw_def.id();
-        let existing = self.structs.insert(id, rw_def);
+        let id = json_def.id();
+        let existing = self.structs.insert(id, Arc::new(json_def));
         if let Some(s) = existing {
             return Err(Error::DuplicateStructDef(s.type_name().to_string()));
         }
