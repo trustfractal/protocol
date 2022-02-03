@@ -7455,6 +7455,7 @@ version = "0.0.1"
 dependencies = [
  "blake2",
  "nom 6.2.1",
+ "serde_json",
 ]
 
 [[package]]
