@@ -51,30 +51,42 @@ impl Parser {
         self.structs.values().find(|s| s.type_name() == name)
     }
 
-    pub fn transform_serde_value<'s>(
+    fn transform_serde_value<'s>(value: &SerdeValue) -> (Type, Value<'s>) {
+        match value {
+            SerdeValue::Null => (Type::Unit, Value::Unit),
+            SerdeValue::Bool(_bool) => (Type::Unit, Value::Unit),
+            SerdeValue::Number(number) => {
+                if let Some(n) = number.as_u64() {
+                    (Type::U64, Value::U64(n))
+                } else {
+                    (Type::Unit, Value::Unit)
+                }
+            }
+            SerdeValue::String(s) => (Type::String, Value::String(s.to_string())),
+            SerdeValue::Array(vec) => {
+                let mut list = vec![];
+                let mut arr_type = Type::Unit;
+                for arr_value in vec {
+                    let (val_type, val) = Parser::transform_serde_value(arr_value);
+                    arr_type = val_type;
+                    list.push(val);
+                }
+                (Type::List(Box::new(arr_type)), Value::List(list))
+            }
+            SerdeValue::Object(_inner_json_obj) => unimplemented!(), //(Type::Unit, Value::Unit),
+        }
+    }
+
+    fn transform_serde_obj<'s>(
         json_obj: &serde_json::Map<String, SerdeValue>,
     ) -> (String, Vec<FieldDef>, Vec<Value<'s>>) {
         let mut values = Vec::with_capacity(json_obj.len());
         let mut fields = Vec::with_capacity(json_obj.len());
-        //TODO(melatron): Generate a name for the Json Struct Def so that there is no collision.
         let mut type_name = String::from("");
         for (key, value) in json_obj {
-            let (field_type, value) = match value {
-                SerdeValue::Null => (Type::Unit, Value::Unit),
-                SerdeValue::Bool(_bool) => (Type::Unit, Value::Unit),
-                SerdeValue::Number(number) => {
-                    if let Some(n) = number.as_u64() {
-                        (Type::U64, Value::U64(n))
-                    } else {
-                        (Type::Unit, Value::Unit)
-                    }
-                }
-                SerdeValue::String(s) => (Type::String, Value::String(s.to_string())),
-                SerdeValue::Array(_vec) => unimplemented!(), // (Type::Unit, Value::List(vec![])),
-                SerdeValue::Object(_inner_json_obj) => unimplemented!(), //(Type::Unit, Value::Unit),
-            };
+            let (field_type, sier_value) = Parser::transform_serde_value(value);
             type_name.push_str(key.as_str());
-            values.push(value);
+            values.push(sier_value);
             fields.push(FieldDef {
                 name: key.to_string(),
                 type_: field_type,
@@ -88,7 +100,7 @@ impl Parser {
             serde_json::from_str(file_json_contents).or(Err(Error::InvalidJson))?;
 
         let (type_name, fields, values) =
-            Parser::transform_serde_value(json.as_object().ok_or(Error::InvalidJson)?);
+            Parser::transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?);
         let json_def = StructDef { type_name, fields };
         let id = json_def.id();
         let existing = self.structs.insert(id, Arc::new(json_def));

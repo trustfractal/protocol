@@ -168,7 +168,8 @@ fn struct_() {
 const JSON: &'static str = r#"
 {
     "bar": 42,
-    "baz": "abc"
+    "baz": "abc",
+    "qux": [4, 2]
 }
 "#;
 
@@ -199,4 +200,13 @@ fn json() {
 
     assert_eq!(obj["bar"].as_u64(), Some(42));
     assert_eq!(obj["baz"].as_string(), Some("abc"));
+    assert_eq!(
+        obj["qux"]
+            .as_list()
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect::<Vec<_>>(),
+        vec![4, 2]
+    );
 }
