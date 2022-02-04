@@ -77,7 +77,7 @@ impl Parser {
                 Ok((Type::List(Box::new(arr_type)), Value::List(list)))
             }
             SerdeValue::Object(inner_json_obj) => {
-                let (object, def) = self.transform_serde_obj(inner_json_obj)?;
+                let (_object, def) = self.transform_serde_obj(inner_json_obj)?;
                 Ok((
                     Type::Struct(def),
                     Value::Unit,
