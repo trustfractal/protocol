@@ -52,76 +52,72 @@ impl Parser {
     }
 
     fn transform_serde_value<'a>(
-        &mut self,
+        &'a self,
         value: &SerdeValue,
-    ) -> Result<(Type, Value<'a>), Error<'a>> {
+        type_: &'a Type,
+    ) -> Result<Value<'a>, Error<'a>> {
         match value {
-            SerdeValue::Null => Ok((Type::Unit, Value::Unit)),
-            SerdeValue::Bool(_bool) => Ok((Type::Unit, Value::Unit)),
+            SerdeValue::Null => Ok(Value::Unit),
+            //TODO(melatron): Implement a boolean type for sier
+            SerdeValue::Bool(_bool) => Ok(Value::Unit),
             SerdeValue::Number(number) => {
                 if let Some(n) = number.as_u64() {
-                    Ok((Type::U64, Value::U64(n)))
+                    Ok(Value::U64(n))
                 } else {
-                    Ok((Type::Unit, Value::Unit))
+                    Err(Error::InvalidJson)
                 }
             }
-            SerdeValue::String(s) => Ok((Type::String, Value::String(s.to_string()))),
+            SerdeValue::String(s) => Ok(Value::String(s.to_string())),
             SerdeValue::Array(vec) => {
-                let mut list = vec![];
-                let mut arr_type = Type::Unit;
-                for arr_value in vec {
-                    let (val_type, val) = self.transform_serde_value(arr_value)?;
-                    arr_type = val_type;
-                    list.push(val);
+                if let Type::List(arr_type) = type_ {
+                    let mut list = vec![];
+                    for arr_value in vec {
+                        let val = self.transform_serde_value(arr_value, arr_type)?;
+                        list.push(val);
+                    }
+                    Ok(Value::List(list))
+                } else {
+                    Err(Error::InvalidJson)
                 }
-                Ok((Type::List(Box::new(arr_type)), Value::List(list)))
             }
             SerdeValue::Object(inner_json_obj) => {
-                let (_object, def) = self.transform_serde_obj(inner_json_obj)?;
-                Ok((
-                    Type::Struct(def),
-                    Value::Unit,
-                    //TODO(melatron): Figure how to handle the lifetime of object - Value::Struct(object),
-                ))
+                if let Type::Struct(struct_type) = type_ {
+                    Ok(Value::Struct(
+                        self.transform_serde_obj(inner_json_obj, struct_type)?,
+                    ))
+                } else {
+                    Err(Error::InvalidJson)
+                }
             }
         }
     }
 
     fn transform_serde_obj<'a>(
-        &mut self,
+        &'a self,
         json_obj: &serde_json::Map<String, SerdeValue>,
-    ) -> Result<(Object, Arc<StructDef>), Error<'a>> {
+        def: &'a Arc<StructDef>,
+    ) -> Result<Object, Error<'a>> {
         let mut values = Vec::with_capacity(json_obj.len());
-        let mut fields = Vec::with_capacity(json_obj.len());
-        let mut type_name = String::from("");
-        for (key, value) in json_obj {
-            let (field_type, sier_value) = self.transform_serde_value(value)?;
-            type_name.push_str(key.as_str());
+        for field_def in def.fields().iter() {
+            let sier_value = self.transform_serde_value(
+                json_obj.get(field_def.name()).ok_or(Error::InvalidJson)?,
+                field_def.type_(),
+            )?;
             values.push(sier_value);
-            fields.push(FieldDef {
-                name: key.to_string(),
-                type_: field_type,
-            })
         }
 
-        let json_def = StructDef { type_name, fields };
-        let id = json_def.id();
-        let existing = self.structs.insert(id, Arc::new(json_def));
-        if let Some(s) = existing {
-            return Err(Error::DuplicateStructDef(s.type_name().to_string()));
-        }
-        let def = self
-            .structs
-            .get(&id)
-            .expect("Check for existance is already done.");
-        Ok((Object::new(def.as_ref(), values), def.clone()))
+        Ok(Object::new(def.as_ref(), values))
     }
 
-    pub fn parse_json<'a>(&mut self, file_json_contents: &'a str) -> Result<Object, Error<'a>> {
+    pub fn parse_json<'a>(
+        &'a self,
+        file_json_contents: &str,
+        def: &'a Arc<StructDef>,
+    ) -> Result<Object, Error<'a>> {
         let json: SerdeValue =
             serde_json::from_str(file_json_contents).or(Err(Error::InvalidJson))?;
 
-        let (obj, _) = self.transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?)?;
+        let obj = self.transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?, def)?;
         Ok(obj)
     }
 }

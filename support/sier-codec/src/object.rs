@@ -37,6 +37,7 @@ impl<'s> Index<&'_ str> for Object<'s> {
             .iter()
             .position(|f| f.name() == field_name)
             .unwrap_or_else(|| panic!("no field with name '{}'", field_name));
+
         &self.values[index]
     }
 }
