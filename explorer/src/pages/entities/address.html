@@ -14,7 +14,7 @@
 
   <tbody>
     {{#extrinsics}}
-      <tr>
+    <tr class="success-{{#extr}}{{ success }}{{/extr}}">
         {{#extr}}
           <td><a href="/{{ hash }}">{{ hash }}</a></td>
           <td>{{ section }}</td>
@@ -39,3 +39,9 @@
     element.innerHTML = date.toLocaleString();
   }
 </script>
+
+<style>
+.success-false {
+  background-color: rgba(255, 0, 0, 0.3);
+}
+</style>
