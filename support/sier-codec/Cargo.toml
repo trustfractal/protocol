@@ -7,6 +7,6 @@ authors = ["Shelby Doolittle <shelby@shelbyd.com>"]
 license = "MIT"
 
 [dependencies]
-blake2 = "0.9.1"
-nom = "6.2.1"
+blake2 = "0.10.0"
+nom = "7.1.0"
 serde_json = "1.0.72"

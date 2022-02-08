@@ -198,9 +198,11 @@ fn json() {
     let mut parser = Parser::default();
     parser.add_file_defs(JSON_STRUCT_DEF2).unwrap();
     parser.add_file_defs(JSON_STRUCT_DEF).unwrap();
+
     let def = parser.struct_def("Foo").unwrap();
     let obj = parser.parse_json(JSON, def).unwrap();
     let obj2 = obj["corge"].as_object().unwrap();
+
     assert_eq!(obj2["gz"].as_u64(), Some(42));
     assert_eq!(obj["bar"].as_u64(), Some(42));
     assert_eq!(obj["baz"].as_string(), Some("abc"));

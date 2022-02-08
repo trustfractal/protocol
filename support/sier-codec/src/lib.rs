@@ -11,6 +11,8 @@ use object::{Object, Value};
 mod schema;
 use schema::{FieldDef, Id, StructDef, Type};
 
+mod json;
+
 use serde_json::Value as SerdeValue;
 
 #[derive(Debug, Default)]
@@ -51,64 +53,6 @@ impl Parser {
         self.structs.values().find(|s| s.type_name() == name)
     }
 
-    fn transform_serde_value<'a>(
-        &'a self,
-        value: &SerdeValue,
-        type_: &'a Type,
-    ) -> Result<Value<'a>, Error<'a>> {
-        match value {
-            SerdeValue::Null => Ok(Value::Unit),
-            //TODO(melatron): Implement a boolean type for sier
-            SerdeValue::Bool(_bool) => Ok(Value::Unit),
-            SerdeValue::Number(number) => {
-                if let Some(n) = number.as_u64() {
-                    Ok(Value::U64(n))
-                } else {
-                    Err(Error::InvalidJson)
-                }
-            }
-            SerdeValue::String(s) => Ok(Value::String(s.to_string())),
-            SerdeValue::Array(vec) => {
-                if let Type::List(arr_type) = type_ {
-                    let mut list = vec![];
-                    for arr_value in vec {
-                        let val = self.transform_serde_value(arr_value, arr_type)?;
-                        list.push(val);
-                    }
-                    Ok(Value::List(list))
-                } else {
-                    Err(Error::InvalidJson)
-                }
-            }
-            SerdeValue::Object(inner_json_obj) => {
-                if let Type::Struct(struct_type) = type_ {
-                    Ok(Value::Struct(
-                        self.transform_serde_obj(inner_json_obj, struct_type)?,
-                    ))
-                } else {
-                    Err(Error::InvalidJson)
-                }
-            }
-        }
-    }
-
-    fn transform_serde_obj<'a>(
-        &'a self,
-        json_obj: &serde_json::Map<String, SerdeValue>,
-        def: &'a Arc<StructDef>,
-    ) -> Result<Object, Error<'a>> {
-        let mut values = Vec::with_capacity(json_obj.len());
-        for field_def in def.fields().iter() {
-            let sier_value = self.transform_serde_value(
-                json_obj.get(field_def.name()).ok_or(Error::InvalidJson)?,
-                field_def.type_(),
-            )?;
-            values.push(sier_value);
-        }
-
-        Ok(Object::new(def.as_ref(), values))
-    }
-
     pub fn parse_json<'a>(
         &'a self,
         file_json_contents: &str,
@@ -117,7 +61,7 @@ impl Parser {
         let json: SerdeValue =
             serde_json::from_str(file_json_contents).or(Err(Error::InvalidJson))?;
 
-        let obj = self.transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?, def)?;
+        let obj = json::transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?, def)?;
         Ok(obj)
     }
 }
@@ -135,6 +79,7 @@ pub enum Error<'i> {
     TooManyBytes,
     InvalidUtf8(std::str::Utf8Error),
     InvalidJson,
+    MismatchTypeFromJson(&'i Type),
 }
 
 #[cfg(test)]
