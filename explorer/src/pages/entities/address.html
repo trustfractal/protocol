@@ -1,0 +1,41 @@
+<h4>Address {{ address }}</h4>
+
+<h5>Transactions</h5>
+
+<table>
+  <thead>
+    <tr>
+      <th>Hash</th>
+      <th>Section</th>
+      <th>Method</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#extrinsics}}
+      <tr>
+        {{#extr}}
+          <td><a href="/{{ hash }}">{{ hash }}</a></td>
+          <td>{{ section }}</td>
+          <td>{{ method }}</td>
+        {{/extr}}
+
+        <td class="fcl-timestamp">{{ timestamp }}</td>
+      </tr>
+    {{/extrinsics}}
+  </tbody>
+</table>
+
+<script>
+  var elements = document.querySelectorAll('.fcl-timestamp');
+  for (var i = 0; i < elements.length; i++) {
+    var element = elements[i];
+    var secs = parseInt(element.innerHTML, 10);
+    if (isNaN(secs)) {
+      continue;
+    }
+    var date = new Date(secs * 1000);
+    element.innerHTML = date.toLocaleString();
+  }
+</script>

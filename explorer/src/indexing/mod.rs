@@ -2,6 +2,8 @@ use crate::data::*;
 use postgres::Client;
 use std::collections::HashMap;
 
+pub mod address_extrinsics;
+pub mod block_timestamps;
 pub mod id_to_entity;
 pub mod identities;
 
@@ -51,6 +53,14 @@ pub trait Indexer: Send {
 pub fn indexers() -> HashMap<String, Box<dyn Indexer>> {
     let mut map = HashMap::new();
 
+    map.insert(
+        "address_extrinsics".to_string(),
+        Box::new(address_extrinsics::AddressExtrinsics::default()) as Box<dyn Indexer>,
+    );
+    map.insert(
+        "block_timestamps".to_string(),
+        Box::new(block_timestamps::BlockTimestamps::default()) as Box<dyn Indexer>,
+    );
     map.insert(
         "count_identities".to_string(),
         Box::new(identities::CountIdentities::default()) as Box<dyn Indexer>,
