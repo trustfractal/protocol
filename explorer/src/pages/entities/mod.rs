@@ -47,11 +47,10 @@ async fn address(
         .iter()
         .map(|e| BlockId::Hash(e.block.clone()))
         .collect::<Vec<_>>();
-    let block_timestamps = retry_blocking(move || {
-        block_timestamps::get(blocks.iter().map(|b| b.clone()), &mut pg.take())
-    })
-    .await
-    .map_err(ErrorInternalServerError)?;
+    let block_timestamps =
+        retry_blocking(move || block_timestamps::get(blocks.iter().cloned(), &mut pg.take()))
+            .await
+            .map_err(ErrorInternalServerError)?;
 
     let address_content = AddressContent {
         address,

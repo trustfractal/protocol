@@ -86,8 +86,8 @@ pub fn get(
 
     let hashes = blocks
         .iter()
-        .filter_map(|id| match id {
-            BlockId::Hash(h) => Some(h),
+        .map(|id| match id {
+            BlockId::Hash(h) => h,
         })
         .collect::<HashSet<_>>()
         .into_iter()
@@ -100,10 +100,10 @@ pub fn get(
         )?
         .into_iter()
         .map(|row| {
-            Ok((
+            (
                 BlockId::Hash(row.get::<_, String>(&"hash")),
                 row.get(&"timestamp"),
-            ))
+            )
         })
-        .collect::<anyhow::Result<_>>()?)
+        .collect())
 }
