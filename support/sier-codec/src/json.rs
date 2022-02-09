@@ -10,13 +10,23 @@ pub fn transform_serde_value<'a>(
         SerdeValue::Null => unimplemented!(),
         SerdeValue::Bool(_bool) => unimplemented!(),
         SerdeValue::Number(number) => {
-            if let Some(n) = number.as_u64() {
-                Ok(Value::U64(n))
+            if type_ == &Type::U64 {
+                if let Some(n) = number.as_u64() {
+                    Ok(Value::U64(n))
+                } else {
+                    unimplemented!()
+                }
             } else {
-                unimplemented!()
+                Err(Error::MismatchTypeFromJson(type_))
             }
         }
-        SerdeValue::String(s) => Ok(Value::String(s.to_string())),
+        SerdeValue::String(s) => {
+            if type_ == &Type::String {
+                Ok(Value::String(s.to_string()))
+            } else {
+                Err(Error::MismatchTypeFromJson(type_))
+            }
+        }
         SerdeValue::Array(vec) => {
             if let Type::List(arr_type) = type_ {
                 let mut list = vec![];
