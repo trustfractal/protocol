@@ -48,7 +48,11 @@ impl super::Indexer for AddressExtrinsics {
             None => return Ok(()),
         };
 
-        entry.push((self.current_block.unwrap(), extr.index_in_block));
+        entry.push((
+            self.current_block
+                .expect("should have visited block before extrinsic"),
+            extr.index_in_block,
+        ));
 
         Ok(())
     }
