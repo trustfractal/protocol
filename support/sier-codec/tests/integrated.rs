@@ -166,6 +166,10 @@ fn struct_() {
 }
 
 const JSON_STRUCT_DEF: &'static str = r#"
+struct Corge {
+    gz :u64;
+}
+
 struct Foo {
     bar :u64;
     baz :string;
@@ -174,20 +178,12 @@ struct Foo {
 }
 "#;
 
-const JSON_STRUCT_DEF2: &'static str = r#"
-struct Corge {
-    gz :u64;
-}
-"#;
-
 const JSON: &'static str = r#"
 {
-    "sierType": "Foo",
     "bar": 42,
     "baz": "abc",
     "qux": [4, 2],
     "corge": {
-        "sierType": "Corge",
         "gz": 42
     }
 }
@@ -196,11 +192,10 @@ const JSON: &'static str = r#"
 #[test]
 fn json() {
     let mut parser = Parser::default();
-    parser.add_file_defs(JSON_STRUCT_DEF2).unwrap();
     parser.add_file_defs(JSON_STRUCT_DEF).unwrap();
 
     let def = parser.struct_def("Foo").unwrap();
-    let obj = parser.parse_json(JSON, def).unwrap();
+    let obj = parser.json_str(JSON, def).unwrap();
     let obj2 = obj["corge"].as_object().unwrap();
 
     assert_eq!(obj2["gz"].as_u64(), Some(42));

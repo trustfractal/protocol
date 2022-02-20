@@ -53,7 +53,7 @@ impl Parser {
         self.structs.values().find(|s| s.type_name() == name)
     }
 
-    pub fn parse_json<'a>(
+    pub fn json_str<'a>(
         &'a self,
         file_json_contents: &str,
         def: &'a Arc<StructDef>,
@@ -79,7 +79,6 @@ pub enum Error<'i> {
     TooManyBytes,
     InvalidUtf8(std::str::Utf8Error),
     InvalidJson,
-    MismatchTypeFromJson(&'i Type),
 }
 
 #[cfg(test)]

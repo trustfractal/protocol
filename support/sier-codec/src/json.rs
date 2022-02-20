@@ -2,7 +2,7 @@ use crate::{Error, Object, StructDef, Type, Value};
 use serde_json::Value as SerdeValue;
 use std::sync::Arc;
 
-pub fn transform_serde_value<'a>(
+pub fn parse_serde_value<'a>(
     value: &SerdeValue,
     type_: &'a Type,
 ) -> Result<Value<'a>, Error<'a>> {
@@ -10,33 +10,30 @@ pub fn transform_serde_value<'a>(
         SerdeValue::Null => unimplemented!(),
         SerdeValue::Bool(_bool) => unimplemented!(),
         SerdeValue::Number(number) => {
-            if type_ == &Type::U64 {
-                if let Some(n) = number.as_u64() {
-                    Ok(Value::U64(n))
-                } else {
-                    unimplemented!()
-                }
-            } else {
-                Err(Error::MismatchTypeFromJson(type_))
+            if *type_ != Type::U64 {
+                return Err(Error::InvalidJson)
             }
+
+            let n = number.as_u64().ok_or_else(|| unimplemented!())?;
+            Ok(Value::U64(n))
         }
         SerdeValue::String(s) => {
-            if type_ == &Type::String {
-                Ok(Value::String(s.to_string()))
-            } else {
-                Err(Error::MismatchTypeFromJson(type_))
+            if *type_ != Type::String {
+                return Err(Error::InvalidJson)
             }
+
+            Ok(Value::String(s.to_string()))
         }
         SerdeValue::Array(vec) => {
             if let Type::List(arr_type) = type_ {
                 let mut list = vec![];
                 for arr_value in vec {
-                    let val = transform_serde_value(arr_value, arr_type)?;
+                    let val = parse_serde_value(arr_value, arr_type)?;
                     list.push(val);
                 }
                 Ok(Value::List(list))
             } else {
-                Err(Error::MismatchTypeFromJson(type_))
+                Err(Error::InvalidJson)
             }
         }
         SerdeValue::Object(inner_json_obj) => {
@@ -46,7 +43,7 @@ pub fn transform_serde_value<'a>(
                     struct_type,
                 )?))
             } else {
-                Err(Error::MismatchTypeFromJson(type_))
+                Err(Error::InvalidJson)
             }
         }
     }
@@ -58,8 +55,8 @@ pub fn transform_serde_obj<'a>(
 ) -> Result<Object<'a>, Error<'a>> {
     let mut values = Vec::with_capacity(json_obj.len());
     for field_def in def.fields().iter() {
-        let sier_value = transform_serde_value(
-            json_obj.get(field_def.name()).unwrap_or(&SerdeValue::Null),
+        let sier_value = parse_serde_value(
+            json_obj.get(field_def.name()).ok_or(Error::InvalidJson)?,
             field_def.type_(),
         )?;
         values.push(sier_value);
