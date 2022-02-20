@@ -25,6 +25,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+pub use fractal_facts::Call as FractalFactsCall;
 pub use fractal_minting::Call as FractalMintingCall;
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -302,6 +303,10 @@ impl fractal_minting::Config for Runtime {
     type ExcessMintingReceiver = ExcessMintingReceiver;
 }
 
+impl fractal_facts::Config for Runtime {
+    type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -324,6 +329,7 @@ construct_runtime!(
 
         // Fractal pallets
         FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
+        FractalFacts: fractal_facts::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
     }
 );
 
