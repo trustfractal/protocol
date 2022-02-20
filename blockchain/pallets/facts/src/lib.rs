@@ -49,7 +49,9 @@ pub mod pallet {
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
-            Self { fractal_authoritative_account_facts: Default::default() }
+            Self {
+                fractal_authoritative_account_facts: Default::default(),
+            }
         }
     }
 
