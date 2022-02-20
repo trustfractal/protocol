@@ -2,16 +2,13 @@ use crate::{Error, Object, StructDef, Type, Value};
 use serde_json::Value as SerdeValue;
 use std::sync::Arc;
 
-pub fn parse_serde_value<'a>(
-    value: &SerdeValue,
-    type_: &'a Type,
-) -> Result<Value<'a>, Error<'a>> {
+pub fn parse_serde_value<'a>(value: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
     match value {
         SerdeValue::Null => unimplemented!(),
         SerdeValue::Bool(_bool) => unimplemented!(),
         SerdeValue::Number(number) => {
             if *type_ != Type::U64 {
-                return Err(Error::InvalidJson)
+                return Err(Error::InvalidJson);
             }
 
             let n = number.as_u64().ok_or_else(|| unimplemented!())?;
@@ -19,7 +16,7 @@ pub fn parse_serde_value<'a>(
         }
         SerdeValue::String(s) => {
             if *type_ != Type::String {
-                return Err(Error::InvalidJson)
+                return Err(Error::InvalidJson);
             }
 
             Ok(Value::String(s.to_string()))

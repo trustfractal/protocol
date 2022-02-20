@@ -59,7 +59,7 @@ impl Parser {
         def: &'a Arc<StructDef>,
     ) -> Result<Object, Error<'a>> {
         let json: SerdeValue =
-            serde_json::from_str(file_json_contents).or(Err(Error::InvalidJson))?;
+            serde_json::from_str(file_json_contents).map_err(|_| Error::InvalidJson)?;
 
         let obj = json::transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?, def)?;
         Ok(obj)
