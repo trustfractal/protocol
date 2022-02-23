@@ -31,32 +31,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type FractalAuthoritativeAccount<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
-    #[pallet::genesis_config]
-    pub struct GenesisConfig<T: Config> {
-        /// The `AccountId` of the sudo key.
-        pub fractal_authoritative_account_facts: T::AccountId,
-    }
-
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self {
-                fractal_authoritative_account_facts: Default::default(),
-            }
-        }
-    }
-
-    #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T>
-    where
-        T::AccountId: Clone,
-    {
-        fn build(&self) {
-            FractalAuthoritativeAccount::<T>::put(self.fractal_authoritative_account_facts.clone());
-        }
-    }
-
-
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {

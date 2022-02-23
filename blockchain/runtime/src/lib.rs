@@ -329,7 +329,7 @@ construct_runtime!(
 
         // Fractal pallets
         FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
-        FractalFacts: fractal_facts::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
+        FractalFacts: fractal_facts::{Pallet, Call, Storage, Event<T>} = 10,
     }
 );
 

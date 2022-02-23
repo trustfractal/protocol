@@ -1,5 +1,5 @@
 use fractal_protocol_blockchain_runtime::{
-    AccountId, AuraConfig, BalancesConfig, FractalFactsConfig, FractalMintingConfig, GenesisConfig,
+    AccountId, AuraConfig, BalancesConfig, FractalMintingConfig, GenesisConfig,
     GrandpaConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::{ChainType, Properties};
@@ -73,11 +73,6 @@ pub fn development_config() -> Result<ChainSpec, String> {
                         "Ferdie",
                     ),
                 },
-                FractalFactsConfig {
-                    fractal_authoritative_account_facts: get_account_id_from_seed::<sr25519::Public>(
-                        "Ferdie",
-                    ),
-                },
             )
         },
         // Bootnodes
@@ -132,11 +127,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
                         "Ferdie",
                     ),
                 },
-                FractalFactsConfig {
-                    fractal_authoritative_account_facts: get_account_id_from_seed::<sr25519::Public>(
-                        "Ferdie",
-                    ),
-                },
             )
         },
         // Bootnodes
@@ -159,7 +149,6 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     fractal_minting: FractalMintingConfig,
-    fractal_facts: FractalFactsConfig,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: SystemConfig {
@@ -189,7 +178,6 @@ fn testnet_genesis(
             key: root_key,
         },
         fractal_minting,
-        fractal_facts,
     }
 }
 
@@ -200,7 +188,6 @@ fn mainnet_genesis(
     initial_grandpa_authorities: Vec<(GrandpaId, u64)>,
     root_key: AccountId,
     fractal_authoritative_account: AccountId,
-    fractal_authoritative_account_facts: AccountId, //TODO(melatron): Do we need an authoritative account for the facts pallet?
     seeded_accounts: Vec<(AccountId, Balance)>,
 ) -> GenesisConfig {
     GenesisConfig {
@@ -224,9 +211,6 @@ fn mainnet_genesis(
         },
         fractal_minting: FractalMintingConfig {
             fractal_authoritative_account,
-        },
-        fractal_facts: FractalFactsConfig {
-            fractal_authoritative_account_facts,
         },
     }
 }
@@ -284,7 +268,6 @@ pub fn mainnet_config() -> Result<ChainSpec, String> {
                 hex!["8a880afcce745e98eb27dd016eb9a050a0c73097f91768fdffe6f3c99fca8f6d"].into(),
                 // Fractal authoritative account
                 // 5FCLidfDWqbDHZNbqGzAiTLJTY3zLrYZEor9MDUWXiD3hE5E
-                hex!["8a8781409e238a4b2a794fb7decee78007a8adee55ecf7888ed49b4ed64e4425"].into(),
                 hex!["8a8781409e238a4b2a794fb7decee78007a8adee55ecf7888ed49b4ed64e4425"].into(),
                 vec![(
                     // Fractal bridge account seeded with the 5 million units burned from ERC-20.
