@@ -43,10 +43,8 @@ pub mod pallet {
         StorageOverflow,
     }
 
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn store_fact(origin: OriginFor<T>, fact: sp_std::vec::Vec<u8>) -> DispatchResult {
             let who = ensure_signed(origin)?;
