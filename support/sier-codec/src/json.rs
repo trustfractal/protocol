@@ -23,11 +23,10 @@ pub fn parse_serde_value<'a>(value: &SerdeValue, type_: &'a Type) -> Result<Valu
         }
         SerdeValue::Array(vec) => {
             if let Type::List(arr_type) = type_ {
-                let mut list = vec![];
-                for arr_value in vec {
-                    let val = parse_serde_value(arr_value, arr_type)?;
-                    list.push(val);
-                }
+                let list = vec
+                    .iter()
+                    .map(|val| parse_serde_value(val, arr_type))
+                    .collect::<Result<_, _>>()?;
                 Ok(Value::List(list))
             } else {
                 Err(Error::InvalidJson)

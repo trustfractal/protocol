@@ -1,4 +1,4 @@
-use blake2::{Blake2s256, Digest};
+use blake2::{Blake2b512, Digest};
 use core::convert::TryInto;
 use std::sync::Arc;
 
@@ -18,7 +18,7 @@ impl StructDef {
     }
 
     pub fn id(&self) -> [u8; 8] {
-        let mut hasher = Blake2s256::new();
+        let mut hasher = Blake2b512::new();
 
         hasher.update(&self.type_name);
         for field in &self.fields {
