@@ -45,7 +45,7 @@ async function main() {
 
 function parseAmounts(inputPath, outFile, options) {
   const amountsFileContents = fs.readFileSync(inputPath).toString().trim();
-  const {data: amountsCsv} = Papa.parse(amountsFileContents);
+  const { data: amountsCsv } = Papa.parse(amountsFileContents);
 
   // Use a map instead of an object because maps iterate their keys in insert
   // order.
@@ -83,10 +83,10 @@ function parseAmounts(inputPath, outFile, options) {
   }
 
   const alreadySentContents = fs.readFileSync(outFile).toString().trim();
-  const {data: alreadySentCsv} = Papa.parse(alreadySentContents);
-  const alreadySent = new Set(alreadySentCsv.map(([address,]) => address));
+  const { data: alreadySentCsv } = Papa.parse(alreadySentContents);
+  const alreadySent = new Set(alreadySentCsv.map(([address]) => address));
 
-  for (const addr in alreadySent) {
+  for (const addr of alreadySent) {
     amounts.delete(addr);
   }
 
@@ -141,9 +141,12 @@ async function sendAmounts(amounts, network, signer, options, callback) {
       await callback(address, amount, result);
     });
 
-    await Promise.all(promises);
+    await Promise.allSettled(promises);
   }
 }
+
+console.warn('This script does not handle Ctrl+C well');
+console.warn('SIGINT or SIGTERM may result in some transactions finishing without being recorded');
 
 main()
   .then(() => process.exit(0))
