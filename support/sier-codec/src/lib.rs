@@ -11,7 +11,7 @@ use object::{Object, Value};
 mod schema;
 use schema::{FieldDef, Id, StructDef, Type};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Parser {
     structs: HashMap<Id, Arc<StructDef>>,
 }
@@ -47,14 +47,6 @@ impl Parser {
 
     pub fn struct_def(&self, name: &str) -> Option<&Arc<StructDef>> {
         self.structs.values().find(|s| s.type_name() == name)
-    }
-}
-
-impl Default for Parser {
-    fn default() -> Self {
-        Parser {
-            structs: HashMap::new(),
-        }
     }
 }
 

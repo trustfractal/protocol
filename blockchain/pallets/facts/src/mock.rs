@@ -58,7 +58,6 @@ parameter_types! {
     pub const ExistentialDeposit: u64 = 1;
 }
 
-
 impl fractal_facts::Config for Test {
     type Event = Event;
 }
