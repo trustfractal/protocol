@@ -2,18 +2,22 @@ const fs = require("fs");
 const { TxnBatcher } = require("@trustfractal/polkadot-utils");
 const { Keyring, WsProvider, ApiPromise } = require("@polkadot/api");
 const { decodeAddress } = require("@polkadot/keyring");
+const Papa = require("papaparse");
+
 const prompt = require("prompt");
 const args = require("minimist")(process.argv.slice(2));
 
 // Usage:
 //   node send_funds.js \
 //     --amounts send_funds_amounts_example.csv \
+//     --out ./sent_txns.csv \
 //     --network wss://nodes.testnet.fractalprotocol.com \
 //     --send-at-once 256
 async function main() {
   await prompt.start({ stdout: process.stderr });
 
-  const amounts = parseAmounts(args.amounts, {
+  const outFile = args["out"] ?? "./sent_txns.csv";
+  const amounts = parseAmounts(args.amounts, outFile, {
     allowDuplicates: args["allow-duplicates"] ?? false,
     skipInvalid: args["skip-invalid"] ?? false,
   });
@@ -26,22 +30,28 @@ async function main() {
     args.network || "wss://nodes.testnet.fractalprotocol.com",
     signer,
     { sendAtOnce: args["send-at-once"] ?? 256 },
-    (address, amount, result) => {
-      console.log(`${address},${Number(amount) / 10 ** 12},${result.hash}`);
+    async (address, amount, result) => {
+      const line = `${address},${Number(amount) / 10 ** 12},${result.hash}`;
+
+      await new Promise((resolve, reject) => {
+        fs.appendFile(outFile, line + "\n", (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
     }
   );
 }
 
-function parseAmounts(inputPath, options) {
+function parseAmounts(inputPath, outFile, options) {
   const amountsFileContents = fs.readFileSync(inputPath).toString().trim();
+  const {data: amountsCsv} = Papa.parse(amountsFileContents);
 
   // Use a map instead of an object because maps iterate their keys in insert
   // order.
   const amounts = new Map();
   let anyDuplicates = false;
-  for (const line of amountsFileContents.split("\n")) {
-    const [addressStr, amountStr] = line.split(",").map((s) => s.trim());
-
+  for (const [addressStr, amountStr] of amountsCsv) {
     try {
       decodeAddress(addressStr);
     } catch (e) {
@@ -70,6 +80,14 @@ function parseAmounts(inputPath, options) {
 
   if (!options.allowDuplicates && anyDuplicates) {
     throw new Error("Found duplicate addresses");
+  }
+
+  const alreadySentContents = fs.readFileSync(outFile).toString().trim();
+  const {data: alreadySentCsv} = Papa.parse(alreadySentContents);
+  const alreadySent = new Set(alreadySentCsv.map(([address,]) => address));
+
+  for (const addr in alreadySent) {
+    amounts.delete(addr);
   }
 
   return amounts;
