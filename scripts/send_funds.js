@@ -3,6 +3,7 @@ const { TxnBatcher } = require("@trustfractal/polkadot-utils");
 const { Keyring, WsProvider, ApiPromise } = require("@polkadot/api");
 const { decodeAddress } = require("@polkadot/keyring");
 const Papa = require("papaparse");
+const cliProgress = require("cli-progress");
 
 const prompt = require("prompt");
 const args = require("minimist")(process.argv.slice(2));
@@ -29,16 +30,14 @@ async function main() {
     amounts,
     args.network || "wss://nodes.testnet.fractalprotocol.com",
     signer,
-    { sendAtOnce: args["send-at-once"] ?? 256 },
+    {
+      sendAtOnce: args["send-at-once"] ?? 256,
+      inProgressFile:
+        args["in-progress-file"] ?? "./send_funds_in_progress.txt",
+    },
     async (address, amount, result) => {
       const line = `${address},${Number(amount) / 10 ** 12},${result.hash}`;
-
-      await new Promise((resolve, reject) => {
-        fs.appendFile(outFile, line + "\n", (err) => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
+      await appendLine(outFile, line);
     }
   );
 }
@@ -82,12 +81,16 @@ function parseAmounts(inputPath, outFile, options) {
     throw new Error("Found duplicate addresses");
   }
 
-  const alreadySentContents = fs.readFileSync(outFile).toString().trim();
-  const { data: alreadySentCsv } = Papa.parse(alreadySentContents);
-  const alreadySent = new Set(alreadySentCsv.map(([address]) => address));
+  try {
+    const alreadySentContents = fs.readFileSync(outFile).toString().trim();
+    const { data: alreadySentCsv } = Papa.parse(alreadySentContents);
+    const alreadySent = new Set(alreadySentCsv.map(([address]) => address));
 
-  for (const addr of alreadySent) {
-    amounts.delete(addr);
+    for (const addr of alreadySent) {
+      amounts.delete(addr);
+    }
+  } catch (e) {
+    console.error(e);
   }
 
   return amounts;
@@ -125,28 +128,68 @@ async function confirmAmounts(amounts, signer) {
 
 async function sendAmounts(amounts, network, signer, options, callback) {
   amounts = new Map(amounts);
+  const bar = new cliProgress.SingleBar({ etaBuffer: options.sendAtOnce * 4 });
 
   const ws = new WsProvider(network);
   const api = await ApiPromise.create({ provider: ws });
   const batcher = new TxnBatcher(api);
 
-  while (amounts.size > 0) {
-    const keys = Array.from(amounts.keys()).slice(0, options.sendAtOnce);
-    const promises = keys.map(async (address) => {
-      const amount = amounts.get(address);
-      amounts.delete(address);
+  bar.start(amounts.size, 0);
+  try {
+    while (amounts.size > 0) {
+      const keys = Array.from(amounts.keys()).slice(0, options.sendAtOnce);
+      const promises = keys.map(async (address) => {
+        const amount = amounts.get(address);
+        amounts.delete(address);
 
-      const txn = api.tx.balances.transfer(address, amount);
-      const result = await batcher.signAndSend(txn, signer).inBlock();
-      await callback(address, amount, result);
-    });
+        const txn = api.tx.balances.transfer(address, amount);
+        await appendLine(options.inProgressFile, txn.hash.toString());
 
-    await Promise.allSettled(promises);
+        const result = await batcher.signAndSend(txn, signer).inBlock();
+        await callback(address, amount, result);
+        bar.increment();
+      });
+
+      await allSettledWithReject(promises);
+    }
+  } finally {
+    bar.stop();
   }
 }
 
-console.warn('This script does not handle Ctrl+C well');
-console.warn('SIGINT or SIGTERM may result in some transactions finishing without being recorded');
+async function allSettledWithReject(promises) {
+  let oks = [];
+  let errors = [];
+  for (const promise of promises) {
+    try {
+      oks.push(await promise);
+    } catch (e) {
+      errors.push(e);
+    }
+  }
+  if (errors.length > 0) {
+    throw errors;
+  } else {
+    return oks;
+  }
+}
+
+function appendLine(path, line) {
+  return new Promise((resolve, reject) => {
+    fs.appendFile(path, line + "\n", (err) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
+process.on("SIGINT", () => {
+  console.warn("");
+  console.warn("Got SIGINT");
+  console.warn(
+    "You will need to diff --in-progress-file with --out for txns that completed but the script didn't see"
+  );
+});
 
 main()
   .then(() => process.exit(0))
