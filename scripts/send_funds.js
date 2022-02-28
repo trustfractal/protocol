@@ -8,7 +8,8 @@ const args = require("minimist")(process.argv.slice(2));
 // Usage:
 //   node send_funds.js \
 //     --amounts send_funds_amounts_example.csv \
-//     --network wss://nodes.testnet.fractalprotocol.com
+//     --network wss://nodes.testnet.fractalprotocol.com \
+//     --send-at-once 256
 async function main() {
   await prompt.start({ stdout: process.stderr });
 
@@ -24,6 +25,7 @@ async function main() {
     amounts,
     args.network || "wss://nodes.testnet.fractalprotocol.com",
     signer,
+    { sendAtOnce: args["send-at-once"] ?? 256 },
     (address, amount, result) => {
       console.log(`${address},${Number(amount) / 10 ** 12},${result.hash}`);
     }
@@ -103,20 +105,26 @@ async function confirmAmounts(amounts, signer) {
   }
 }
 
-async function sendAmounts(amounts, network, signer, callback) {
+async function sendAmounts(amounts, network, signer, options, callback) {
+  amounts = new Map(amounts);
+
   const ws = new WsProvider(network);
   const api = await ApiPromise.create({ provider: ws });
   const batcher = new TxnBatcher(api);
 
-  const promises = Array.from(amounts.entries()).map(
-    async ([address, amount]) => {
+  while (amounts.size > 0) {
+    const keys = Array.from(amounts.keys()).slice(0, options.sendAtOnce);
+    const promises = keys.map(async (address) => {
+      const amount = amounts.get(address);
+      amounts.delete(address);
+
       const txn = api.tx.balances.transfer(address, amount);
       const result = await batcher.signAndSend(txn, signer).inBlock();
       await callback(address, amount, result);
-    }
-  );
+    });
 
-  await Promise.all(promises);
+    await Promise.all(promises);
+  }
 }
 
 main()
