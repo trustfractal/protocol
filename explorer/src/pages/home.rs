@@ -93,7 +93,7 @@ pub async fn home(
         .get("home.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&home_data);
-    Ok(html_page(templates, page)?)
+    html_page(templates, page)
 }
 
 fn get_home_data(pg: &mut postgres::Client, filters: &ActiveFilters) -> anyhow::Result<HomeData> {

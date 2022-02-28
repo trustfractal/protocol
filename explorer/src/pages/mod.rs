@@ -134,7 +134,7 @@ async fn metrics_identities(
         .get("metrics/identities.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&counts);
-    Ok(html_page(templates, page)?)
+    html_page(templates, page)
 }
 
 async fn retry_blocking<R, E, F>(f: F) -> Result<R, E>

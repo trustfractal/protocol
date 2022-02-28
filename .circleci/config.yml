@@ -3,7 +3,7 @@ version: 2.1
 # Template steps to be reused in the jobs
 setup_steps:
   - &install_deps
-    run: 
+    run:
       name: Install dependencies
       command: |
         sudo apt update
@@ -14,13 +14,13 @@ setup_steps:
       command: |
         rustup default stable
         rustup update
-        rustup update nightly-2021-09-01
-        rustup target add wasm32-unknown-unknown --toolchain nightly-2021-09-01
+        rustup update nightly-2022-02-16
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-16
 
         rustup show
   - checkout
   - &version_info
-    run: 
+    run:
       name: Version information
       command: rustc --version; cargo --version; rustup --version
   - &cargo_fetch_retry
@@ -40,7 +40,7 @@ setup_steps:
         - target/release/build
         - target/release/deps
       key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
-  
+
 jobs:
   build-and-test:
     docker:
@@ -53,7 +53,7 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
-      - *restore_cache 
+      - *restore_cache
       - *cargo_fetch_retry
       - run:
           name: Build all targets
@@ -102,7 +102,7 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
-      - *restore_cache 
+      - *restore_cache
       - *cargo_fetch_retry
       - run:
           name: Install formatter
@@ -121,11 +121,11 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
-      - *restore_cache 
+      - *restore_cache
       - *cargo_fetch_retry
       - run:
           name: Set to a fixed working version of nightly
-          command: rustup default nightly-2021-09-01
+          command: rustup default nightly-2022-02-16
       - run:
           name: Install formatter
           command: rustup component add rustfmt
@@ -157,7 +157,7 @@ jobs:
           name: Build basic Dockerfile
           command: |
             # We use the artifact of the previous
-            # build step which should be in 
+            # build step which should be in
             #    `build/release/node`
             # in the backend dir.
 
@@ -166,14 +166,14 @@ jobs:
             FROM ubuntu:focal
 
             RUN apt-get update && apt-get install -y \
-              libssl-dev \ 
+              libssl-dev \
               && rm -rf /var/lib/apt/lists/*
 
             WORKDIR /app
 
             COPY target/release/node /app
             COPY target/release/node-health-check /app
-            
+
             ENTRYPOINT ["/app/node"]
             EOS
 
