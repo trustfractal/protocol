@@ -79,5 +79,5 @@ async fn address(
         .get("entities/address.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&address_content);
-    Ok(html_page(templates, page)?)
+    html_page(templates, page)
 }
