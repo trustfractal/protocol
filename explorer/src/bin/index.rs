@@ -220,7 +220,7 @@ impl Interval {
     fn new(every: Duration) -> Self {
         Interval { every, last: None }
     }
-
+    #[allow(clippy::wrong_self_convention)]
     fn is_time(&mut self) -> bool {
         if let Some(last) = self.last {
             if last.elapsed() < self.every {
