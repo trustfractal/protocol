@@ -4138,9 +4138,9 @@ nice-try@^1.0.4:
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
 node-fetch@^2.6.1, node-fetch@^2.6.2:
-  version "2.6.5"
-  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.5.tgz#42735537d7f080a7e5f78b6c549b7146be1742fd"
-  integrity sha512-mmlIVHJEu5rnIxgEgez6b9GgWXbkZj5YZ7fx+2r94a2E+Uirsp6HsPTPlomfdHtpt/B0cdKviwkoaM6pyvUOpQ==
+  version "2.6.7"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.7.tgz#24de9fba827e3b4ae44dc8b20256a379160052ad"
+  integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
   dependencies:
     whatwg-url "^5.0.0"
 
@@ -5519,9 +5519,9 @@ trim-newlines@^3.0.0:
   integrity sha512-c1PTsA3tYrIsLGkJkzHF+w9F2EyxfXGo4UyJc4pFL++FMjnq0HJS69T3M7d//gKrFKwy429bouPescbjecU+Zw==
 
 trim-off-newlines@^1.0.1:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/trim-off-newlines/-/trim-off-newlines-1.0.2.tgz#65d52e4f4115992c0dac87220bdcc279fe58c422"
-  integrity sha512-DAnbtY4lNoOTLw05HLuvPoBFAGV4zOKQ9d1Q45JB+bcDwYIEkCr0xNgwKtygtKFBbRlFA/8ytkAM1V09QGWksg==
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/trim-off-newlines/-/trim-off-newlines-1.0.3.tgz#8df24847fcb821b0ab27d58ab6efec9f2fe961a1"
+  integrity sha512-kh6Tu6GbeSNMGfrrZh6Bb/4ZEHV1QlB4xNDBeog8Y9/QwFlKTRyWvY3Fs9tRDAMZliVUwieMgEdIeL/FtqjkJg==
 
 trim-repeated@^1.0.0:
   version "1.0.0"

@@ -3,13 +3,16 @@ use block_pool::Pool;
 use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
+mod entities;
 mod home;
 
-pub fn resources() -> Vec<Resource> {
+pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
         web::resource("/").to(home::home),
         web::resource("/metrics/identities").to(metrics_identities),
     ]
+    .into_iter()
+    .chain(entities::resources())
 }
 
 pub fn templates() -> anyhow::Result<Ramhorns> {
