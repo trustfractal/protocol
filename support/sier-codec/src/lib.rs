@@ -11,6 +11,10 @@ use object::{Object, Value};
 mod schema;
 use schema::{FieldDef, Id, StructDef, Type};
 
+mod json;
+
+use serde_json::Value as SerdeValue;
+
 #[derive(Debug, Default)]
 pub struct Parser {
     structs: HashMap<Id, Arc<StructDef>>,
@@ -48,6 +52,18 @@ impl Parser {
     pub fn struct_def(&self, name: &str) -> Option<&Arc<StructDef>> {
         self.structs.values().find(|s| s.type_name() == name)
     }
+
+    pub fn json_str<'a>(
+        &'a self,
+        file_json_contents: &str,
+        def: &'a Arc<StructDef>,
+    ) -> Result<Object, Error<'a>> {
+        let json: SerdeValue =
+            serde_json::from_str(file_json_contents).map_err(|_| Error::InvalidJson)?;
+
+        let obj = json::transform_serde_obj(json.as_object().ok_or(Error::InvalidJson)?, def)?;
+        Ok(obj)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -62,6 +78,7 @@ pub enum Error<'i> {
     TooFewBytes,
     TooManyBytes,
     InvalidUtf8(std::str::Utf8Error),
+    InvalidJson,
 }
 
 #[cfg(test)]

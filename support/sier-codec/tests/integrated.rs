@@ -164,3 +164,50 @@ fn struct_() {
 
     assert_eq!(obj["foo"].as_u8(), Some(42));
 }
+
+const JSON_STRUCT_DEF: &'static str = r#"
+struct Corge {
+    gz :u64;
+}
+
+struct Foo {
+    bar :u64;
+    baz :string;
+    qux :List<u64>;
+    corge :Corge;
+}
+"#;
+
+const JSON: &'static str = r#"
+{
+    "bar": 42,
+    "baz": "abc",
+    "qux": [4, 2],
+    "corge": {
+        "gz": 42
+    }
+}
+"#;
+
+#[test]
+fn json() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(JSON_STRUCT_DEF).unwrap();
+
+    let def = parser.struct_def("Foo").unwrap();
+    let obj = parser.json_str(JSON, def).unwrap();
+    let obj2 = obj["corge"].as_object().unwrap();
+
+    assert_eq!(obj2["gz"].as_u64(), Some(42));
+    assert_eq!(obj["bar"].as_u64(), Some(42));
+    assert_eq!(obj["baz"].as_string(), Some("abc"));
+    assert_eq!(
+        obj["qux"]
+            .as_list()
+            .unwrap()
+            .into_iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect::<Vec<_>>(),
+        vec![4, 2]
+    );
+}
