@@ -14,6 +14,7 @@ use schema::{FieldDef, Id, StructDef, Type};
 mod json;
 
 use serde_json::Value as SerdeValue;
+use thiserror::Error as ThisError;
 
 #[derive(Debug, Default)]
 pub struct Parser {
@@ -66,18 +67,29 @@ impl Parser {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(ThisError, Debug, PartialEq)]
 pub enum Error<'i> {
+    #[error("Id not provided")]
     MissingId(Id),
+    #[error("Failed while trying to parse the Definition - `{0}`")]
     DefinitionParsing(nom::Err<nom::error::Error<&'i str>>),
+    #[error("Failed while trying to parse the Value - `{0}`")]
     ValueParsing(nom::Err<nom::error::Error<&'i [u8]>>),
+    #[error("The provided Type - `{0}` can't be resolved.")]
     UnresolvedType(String),
+    #[error("The field - `{0}` is duplicated.")]
     DuplicateField(String),
+    #[error("This - `{0}` Struct definition already exists.")]
     DuplicateStructDef(String),
+    #[error("The provided Type - `{0}` can't be recognized.")]
     UnrecognizedType(String),
+    #[error("Too few bytes are provided.")]
     TooFewBytes,
+    #[error("Too many bytes are provided.")]
     TooManyBytes,
-    InvalidUtf8(std::str::Utf8Error),
+    #[error("Invalid UTF8")]
+    InvalidUtf8(#[from] std::str::Utf8Error),
+    #[error("The provided JSON is not valid.")]
     InvalidJson,
 }
 

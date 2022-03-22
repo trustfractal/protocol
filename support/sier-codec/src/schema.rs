@@ -151,7 +151,7 @@ impl Type {
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),
             Type::String => {
                 let (bytes, str_bytes) = length_prefixed(bytes).map_err(Error::ValueParsing)?;
-                let s = std::str::from_utf8(str_bytes).map_err(Error::InvalidUtf8)?;
+                let s = std::str::from_utf8(str_bytes)?;
 
                 Ok((bytes, Value::String(String::from(s))))
             }

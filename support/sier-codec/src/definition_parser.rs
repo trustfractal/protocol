@@ -54,7 +54,7 @@ impl<'i> ParsedStruct<'i> {
                         type_: f.type_.resolve(parser)?,
                     })
                 })
-                .collect::<Result<_, _>>()?,
+                .collect::<Result<_, Error<'i>>>()?,
         })
     }
 }

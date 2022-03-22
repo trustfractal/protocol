@@ -11,7 +11,7 @@ pub fn parse_serde_value<'a>(value: &SerdeValue, type_: &'a Type) -> Result<Valu
                 return Err(Error::InvalidJson);
             }
 
-            let n = number.as_u64().ok_or_else(|| unimplemented!())?;
+            let n = number.as_u64().unwrap_or_else(|| unimplemented!());
             Ok(Value::U64(n))
         }
         SerdeValue::String(s) => {
