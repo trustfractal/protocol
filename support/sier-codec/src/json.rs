@@ -5,7 +5,13 @@ use std::sync::Arc;
 pub fn parse_serde_value<'a>(value: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
     match value {
         SerdeValue::Null => unimplemented!(),
-        SerdeValue::Bool(_bool) => unimplemented!(),
+        SerdeValue::Bool(bool) => {
+            if *type_ != Type::Bool {
+                return Err(Error::InvalidJson);
+            }
+
+            Ok(Value::Bool(*bool))
+        }
         SerdeValue::Number(number) => {
             if *type_ != Type::U64 {
                 return Err(Error::InvalidJson);
