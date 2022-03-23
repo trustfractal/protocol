@@ -69,27 +69,27 @@ impl Parser {
 
 #[derive(ThisError, Debug, PartialEq)]
 pub enum Error<'i> {
-    #[error("Id not provided")]
+    #[error("ID not found: {0}")]
     MissingId(Id),
-    #[error("Failed while trying to parse the Definition - `{0}`")]
+    #[error("Could not parse definition: {0}")]
     DefinitionParsing(nom::Err<nom::error::Error<&'i str>>),
-    #[error("Failed while trying to parse the Value - `{0}`")]
+    #[error("Could not parse value: {0}")]
     ValueParsing(nom::Err<nom::error::Error<&'i [u8]>>),
-    #[error("The provided Type - `{0}` can't be resolved.")]
+    #[error("Could not find type: {0}")]
     UnresolvedType(String),
-    #[error("The field - `{0}` is duplicated.")]
+    #[error("Duplicate field: {0}")]
     DuplicateField(String),
-    #[error("This - `{0}` Struct definition already exists.")]
+    #[error("Struct already defined: {0}")]
     DuplicateStructDef(String),
-    #[error("The provided Type - `{0}` can't be recognized.")]
+    #[error("Unknown type: {0}")]
     UnrecognizedType(String),
-    #[error("Too few bytes are provided.")]
+    #[error("Too few bytes")]
     TooFewBytes,
-    #[error("Too many bytes are provided.")]
+    #[error("Too many bytes")]
     TooManyBytes,
     #[error("Invalid UTF8")]
     InvalidUtf8(#[from] std::str::Utf8Error),
-    #[error("The provided JSON is not valid.")]
+    #[error("Invalid JSON")]
     InvalidJson,
 }
 
