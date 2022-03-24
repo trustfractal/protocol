@@ -7449,6 +7449,7 @@ dependencies = [
  "blake2 0.10.4",
  "nom",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
