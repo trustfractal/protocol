@@ -257,6 +257,7 @@ mod tests {
         #[test]
         fn bool_is_byte() {
             assert_eq!(Value::Bool(true).serialize(), vec![1]);
+            assert_eq!(Value::Bool(false).serialize(), vec![0]);
         }
 
         #[test]

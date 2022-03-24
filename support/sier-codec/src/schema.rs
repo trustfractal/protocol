@@ -148,16 +148,18 @@ impl Type {
 
         match self {
             Type::Unit => Ok((bytes, Value::Unit)),
-            Type::Bool => complete::le_u8(bytes).map(|(b, n)| {
-                (
-                    b,
-                    if n == 0 {
-                        Value::Bool(false)
-                    } else {
-                        Value::Bool(true)
-                    },
-                )
-            }),
+            Type::Bool => {
+                let (b, n) = complete::le_u8(bytes).map_err(Error::ValueParsing)?;
+                let value = match n {
+                    0 => Ok(Value::Bool(false)),
+                    1 => Ok(Value::Bool(true)),
+                    _ => Err(Error::ValueParsing(nom::Err::Error(
+                        nom::error::make_error(bytes, nom::error::ErrorKind::IsNot),
+                    ))),
+                }?;
+
+                Ok((b, value))
+            }
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),
