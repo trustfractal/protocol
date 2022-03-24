@@ -69,7 +69,7 @@ impl Parser {
 
 #[derive(ThisError, Debug, PartialEq)]
 pub enum Error<'i> {
-    #[error("ID not found: {0}")]
+    #[error("ID not found: {:?}", [..])]
     MissingId(Id),
     #[error("Could not parse definition: {0}")]
     DefinitionParsing(nom::Err<nom::error::Error<&'i str>>),
