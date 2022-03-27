@@ -2143,6 +2143,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fractal_object_storage"
+version = "0.1.0"
+
+[[package]]
 name = "frame-benchmarking"
 version = "3.1.0"
 source = "git+https://github.com/paritytech/substrate.git?tag=monthly-2021-05#70ef0afc86cdef0cba09336acffb08bff08540aa"
