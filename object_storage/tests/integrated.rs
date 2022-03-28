@@ -1,28 +1,4 @@
-use std::collections::HashMap;
-
-use fractal_object_storage::{Database, FractalStore, Given, ProofChecker, Proposition};
-
-#[derive(Default)]
-struct InMemoryDb {
-    stored: HashMap<Vec<u8>, Vec<u8>>,
-}
-
-impl Database for InMemoryDb {
-    type Error = ();
-
-    fn store(&mut self, key: &[u8], value: &[u8]) -> Result<(), Self::Error> {
-        self.stored.insert(key.to_vec(), value.to_vec());
-        Ok(())
-    }
-
-    fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error> {
-        Ok(self.stored.get(key).map(|slice| slice.to_vec()))
-    }
-
-    fn keys<'s>(&'s self) -> Box<dyn Iterator<Item = Result<&'s [u8], Self::Error>> + 's> {
-        Box::new(self.stored.keys().map(Vec::as_slice).map(Ok))
-    }
-}
+use fractal_object_storage::{test::InMemoryDb, FractalStore, Given, ProofChecker, Proposition};
 
 #[test]
 #[ignore]
