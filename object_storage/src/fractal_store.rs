@@ -10,7 +10,7 @@ pub struct FractalStore<D> {
 
 impl<D: Database + 'static> FractalStore<D> {
     pub fn new(db: D) -> Self {
-        Self::new_with_deps(db, KvSet::new())
+        Self::new_with_deps(db, KvSet::new(&[2]))
     }
 
     fn new_with_deps(db: D, kv_set: KvSet) -> Self {
@@ -22,10 +22,7 @@ impl<D: Database + 'static> FractalStore<D> {
             return Err(Error::IdExists);
         }
 
-        self.db.store(
-            [1].iter().chain(id).cloned().collect::<Vec<_>>().as_ref(),
-            value,
-        )?;
+        self.db.store([1].iter().chain(id), value)?;
         self.kv_set.insert(id, &mut self.db)?;
 
         Ok(())
@@ -49,8 +46,16 @@ pub enum Error<E> {
 pub trait Database {
     type Error;
 
-    fn store(&mut self, key: &[u8], value: &[u8]) -> Result<(), Self::Error>;
-    fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error>;
+    fn store<'b>(
+        &mut self,
+        key: impl IntoIterator<Item = &'b u8>,
+        value: &[u8],
+    ) -> Result<(), Self::Error>;
+
+    fn read<'b>(
+        &self,
+        key: impl IntoIterator<Item = &'b u8>,
+    ) -> Result<Option<Vec<u8>>, Self::Error>;
 }
 
 #[cfg(test)]
