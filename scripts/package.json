@@ -5,7 +5,7 @@
   "dependencies": {
     "@trustfractal/polkadot-utils": "^0.1.7",
     "cli-progress": "^3.10.0",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "papaparse": "^5.3.1",
     "prompt": "^1.2.0"
   }
