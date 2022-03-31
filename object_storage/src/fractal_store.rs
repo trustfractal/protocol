@@ -1,11 +1,14 @@
-use crate::*;
+use crate::{merkle_tree::MerkleTree, *};
+
+use fallible_iterator::FallibleIterator;
+use std::ops::Deref;
 
 #[mockall_double::double]
 use crate::kv_set::KvSet;
 
 pub struct FractalStore<D> {
-    db: D,
-    kv_set: KvSet,
+    db: Handle<D>,
+    objects: KvSet,
 }
 
 impl<D: Database + 'static> FractalStore<D> {
@@ -13,23 +16,38 @@ impl<D: Database + 'static> FractalStore<D> {
         Self::new_with_deps(db, KvSet::new(&[2]))
     }
 
-    fn new_with_deps(db: D, kv_set: KvSet) -> Self {
-        FractalStore { db, kv_set }
+    fn new_with_deps(db: D, objects: KvSet) -> Self {
+        FractalStore {
+            db: Handle::new(db),
+            objects,
+        }
     }
 
     pub fn init(&mut self, id: &[u8], value: &[u8]) -> Result<(), Error<D::Error>> {
-        if self.kv_set.contains(id, &self.db)? {
+        if self.objects.contains(id, &*self.db.borrow())? {
             return Err(Error::IdExists);
         }
 
-        self.db.store([1].iter().chain(id), value)?;
-        self.kv_set.insert(id, &mut self.db)?;
+        let mut borrow = self.db.borrow_mut();
+        borrow.store_iter([1].iter().chain(id), value)?;
+        self.objects.insert(id, &mut *borrow)?;
 
         Ok(())
     }
 
-    pub fn root_hash(&self) -> Result<Hash, D::Error> {
-        unimplemented!("root_hash");
+    pub fn root_hash(&self) -> Result<Hash, Error<D::Error>> {
+        let mut merkle_tree = MerkleTree::new();
+
+        let mut object_ids = self.objects.iter_lexicographic(self.db.clone());
+        while let Some(object_id) = object_ids.next()? {
+            merkle_tree.update(self.object_hash(object_id.as_ref())?);
+        }
+
+        Ok(merkle_tree.root_hash())
+    }
+
+    fn object_hash(&self, _object_id: &[u8]) -> Result<Hash, Error<D::Error>> {
+        unimplemented!("object_hash");
     }
 
     pub fn prove_given(&self, _given: Given, _prop: Proposition) -> Result<Proof, D::Error> {
@@ -39,23 +57,60 @@ impl<D: Database + 'static> FractalStore<D> {
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error<E> {
-    DbError(#[from] E),
+    Db(#[from] E),
     IdExists,
 }
 
 pub trait Database {
     type Error;
 
-    fn store<'b>(
+    fn store(&mut self, key: &[u8], value: &[u8]) -> Result<(), Self::Error>;
+    fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error>;
+
+    fn store_iter<'b>(
         &mut self,
         key: impl IntoIterator<Item = &'b u8>,
         value: &[u8],
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), Self::Error> {
+        self.store(key.into_iter().cloned().collect::<Vec<_>>().as_ref(), value)
+    }
 
-    fn read<'b>(
+    fn store_slices(&mut self, key_slices: &[&[u8]], value: &[u8]) -> Result<(), Self::Error> {
+        self.store_iter(key_slices.iter().flat_map(|v| v.iter()), value)
+    }
+
+    fn read_iter<'b>(
         &self,
         key: impl IntoIterator<Item = &'b u8>,
-    ) -> Result<Option<Vec<u8>>, Self::Error>;
+    ) -> Result<Option<Vec<u8>>, Self::Error> {
+        self.read(key.into_iter().cloned().collect::<Vec<_>>().as_ref())
+    }
+
+    fn read_slices(&self, key_slices: &[&[u8]]) -> Result<Option<Vec<u8>>, Self::Error> {
+        self.read_iter(key_slices.iter().flat_map(|v| v.iter()))
+    }
+}
+
+pub struct Handle<T>(std::rc::Rc<std::cell::RefCell<T>>);
+
+impl<T> Handle<T> {
+    pub fn new(item: T) -> Self {
+        Handle(std::rc::Rc::new(std::cell::RefCell::new(item)))
+    }
+}
+
+impl<T> Clone for Handle<T> {
+    fn clone(&self) -> Self {
+        Handle(std::rc::Rc::clone(&self.0))
+    }
+}
+
+impl<T> Deref for Handle<T> {
+    type Target = std::cell::RefCell<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[cfg(test)]
@@ -63,21 +118,20 @@ mod tests {
     use super::*;
 
     use crate::kv_set::MockKvSet;
+    use mockall::predicate::*;
+    use std::{cell::RefCell, rc::Rc};
+
+    fn mock_kv_set(expectations: impl FnOnce(&mut MockKvSet)) -> MockKvSet {
+        let mut kv_set = MockKvSet::default();
+        expectations(&mut kv_set);
+        kv_set.expect_insert::<Rc<_>>().return_const(Ok(()));
+        kv_set.expect_contains::<Rc<_>>().return_const(Ok(false));
+        kv_set
+    }
 
     #[cfg(test)]
     mod init {
         use super::*;
-
-        use mockall::predicate::*;
-        use std::{cell::RefCell, rc::Rc};
-
-        fn mock_kv_set(expectations: impl FnOnce(&mut MockKvSet)) -> MockKvSet {
-            let mut kv_set = MockKvSet::default();
-            expectations(&mut kv_set);
-            kv_set.expect_insert::<Rc<_>>().return_const(Ok(()));
-            kv_set.expect_contains::<Rc<_>>().return_const(Ok(false));
-            kv_set
-        }
 
         #[test]
         fn stores_bytes_in_value() {

@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+blake2 = "0.10.4"
+fallible-iterator = "0.2.0"
 mockall_double = "0.2.1"
 thiserror = "1.0.30"
 

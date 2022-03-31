@@ -2167,6 +2167,8 @@ dependencies = [
 name = "fractal_object_storage"
 version = "0.1.0"
 dependencies = [
+ "blake2 0.10.4",
+ "fallible-iterator",
  "mockall",
  "mockall_double",
  "thiserror",

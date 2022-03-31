@@ -1,11 +1,13 @@
 pub mod fractal_store;
+pub(crate) use fractal_store::Handle;
 pub use fractal_store::{Database, FractalStore};
 
 mod kv_set;
+mod merkle_tree;
 
 pub mod test;
 
-pub type Hash = ();
+pub type Hash = [u8; 64];
 
 pub enum Given {
     RootIs(Hash),
