@@ -12,6 +12,6 @@
     "@polkadot/api": "^5.5.1",
     "@polkadot/types": "^5.5.1",
     "aws-sdk": "^2.1005.0",
-    "minimist": "^1.2.5"
+    "minimist": "^1.2.6"
   }
 }
