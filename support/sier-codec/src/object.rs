@@ -166,11 +166,8 @@ impl<'s> Value<'s> {
         match self {
             Value::Unit => Vec::new(),
             Value::Bool(v) => {
-                if *v {
-                    Vec::from(1u8.to_le_bytes())
-                } else {
-                    Vec::from(0u8.to_le_bytes())
-                }
+                let byte: u8 = if *v { 1 } else { 0 };
+                Vec::from(byte.to_le_bytes())
             }
             Value::U8(v) => Vec::from(v.to_le_bytes()),
             Value::U32(v) => Vec::from(v.to_le_bytes()),

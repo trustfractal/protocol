@@ -151,14 +151,15 @@ impl Type {
             Type::Bool => {
                 let (b, n) = complete::le_u8(bytes).map_err(Error::ValueParsing)?;
                 let value = match n {
-                    0 => Ok(Value::Bool(false)),
-                    1 => Ok(Value::Bool(true)),
-                    _ => Err(Error::ValueParsing(nom::Err::Error(
-                        nom::error::make_error(bytes, nom::error::ErrorKind::IsNot),
-                    ))),
-                }?;
-
-                Ok((b, value))
+                    0 => false,
+                    1 => true,
+                    _ => {
+                        return Err(Error::ValueParsing(nom::Err::Error(
+                            nom::error::make_error(bytes, nom::error::ErrorKind::IsNot),
+                        )));
+                    }
+                };
+                Ok((b, Value::Bool(value)))
             }
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
