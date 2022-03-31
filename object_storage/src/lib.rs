@@ -1,5 +1,5 @@
 pub mod fractal_store;
-pub(crate) use fractal_store::Handle;
+pub(crate) use fractal_store::*;
 pub use fractal_store::{Database, FractalStore};
 
 mod kv_set;

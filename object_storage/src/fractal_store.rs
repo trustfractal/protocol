@@ -6,31 +6,30 @@ use std::ops::Deref;
 #[mockall_double::double]
 use crate::kv_set::KvSet;
 
-pub struct FractalStore<D> {
+pub struct FractalStore<D: Database + 'static> {
     db: Handle<D>,
-    objects: KvSet,
+    objects: KvSet<D>,
 }
 
 impl<D: Database + 'static> FractalStore<D> {
     pub fn new(db: D) -> Self {
-        Self::new_with_deps(db, KvSet::new(&[2]))
+        let handle = Handle::new(db);
+        let kv = KvSet::new(PrefixedHandle::new(&[2], &handle));
+        Self::new_with_deps(handle, kv)
     }
 
-    fn new_with_deps(db: D, objects: KvSet) -> Self {
-        FractalStore {
-            db: Handle::new(db),
-            objects,
-        }
+    fn new_with_deps(db: Handle<D>, objects: KvSet<D>) -> Self {
+        FractalStore { db, objects }
     }
 
     pub fn init(&mut self, id: &[u8], value: &[u8]) -> Result<(), Error<D::Error>> {
-        if self.objects.contains(id, &*self.db.borrow())? {
+        if self.objects.contains(id)? {
             return Err(Error::IdExists);
         }
 
         let mut borrow = self.db.borrow_mut();
         borrow.store_iter([1].iter().chain(id), value)?;
-        self.objects.insert(id, &mut *borrow)?;
+        self.objects.insert(id)?;
 
         Ok(())
     }
@@ -38,7 +37,7 @@ impl<D: Database + 'static> FractalStore<D> {
     pub fn root_hash(&self) -> Result<Hash, Error<D::Error>> {
         let mut merkle_tree = MerkleTree::new();
 
-        let mut object_ids = self.objects.iter_lexicographic(self.db.clone());
+        let mut object_ids = self.objects.iter_lexicographic();
         while let Some(object_id) = object_ids.next()? {
             merkle_tree.update(self.object_hash(object_id.as_ref())?);
         }
@@ -113,19 +112,53 @@ impl<T> Deref for Handle<T> {
     }
 }
 
+pub struct PrefixedHandle<D> {
+    prefix: Vec<u8>,
+    handle: Handle<D>,
+}
+
+impl<D> PrefixedHandle<D> {
+    pub fn new(prefix: &[u8], handle: &Handle<D>) -> Self {
+        PrefixedHandle {
+            prefix: prefix.to_vec(),
+            handle: handle.clone(),
+        }
+    }
+}
+
+impl<D> Clone for PrefixedHandle<D> {
+    fn clone(&self) -> Self {
+        PrefixedHandle {
+            prefix: self.prefix.clone(),
+            handle: self.handle.clone(),
+        }
+    }
+}
+
+impl<D: Database> Database for PrefixedHandle<D> {
+    type Error = D::Error;
+
+    fn store(&mut self, key: &[u8], value: &[u8]) -> Result<(), D::Error> {
+        self.handle.borrow_mut().store_slices(&[&self.prefix, key], value)
+    }
+
+    fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, D::Error> {
+        self.handle.borrow().read_slices(&[&self.prefix, key])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::kv_set::MockKvSet;
+    use crate::{kv_set::MockKvSet, test::InMemoryDb};
     use mockall::predicate::*;
-    use std::{cell::RefCell, rc::Rc};
 
-    fn mock_kv_set(expectations: impl FnOnce(&mut MockKvSet)) -> MockKvSet {
+    fn mock_kv_set(expectations: impl FnOnce(&mut MockKvSet<InMemoryDb>)) -> MockKvSet<InMemoryDb> {
         let mut kv_set = MockKvSet::default();
         expectations(&mut kv_set);
-        kv_set.expect_insert::<Rc<_>>().return_const(Ok(()));
-        kv_set.expect_contains::<Rc<_>>().return_const(Ok(false));
+        kv_set.expect_insert().return_const(Ok(()));
+        kv_set.expect_contains().return_const(Ok(false));
         kv_set
     }
 
@@ -135,7 +168,7 @@ mod tests {
 
         #[test]
         fn stores_bytes_in_value() {
-            let db = Rc::new(RefCell::new(crate::test::InMemoryDb::default()));
+            let db = Handle::new(InMemoryDb::default());
             let mut store = FractalStore::new_with_deps(db.clone(), mock_kv_set(|_| {}));
 
             store.init(&[42], b"foo").unwrap();
@@ -147,13 +180,13 @@ mod tests {
         fn adds_item_id_to_kv_storage_set() {
             let kv_set = mock_kv_set(|kv_set| {
                 kv_set
-                    .expect_insert::<Rc<_>>()
+                    .expect_insert()
                     .return_const(Ok(()))
-                    .with(eq(&[42][..]), always())
+                    .with(eq(&[42][..]))
                     .once();
             });
 
-            let db = Rc::new(RefCell::new(crate::test::InMemoryDb::default()));
+            let db = Handle::new(InMemoryDb::default());
             let mut store = FractalStore::new_with_deps(db.clone(), kv_set);
 
             store.init(&[42], b"foo").unwrap();
@@ -163,12 +196,12 @@ mod tests {
         fn fails_if_id_exists() {
             let kv_set = mock_kv_set(|kv_set| {
                 kv_set
-                    .expect_contains::<Rc<_>>()
-                    .with(eq(&[42][..]), always())
+                    .expect_contains()
+                    .with(eq(&[42][..]))
                     .return_const(Ok(true));
             });
 
-            let db = Rc::new(RefCell::new(crate::test::InMemoryDb::default()));
+            let db = Handle::new(InMemoryDb::default());
             let mut store = FractalStore::new_with_deps(db.clone(), kv_set);
 
             assert_eq!(store.init(&[42], b"foo"), Err(Error::IdExists));

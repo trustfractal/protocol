@@ -3,43 +3,36 @@ use crate::*;
 use fallible_iterator::FallibleIterator;
 use std::cmp::Ordering;
 
-pub(crate) struct KvSet {
-    prefix: Vec<u8>,
+pub(crate) struct KvSet<D> {
+    handle: PrefixedHandle<D>,
 }
 
 type Path = Vec<bool>;
 
-#[cfg_attr(test, mockall::automock)]
-impl KvSet {
-    pub fn new(prefix: &[u8]) -> Self {
-        KvSet {
-            prefix: prefix.to_vec(),
-        }
+#[cfg_attr(test, mockall::automock, allow(dead_code))]
+impl<D: Database + 'static> KvSet<D> {
+    pub fn new(handle: PrefixedHandle<D>) -> Self {
+        KvSet { handle }
     }
 
-    pub fn insert<D: Database + 'static>(&self, key: &[u8], db: &mut D) -> Result<(), D::Error> {
-        self.insert_at(key, Vec::new(), db)?;
+    pub fn insert(&mut self, key: &[u8]) -> Result<(), D::Error> {
+        self.insert_at(key, Vec::new())?;
         Ok(())
     }
 
-    pub fn insert_at<D: Database + 'static>(&self, key: &[u8], path: Path, db: &mut D) -> Result<(), D::Error> {
-        if let Find::Missing(path) = self.find_placement(path, key, db)? {
+    pub fn insert_at(&mut self, key: &[u8], path: Path) -> Result<(), D::Error> {
+        if let Find::Missing(path) = self.find_placement(path, key)? {
             let mut value = Vec::with_capacity(key.len() + 1);
             value.extend(key);
             value.push(0);
-            db.store_slices(&[&self.prefix, &pack(&path)], &value)?;
+            self.handle.store_slices(&[&pack(&path)], &value)?;
         }
 
         Ok(())
     }
 
-    fn find_placement<D: Database + 'static>(
-        &self,
-        mut path: Path,
-        key: &[u8],
-        db: &D,
-    ) -> Result<Find, D::Error> {
-        let bytes = match db.read_slices(&[&self.prefix, &pack(&path)])? {
+    fn find_placement(&self, mut path: Path, key: &[u8]) -> Result<Find, D::Error> {
+        let bytes = match self.handle.read_slices(&[&pack(&path)])? {
             None => return Ok(Find::Missing(path)),
             Some(bytes) => bytes,
         };
@@ -47,18 +40,18 @@ impl KvSet {
         match lexicographic_compare(key, existing_key) {
             Ordering::Less => {
                 path.push(false);
-                self.find_placement(path, key, db)
+                self.find_placement(path, key)
             }
             Ordering::Greater => {
                 path.push(true);
-                self.find_placement(path, key, db)
+                self.find_placement(path, key)
             }
             Ordering::Equal => Ok(Find::Found(path, bytes)),
         }
     }
 
-    pub fn contains<D: Database + 'static>(&self, key: &[u8], db: &D) -> Result<bool, D::Error> {
-        Ok(match self.find_placement(Vec::new(), key, db)? {
+    pub fn contains(&self, key: &[u8]) -> Result<bool, D::Error> {
+        Ok(match self.find_placement(Vec::new(), key)? {
             Find::Missing(_) => false,
             Find::Found(_, _) => true,
         })
@@ -66,11 +59,8 @@ impl KvSet {
 
     // This takes a handle instead of a &D because mockall cannot mock methods with both generic
     // types and lifetimes. So we provide an owning ref.
-    pub fn iter_lexicographic<D: Database + 'static>(
-        &self,
-        db: Handle<D>,
-    ) -> impl FallibleIterator<Item = Vec<u8>, Error = D::Error> {
-        let prefix = self.prefix.clone();
+    pub fn iter_lexicographic(&self) -> impl FallibleIterator<Item = Vec<u8>, Error = D::Error> {
+        let handle = self.handle.clone();
 
         enum StackItem {
             AlreadyRead(Vec<u8>),
@@ -85,9 +75,7 @@ impl KvSet {
                 StackItem::DoRead(path) => path,
             };
 
-            let read = db
-                .borrow()
-                .read_slices(&[&prefix[..], &pack(&path)]);
+            let read = handle.read_slices(&[&pack(&path)]);
 
             let bytes = match read {
                 Err(e) => return Some(Err(e)),
@@ -164,31 +152,31 @@ mod tests {
 
     #[test]
     fn new_contains_nothing() {
-        let db = InMemoryDb::default();
-        let kv_set = KvSet::new(&[1, 2, 3]);
+        let db = Handle::new(InMemoryDb::default());
+        let kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-        assert_eq!(kv_set.contains(b"foo", &db), Ok(false));
+        assert_eq!(kv_set.contains(b"foo"), Ok(false));
     }
 
     #[test]
     fn insert_contains_key() {
-        let mut db = InMemoryDb::default();
-        let kv_set = KvSet::new(&[1, 2, 3]);
+        let db = Handle::new(InMemoryDb::default());
+        let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-        kv_set.insert(b"foo", &mut db).unwrap();
+        kv_set.insert(b"foo").unwrap();
 
-        assert_eq!(kv_set.contains(b"foo", &db), Ok(true));
+        assert_eq!(kv_set.contains(b"foo"), Ok(true));
     }
 
     #[test]
     fn prefixes_db_entries_with_provided_prefix() {
-        let mut db = InMemoryDb::default();
+        let db = Handle::new(InMemoryDb::default());
         let prefix = &[1, 2, 3];
-        let kv_set = KvSet::new(prefix);
+        let mut kv_set = KvSet::new(PrefixedHandle::new(prefix, &db));
 
-        kv_set.insert(b"foo", &mut db).unwrap();
+        kv_set.insert(b"foo").unwrap();
 
-        for key in db.keys() {
+        for key in db.borrow().keys() {
             assert_eq!(&key[..prefix.len()], prefix);
         }
     }
@@ -199,34 +187,34 @@ mod tests {
 
         #[test]
         fn empty_is_empty_iter() {
-            let db = InMemoryDb::default();
-            let kv_set = KvSet::new(&[1, 2, 3]);
+            let db = Handle::new(InMemoryDb::default());
+            let kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-            assert_eq!(kv_set.iter_lexicographic(Handle::new(db)).next(), Ok(None));
+            assert_eq!(kv_set.iter_lexicographic().next(), Ok(None));
         }
 
         #[test]
         fn contains_a_single_value() {
-            let mut db = InMemoryDb::default();
-            let kv_set = KvSet::new(&[1, 2, 3]);
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-            kv_set.insert(&[42], &mut db).unwrap();
+            kv_set.insert(&[42]).unwrap();
 
-            let mut iter = kv_set.iter_lexicographic(Handle::new(db));
+            let mut iter = kv_set.iter_lexicographic();
             assert_eq!(iter.next(), Ok(Some(vec![42])));
             assert_eq!(iter.next(), Ok(None));
         }
 
         #[test]
         fn contains_multiple_values() {
-            let mut db = InMemoryDb::default();
-            let kv_set = KvSet::new(&[1, 2, 3]);
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-            kv_set.insert(&[42], &mut db).unwrap();
-            kv_set.insert(&[43], &mut db).unwrap();
-            kv_set.insert(&[44], &mut db).unwrap();
+            kv_set.insert(&[42]).unwrap();
+            kv_set.insert(&[43]).unwrap();
+            kv_set.insert(&[44]).unwrap();
 
-            let mut iter = kv_set.iter_lexicographic(Handle::new(db));
+            let mut iter = kv_set.iter_lexicographic();
             assert_eq!(iter.next(), Ok(Some(vec![42])));
             assert_eq!(iter.next(), Ok(Some(vec![43])));
             assert_eq!(iter.next(), Ok(Some(vec![44])));
@@ -235,14 +223,14 @@ mod tests {
 
         #[test]
         fn returns_values_in_lexicographic_order() {
-            let mut db = InMemoryDb::default();
-            let kv_set = KvSet::new(&[1, 2, 3]);
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-            kv_set.insert(&[44], &mut db).unwrap();
-            kv_set.insert(&[43], &mut db).unwrap();
-            kv_set.insert(&[42], &mut db).unwrap();
+            kv_set.insert(&[44]).unwrap();
+            kv_set.insert(&[43]).unwrap();
+            kv_set.insert(&[42]).unwrap();
 
-            let mut iter = kv_set.iter_lexicographic(Handle::new(db));
+            let mut iter = kv_set.iter_lexicographic();
             assert_eq!(iter.next(), Ok(Some(vec![42])));
             assert_eq!(iter.next(), Ok(Some(vec![43])));
             assert_eq!(iter.next(), Ok(Some(vec![44])));
