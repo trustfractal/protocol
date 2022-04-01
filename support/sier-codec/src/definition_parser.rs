@@ -133,6 +133,7 @@ fn generic_type(s: &str) -> IResult<&str, TypeDef> {
 fn leaf_type(s: &str) -> IResult<&str, TypeDef> {
     let (s, type_str) = ident(s)?;
     let as_type = match type_str {
+        "bool" => TypeDef::Primitive(Type::Bool),
         "u8" => TypeDef::Primitive(Type::U8),
         "u32" => TypeDef::Primitive(Type::U32),
         "u64" => TypeDef::Primitive(Type::U64),

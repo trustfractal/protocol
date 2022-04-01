@@ -45,6 +45,7 @@ impl<'s> Index<&'_ str> for Object<'s> {
 #[derive(Debug, PartialEq)]
 pub enum Value<'s> {
     Unit,
+    Bool(bool),
     U8(u8),
     U32(u32),
     U64(u64),
@@ -56,6 +57,12 @@ pub enum Value<'s> {
 impl<'s> From<()> for Value<'s> {
     fn from(_: ()) -> Value<'s> {
         Value::Unit
+    }
+}
+
+impl<'s> From<bool> for Value<'s> {
+    fn from(v: bool) -> Value<'s> {
+        Value::Bool(v)
     }
 }
 
@@ -106,6 +113,13 @@ impl<'s> Value<'s> {
         }
     }
 
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     pub fn as_u8(&self) -> Option<u8> {
         match self {
             Value::U8(v) => Some(*v),
@@ -151,6 +165,10 @@ impl<'s> Value<'s> {
     pub fn serialize(&self) -> Vec<u8> {
         match self {
             Value::Unit => Vec::new(),
+            Value::Bool(v) => {
+                let byte: u8 = if *v { 1 } else { 0 };
+                Vec::from(byte.to_le_bytes())
+            }
             Value::U8(v) => Vec::from(v.to_le_bytes()),
             Value::U32(v) => Vec::from(v.to_le_bytes()),
             Value::U64(v) => Vec::from(v.to_le_bytes()),
@@ -169,6 +187,7 @@ impl<'s> Value<'s> {
     pub fn assignable(&self, type_: &Type) -> Result<(), (Type, Type<String>)> {
         match (self, type_) {
             (Value::Unit, Type::Unit) => Ok(()),
+            (Value::Bool(_), Type::Bool) => Ok(()),
             (Value::U8(_), Type::U8) => Ok(()),
             (Value::U32(_), Type::U32) => Ok(()),
             (Value::U64(_), Type::U64) => Ok(()),
@@ -184,6 +203,7 @@ impl<'s> Value<'s> {
     fn type_(&self) -> Type<String> {
         match self {
             Value::Unit => Type::Unit,
+            Value::Bool(_) => Type::Bool,
             Value::U8(_) => Type::U8,
             Value::U32(_) => Type::U32,
             Value::U64(_) => Type::U64,
@@ -230,6 +250,12 @@ mod tests {
     #[cfg(test)]
     mod value_serialize {
         use super::*;
+
+        #[test]
+        fn bool_is_byte() {
+            assert_eq!(Value::Bool(true).serialize(), vec![1]);
+            assert_eq!(Value::Bool(false).serialize(), vec![0]);
+        }
 
         #[test]
         fn u8_is_byte() {

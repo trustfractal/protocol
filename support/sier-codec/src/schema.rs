@@ -111,6 +111,7 @@ fn var_int(b: &[u8]) -> IResult<&[u8], usize> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type<StructType = Arc<StructDef>> {
     Unit,
+    Bool,
     U8,
     U32,
     U64,
@@ -124,6 +125,7 @@ impl Type {
     fn id(&self) -> Vec<u8> {
         match self {
             Type::Unit => vec![5],
+            Type::Bool => vec![7],
             Type::U8 => vec![0],
             Type::U32 => vec![1],
             Type::U64 => vec![2],
@@ -146,6 +148,19 @@ impl Type {
 
         match self {
             Type::Unit => Ok((bytes, Value::Unit)),
+            Type::Bool => {
+                let (b, n) = complete::le_u8(bytes).map_err(Error::ValueParsing)?;
+                let value = match n {
+                    0 => false,
+                    1 => true,
+                    _ => {
+                        return Err(Error::ValueParsing(nom::Err::Error(
+                            nom::error::make_error(bytes, nom::error::ErrorKind::IsNot),
+                        )));
+                    }
+                };
+                Ok((b, Value::Bool(value)))
+            }
             Type::U8 => complete::le_u8(bytes).map(|(b, n)| (b, Value::U8(n))),
             Type::U32 => complete::le_u32(bytes).map(|(b, n)| (b, Value::U32(n))),
             Type::U64 => complete::le_u64(bytes).map(|(b, n)| (b, Value::U64(n))),

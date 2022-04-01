@@ -168,6 +168,7 @@ fn struct_() {
 const JSON_STRUCT_DEF: &'static str = r#"
 struct Corge {
     gz :u64;
+    op :bool;
 }
 
 struct Foo {
@@ -184,7 +185,8 @@ const JSON: &'static str = r#"
     "baz": "abc",
     "qux": [4, 2],
     "corge": {
-        "gz": 42
+        "gz": 42,
+        "op": true
     }
 }
 "#;
@@ -199,6 +201,7 @@ fn json() {
     let obj2 = obj["corge"].as_object().unwrap();
 
     assert_eq!(obj2["gz"].as_u64(), Some(42));
+    assert_eq!(obj2["op"].as_bool(), Some(true));
     assert_eq!(obj["bar"].as_u64(), Some(42));
     assert_eq!(obj["baz"].as_string(), Some("abc"));
     assert_eq!(
