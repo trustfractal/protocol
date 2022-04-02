@@ -6,6 +6,9 @@ use std::ops::Deref;
 #[mockall_double::double]
 use crate::kv_set::KvSet;
 
+const OBJECT_DATA: &'static [u8] = &[1];
+const OBJECT_IDS: &'static [u8] = &[2];
+
 pub struct FractalStore<D: Database + 'static> {
     db: Handle<D>,
     objects: KvSet<D>,
@@ -14,7 +17,7 @@ pub struct FractalStore<D: Database + 'static> {
 impl<D: Database + 'static> FractalStore<D> {
     pub fn new(db: D) -> Self {
         let handle = Handle::new(db);
-        let kv = KvSet::new(PrefixedHandle::new(&[2], &handle));
+        let kv = KvSet::new(PrefixedHandle::new(OBJECT_IDS, &handle));
         Self::new_with_deps(handle, kv)
     }
 
@@ -27,8 +30,9 @@ impl<D: Database + 'static> FractalStore<D> {
             return Err(Error::IdExists);
         }
 
-        let mut borrow = self.db.borrow_mut();
-        borrow.store_iter([1].iter().chain(id), value)?;
+        self.db
+            .borrow_mut()
+            .store_slices(&[OBJECT_DATA, id], value)?;
         self.objects.insert(id)?;
 
         Ok(())
@@ -42,11 +46,18 @@ impl<D: Database + 'static> FractalStore<D> {
             merkle_tree.update(self.object_hash(object_id.as_ref())?);
         }
 
-        Ok(merkle_tree.root_hash())
+        Ok(merkle_tree.finalize())
     }
 
-    fn object_hash(&self, _object_id: &[u8]) -> Result<Hash, Error<D::Error>> {
-        unimplemented!("object_hash");
+    fn object_hash(&self, object_id: &[u8]) -> Result<Hash, Error<D::Error>> {
+        let object_data = self
+            .db
+            .borrow()
+            .read_slices(&[OBJECT_DATA, object_id])?
+            .ok_or_else(|| Error::Internal("Could not find object with provided id".to_string()))?;
+
+        use blake2::Digest;
+        Ok(blake2::Blake2b512::digest(object_data).into())
     }
 
     pub fn prove_given(&self, _given: Given, _prop: Proposition) -> Result<Proof, D::Error> {
@@ -58,6 +69,7 @@ impl<D: Database + 'static> FractalStore<D> {
 pub enum Error<E> {
     Db(#[from] E),
     IdExists,
+    Internal(String),
 }
 
 pub trait Database {
