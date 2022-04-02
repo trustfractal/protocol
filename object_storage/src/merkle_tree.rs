@@ -18,10 +18,10 @@ impl MerkleTree {
 
     fn collapse(&mut self) {
         loop {
-            match &self.hashes[..] {
-                &[] => unreachable!(),
-                &[_] => return,
-                &[.., (w0, _), (w1, _)] if w0 != w1 => return,
+            match self.hashes[..] {
+                [] => unreachable!(),
+                [_] => return,
+                [.., (w0, _), (w1, _)] if w0 != w1 => return,
                 _ => {
                     let (w, right) = self.hashes.pop().unwrap();
                     let (_, left) = self.hashes.pop().unwrap();

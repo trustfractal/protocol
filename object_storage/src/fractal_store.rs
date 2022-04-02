@@ -6,8 +6,8 @@ use std::ops::Deref;
 #[mockall_double::double]
 use crate::kv_set::KvSet;
 
-const OBJECT_DATA: &'static [u8] = &[1];
-const OBJECT_IDS: &'static [u8] = &[2];
+const OBJECT_DATA: &[u8] = &[1];
+const OBJECT_IDS: &[u8] = &[2];
 
 pub struct FractalStore<D: Database + 'static> {
     db: Handle<D>,

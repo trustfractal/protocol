@@ -92,7 +92,7 @@ impl<D: Database + 'static> KvSet<D> {
         let this = self.get_node(index)?.unwrap();
 
         match (this.left, this.right) {
-            (None, None) => return Ok(()),
+            (None, None) => Ok(()),
             (None, Some(i)) => {
                 let right = self.get_node(i)?.unwrap();
                 if right.height == 0 {
