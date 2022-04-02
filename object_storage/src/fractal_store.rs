@@ -139,7 +139,9 @@ impl<D: Database> Database for PrefixedHandle<D> {
     type Error = D::Error;
 
     fn store(&mut self, key: &[u8], value: &[u8]) -> Result<(), D::Error> {
-        self.handle.borrow_mut().store_slices(&[&self.prefix, key], value)
+        self.handle
+            .borrow_mut()
+            .store_slices(&[&self.prefix, key], value)
     }
 
     fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, D::Error> {

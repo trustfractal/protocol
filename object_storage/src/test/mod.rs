@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::*;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct InMemoryDb {
     stored: HashMap<Vec<u8>, Vec<u8>>,
 }

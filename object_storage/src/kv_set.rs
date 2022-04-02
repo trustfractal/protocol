@@ -1,14 +1,14 @@
 use crate::*;
 
 use fallible_iterator::FallibleIterator;
+use parity_scale_codec::{Compact, Decode, Encode};
 use std::cmp::Ordering;
 
 pub(crate) struct KvSet<D> {
     handle: PrefixedHandle<D>,
 }
 
-type Path = Vec<bool>;
-
+// TODO(shelbyd): Reduce number of reads / writes.
 #[cfg_attr(test, mockall::automock, allow(dead_code))]
 impl<D: Database + 'static> KvSet<D> {
     pub fn new(handle: PrefixedHandle<D>) -> Self {
@@ -16,108 +16,254 @@ impl<D: Database + 'static> KvSet<D> {
     }
 
     pub fn insert(&mut self, key: &[u8]) -> Result<(), D::Error> {
-        self.insert_at(key, Vec::new())?;
+        self.insert_at(0, key)?;
         Ok(())
     }
 
-    pub fn insert_at(&mut self, key: &[u8], path: Path) -> Result<(), D::Error> {
-        if let Find::Missing(path) = self.find_placement(path, key)? {
-            let mut value = Vec::with_capacity(key.len() + 1);
-            value.extend(key);
-            value.push(0);
-            self.handle.store_slices(&[&pack(&path)], &value)?;
-        }
-
-        Ok(())
-    }
-
-    fn find_placement(&self, mut path: Path, key: &[u8]) -> Result<Find, D::Error> {
-        let bytes = match self.handle.read_slices(&[&pack(&path)])? {
-            None => return Ok(Find::Missing(path)),
-            Some(bytes) => bytes,
+    fn get_next_index(&mut self) -> Result<u64, D::Error> {
+        let read = self.handle.read(&[])?;
+        let index = match read {
+            Some(bytes) => <Compact<u64> as Decode>::decode(&mut &bytes[..]).unwrap().0,
+            None => 1,
         };
-        let existing_key = &bytes[..(bytes.len() - 1)];
-        match lexicographic_compare(key, existing_key) {
-            Ordering::Less => {
-                path.push(false);
-                self.find_placement(path, key)
-            }
-            Ordering::Greater => {
-                path.push(true);
-                self.find_placement(path, key)
-            }
-            Ordering::Equal => Ok(Find::Found(path, bytes)),
+        self.handle.store(&[], &Compact(index + 1).encode())?;
+        Ok(index)
+    }
+
+    pub fn insert_at(&mut self, index: u64, key: &[u8]) -> Result<bool, D::Error> {
+        let did_insert = self.do_insert(index, key)?;
+        if did_insert {
+            self.rebalance(index)?;
         }
+        Ok(did_insert)
+    }
+
+    fn do_insert(&mut self, index: u64, key: &[u8]) -> Result<bool, D::Error> {
+        let make_node = || Node {
+            left: None,
+            right: None,
+            height: 1,
+            data: key.to_vec(),
+        };
+
+        let read = self.get_node(index)?;
+        let mut node = match read {
+            None => {
+                self.set_node(index, make_node())?;
+                return Ok(true);
+            }
+            Some(node) => node,
+        };
+        let dest = match lexicographic_compare(key, &node.data) {
+            Ordering::Less => &mut node.left,
+            Ordering::Greater => &mut node.right,
+            Ordering::Equal => return Ok(false),
+        };
+        if let Some(i) = dest {
+            let inserted = self.insert_at(*i, key)?;
+            self.set_node(index, node)?;
+            return Ok(inserted);
+        }
+
+        let new_index = self.get_next_index()?;
+        *dest = Some(new_index);
+
+        self.set_node(new_index, make_node())?;
+        self.set_node(index, node)?;
+
+        Ok(true)
+    }
+
+    fn set_node(&mut self, index: u64, mut node: Node) -> Result<(), D::Error> {
+        let left_height = match node.left {
+            None => 0,
+            Some(l) => self.get_node(l)?.unwrap().height,
+        };
+        let right_height = match node.right {
+            None => 0,
+            Some(r) => self.get_node(r)?.unwrap().height,
+        };
+
+        node.height = core::cmp::max(left_height, right_height) + 1;
+        self.handle.store(&Compact(index).encode(), &node.encode())
+    }
+
+    fn rebalance(&mut self, index: u64) -> Result<(), D::Error> {
+        let this = self.get_node(index)?.unwrap();
+
+        match (this.left, this.right) {
+            (None, None) => return Ok(()),
+            (None, Some(i)) => {
+                let right = self.get_node(i)?.unwrap();
+                if right.height == 0 {
+                    self.set_node(index, this)?;
+                    return Ok(());
+                }
+
+                self.rotate_right(i)?;
+                self.rotate_left(index)?;
+                Ok(())
+            }
+            (Some(i), None) => {
+                let left = self.get_node(i)?.unwrap();
+                if left.height == 0 {
+                    self.set_node(index, this)?;
+                    return Ok(());
+                }
+
+                self.rotate_left(i)?;
+                self.rotate_right(index)?;
+                Ok(())
+            }
+            (Some(l), Some(r)) => {
+                let left = self.get_node(l)?.unwrap();
+                let right = self.get_node(r)?.unwrap();
+
+                match right.height.wrapping_sub(left.height) {
+                    255 | 0 | 1 => Ok(()),
+                    2 => self.rotate_left(index),
+                    254 => self.rotate_right(index),
+                    i => unreachable!("{:?}", i),
+                }
+            }
+        }
+    }
+
+    fn rotate_right(&mut self, index: u64) -> Result<(), D::Error> {
+        let mut this = self.get_node(index)?.unwrap();
+        let (l_index, mut left) = match this.left {
+            None => return Ok(()),
+            Some(l) => (l, self.get_node(l)?.unwrap()),
+        };
+        // This and left swap indices.
+        this.left = left.right;
+        left.right = Some(l_index);
+
+        self.set_node(l_index, this)?;
+        self.set_node(index, left)?;
+
+        Ok(())
+    }
+
+    fn rotate_left(&mut self, index: u64) -> Result<(), D::Error> {
+        let mut this = self.get_node(index)?.unwrap();
+        let (r_index, mut right) = match this.right {
+            None => return Ok(()),
+            Some(r) => (r, self.get_node(r)?.unwrap()),
+        };
+        // This and left swap indices.
+        this.right = right.left;
+        right.left = Some(r_index);
+
+        self.set_node(r_index, this)?;
+        self.set_node(index, right)?;
+
+        Ok(())
     }
 
     pub fn contains(&self, key: &[u8]) -> Result<bool, D::Error> {
-        Ok(match self.find_placement(Vec::new(), key)? {
-            Find::Missing(_) => false,
-            Find::Found(_, _) => true,
+        let node = self.get_node(0)?;
+        Ok(match node {
+            None => false,
+            Some(n) => n.data == key,
         })
     }
 
-    // This takes a handle instead of a &D because mockall cannot mock methods with both generic
-    // types and lifetimes. So we provide an owning ref.
+    fn get_node(&self, index: u64) -> Result<Option<Node>, D::Error> {
+        Ok(self
+            .handle
+            .read(&Compact(index).encode())?
+            .map(Node::decode))
+    }
+
     pub fn iter_lexicographic(&self) -> impl FallibleIterator<Item = Vec<u8>, Error = D::Error> {
         let handle = self.handle.clone();
 
         enum StackItem {
             AlreadyRead(Vec<u8>),
-            DoRead(Path),
+            DoRead(u64),
         }
 
-        let mut path_stack = vec![StackItem::DoRead(vec![])];
+        let mut stack = vec![StackItem::DoRead(0)];
 
         fallible_iterator::convert(std::iter::from_fn(move || loop {
-            let path = match path_stack.pop()? {
+            let index = match stack.pop()? {
                 StackItem::AlreadyRead(bytes) => return Some(Ok(bytes)),
-                StackItem::DoRead(path) => path,
+                StackItem::DoRead(index) => index,
             };
 
-            let read = handle.read_slices(&[&pack(&path)]);
-
-            let bytes = match read {
+            let bytes = match handle.read(&Compact(index).encode()) {
                 Err(e) => return Some(Err(e)),
                 Ok(v) => v,
             };
 
-            if let Some(mut key) = bytes {
-                key.pop();
-
-                let mut left_path = path.clone();
-                left_path.push(false);
-
-                let mut right_path = path;
-                right_path.push(true);
+            if let Some(key) = bytes {
+                let node = Node::decode(key);
 
                 // Actual operations are performed in reverse of this order.
-                path_stack.push(StackItem::DoRead(right_path));
-                path_stack.push(StackItem::AlreadyRead(key));
-                path_stack.push(StackItem::DoRead(left_path));
+                if let Some(r) = node.right {
+                    stack.push(StackItem::DoRead(r));
+                }
+                stack.push(StackItem::AlreadyRead(node.data));
+                if let Some(l) = node.left {
+                    stack.push(StackItem::DoRead(l));
+                }
             }
         }))
     }
+
+    #[cfg(test)]
+    fn height(&self, index: u64) -> Result<u8, D::Error> {
+        let node = match self.get_node(index)? {
+            None => return Ok(0),
+            Some(n) => n,
+        };
+
+        Ok(1 + match (node.left, node.right) {
+            (None, None) => 0,
+            (Some(n), None) | (None, Some(n)) => self.height(n)?,
+            (Some(l), Some(r)) => core::cmp::max(self.height(l)?, self.height(r)?),
+        })
+    }
 }
 
-fn pack(bools: &[bool]) -> Vec<u8> {
-    let mut result = Vec::with_capacity(bools.len() / 7 + 1);
+#[derive(Debug)]
+struct Node {
+    left: Option<u64>,
+    right: Option<u64>,
+    height: u8,
+    data: Vec<u8>,
+}
 
-    for byte_worth in bools.chunks(8) {
-        let mut byte = 0x80;
-        for b in byte_worth.iter().rev() {
-            byte >>= 1;
-            if *b {
-                byte |= 0x80;
-            }
+impl Node {
+    fn encode(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        self.left.map(Compact).encode_to(&mut out);
+        self.right.map(Compact).encode_to(&mut out);
+        out.push(self.height);
+        out.extend(&self.data);
+        out
+    }
+
+    fn decode(mut bytes: Vec<u8>) -> Self {
+        let mut slice = &bytes[..];
+        let left = <Option<Compact<u64>> as Decode>::decode(&mut slice)
+            .unwrap()
+            .map(|c| c.0);
+        let right = <Option<Compact<u64>> as Decode>::decode(&mut slice)
+            .unwrap()
+            .map(|c| c.0);
+        let (&height, slice) = slice.split_first().unwrap();
+
+        let index = bytes.len() - slice.len();
+        let data = bytes.split_off(index);
+        Node {
+            left,
+            right,
+            height,
+            data,
         }
-        result.push(byte);
     }
-    if bools.len() % 8 == 0 {
-        result.push(0x80);
-    }
-
-    result
 }
 
 fn lexicographic_compare(mut a: &[u8], mut b: &[u8]) -> Ordering {
@@ -136,12 +282,6 @@ fn lexicographic_compare(mut a: &[u8], mut b: &[u8]) -> Ordering {
             },
         };
     }
-}
-
-enum Find {
-    // Node wasn't found, but would go here.
-    Missing(Path),
-    Found(Path, Vec<u8>),
 }
 
 #[cfg(test)]
@@ -239,53 +379,50 @@ mod tests {
     }
 
     #[cfg(test)]
-    mod pack {
+    mod rebalancing {
         use super::*;
 
         #[test]
-        fn empty() {
-            assert_eq!(pack(&[]), vec![0b1000_0000]);
+        fn simple() {
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
+
+            assert_eq!(kv_set.height(0).unwrap(), 0);
+
+            kv_set.insert(&[42]).unwrap();
+            assert_eq!(kv_set.height(0).unwrap(), 1);
+
+            kv_set.insert(&[44]).unwrap();
+            kv_set.insert(&[43]).unwrap();
+
+            assert_eq!(kv_set.height(0).unwrap(), 2);
         }
 
         #[test]
-        fn one_false() {
-            assert_eq!(pack(&[false]), vec![0b0100_0000]);
-        }
+        fn left_heavy() {
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
 
-        #[test]
-        fn one_true() {
-            assert_eq!(pack(&[true]), vec![0b1100_0000]);
-        }
-
-        #[test]
-        fn eight_trues() {
-            assert_eq!(pack(&vec![true; 8]), vec![0b1111_1111, 0b1000_0000]);
-        }
-
-        #[test]
-        fn trues_then_falses() {
-            let mut vec = vec![true; 8];
-            vec.extend(vec![false; 8]);
-            assert_eq!(pack(&vec), vec![0b1111_1111, 0b0000_0000, 0b1000_0000]);
-        }
-
-        #[test]
-        fn full_byte_then_offset() {
-            let mut vec = vec![true; 8];
-            vec.extend(vec![false; 6]);
-            assert_eq!(pack(&vec), vec![0b1111_1111, 0b0000_0010]);
-        }
-
-        #[test]
-        fn alternating() {
-            let mut vec = Vec::new();
-            for _ in 0..3 {
-                vec.push(true);
-                vec.push(false);
+            for i in (0..255).rev() {
+                kv_set.insert(&[i]).unwrap();
             }
-            vec.push(true);
-            assert_eq!(pack(&vec), vec![0b10101011]);
+
+            assert_eq!(kv_set.height(0).unwrap(), 8);
         }
+
+        #[test]
+        fn right_heavy() {
+            let db = Handle::new(InMemoryDb::default());
+            let mut kv_set = KvSet::new(PrefixedHandle::new(&[1, 2, 3], &db));
+
+            for i in 0..255 {
+                kv_set.insert(&[i]).unwrap();
+            }
+
+            assert_eq!(kv_set.height(0).unwrap(), 8);
+        }
+
+        // TODO(shelbyd): Quickcheck tests for balancing.
     }
 
     #[test]
