@@ -4,6 +4,9 @@ use fallible_iterator::FallibleIterator;
 use parity_scale_codec::{Compact, Decode, Encode};
 use std::cmp::Ordering;
 
+/// Set of byte-strings backed by a AVL tree in a generic key-value database.
+///
+/// Allows for in-order traversal with log(n) insert, delete, and contains.
 pub(crate) struct KvSet<D> {
     handle: PrefixedHandle<D>,
 }
@@ -15,6 +18,9 @@ impl<D: Database + 'static> KvSet<D> {
         KvSet { handle }
     }
 
+    /// Inserts the provided byte-string into the set.
+    ///
+    /// If the value already exists, this function does nothing.
     pub fn insert(&mut self, key: &[u8]) -> Result<(), D::Error> {
         self.insert_at(0, key)?;
         Ok(())
@@ -30,7 +36,7 @@ impl<D: Database + 'static> KvSet<D> {
         Ok(index)
     }
 
-    pub fn insert_at(&mut self, index: u64, key: &[u8]) -> Result<bool, D::Error> {
+    fn insert_at(&mut self, index: u64, key: &[u8]) -> Result<bool, D::Error> {
         let did_insert = self.do_insert(index, key)?;
         if did_insert {
             self.rebalance(index)?;
@@ -161,6 +167,7 @@ impl<D: Database + 'static> KvSet<D> {
         Ok(())
     }
 
+    /// Does the set contain the specified byte-string?
     pub fn contains(&self, key: &[u8]) -> Result<bool, D::Error> {
         let node = self.get_node(0)?;
         Ok(match node {
@@ -176,6 +183,7 @@ impl<D: Database + 'static> KvSet<D> {
             .map(Node::decode))
     }
 
+    /// Iterate over the items in the set in lexicographic order.
     pub fn iter_lexicographic(&self) -> impl FallibleIterator<Item = Vec<u8>, Error = D::Error> {
         let handle = self.handle.clone();
 
