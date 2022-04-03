@@ -22,10 +22,7 @@ impl Database for InMemoryDb {
     }
 
     fn read(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error> {
-        Ok(self
-            .stored
-            .get(&key.iter().cloned().collect::<Vec<_>>())
-            .map(|slice| slice.to_vec()))
+        Ok(self.stored.get(key).map(|slice| slice.to_vec()))
     }
 }
 
