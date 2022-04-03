@@ -62,14 +62,14 @@ impl<D: Database + 'static> FractalStore<D> {
         match (given, prop) {
             (Given::RootIs(root), Proposition::ObjectIsValue(object_id, value)) => {
                 if root != self.root_hash()? {
-                    return Err(ProofError::RootHashMismatch)?;
+                    return Err(ProofError::RootHashMismatch);
                 }
 
                 let data = self
                     .object_data(&object_id)?
                     .ok_or(ProofError::MissingObject)?;
                 if value != data {
-                    return Err(ProofError::ValueMismatch)?;
+                    return Err(ProofError::ValueMismatch);
                 }
                 let needed_hash = object_hash(&object_id, &data);
 
