@@ -44,7 +44,7 @@ impl<D: Database + 'static> FractalStore<D> {
         let mut object_ids = self.objects.iter_lexicographic();
         while let Some(object_id) = object_ids.next()? {
             let data = self.object_data(&object_id)?.unwrap();
-            merkle_tree.update(self.object_hash(&object_id, &data));
+            merkle_tree.update(object_hash(&object_id, &data));
         }
 
         Ok(merkle_tree.finalize())
@@ -52,15 +52,6 @@ impl<D: Database + 'static> FractalStore<D> {
 
     fn object_data(&self, object_id: &[u8]) -> Result<Option<Vec<u8>>, D::Error> {
         self.db.borrow().read_slices(&[OBJECT_DATA, object_id])
-    }
-
-    fn object_hash(&self, object_id: &[u8], object_data: &[u8]) -> Hash {
-        use blake2::{Blake2b512, Digest};
-
-        let mut hasher = Blake2b512::default();
-        hasher.update(object_id);
-        hasher.update(Blake2b512::digest(object_data));
-        hasher.finalize().into()
     }
 
     pub fn prove_given(
@@ -80,18 +71,12 @@ impl<D: Database + 'static> FractalStore<D> {
                 if value != data {
                     return Err(ProofError::ValueMismatch)?;
                 }
-                let needed_hash = self.object_hash(&object_id, &data);
+                let needed_hash = object_hash(&object_id, &data);
 
-                let hash_exists = self.prove_given(
+                self.prove_given(
                     Given::RootIs(root),
                     Proposition::HashInObjectTree(needed_hash),
-                )?;
-
-                Ok(Proof::ObjectValue {
-                    hash_exists: Box::new(hash_exists),
-                    object_id,
-                    value,
-                })
+                )
             }
             (Given::RootIs(root), Proposition::HashInObjectTree(hash)) => {
                 if root == hash {
@@ -116,6 +101,15 @@ pub enum ProofError<E> {
     RootHashMismatch,
     MissingObject,
     ValueMismatch,
+}
+
+pub fn object_hash(object_id: &[u8], object_data: &[u8]) -> Hash {
+    use blake2::{Blake2b512, Digest};
+
+    let mut hasher = Blake2b512::default();
+    hasher.update(object_id);
+    hasher.update(Blake2b512::digest(object_data));
+    hasher.finalize().into()
 }
 
 pub trait Database {

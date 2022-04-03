@@ -1,3 +1,6 @@
+use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec_derive::{Decode, Encode};
+
 pub mod fractal_store;
 pub(crate) use fractal_store::*;
 pub use fractal_store::{Database, FractalStore};
@@ -9,7 +12,7 @@ pub mod test;
 
 pub type Hash = [u8; 64];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Given {
     RootIs(Hash),
 }
@@ -20,30 +23,44 @@ pub enum Proposition {
     HashInObjectTree(Hash),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Encode, Decode)]
 pub enum Proof {
     Empty,
-    ObjectValue {
-        hash_exists: Box<Proof>,
-        object_id: Vec<u8>,
-        value: Vec<u8>,
-    },
 }
 
 impl Proof {
     pub fn serialize(&self) -> Vec<u8> {
-        unimplemented!("serialize");
+        self.encode()
     }
 }
 
-pub struct ProofChecker {}
+pub struct ProofChecker {
+    given: Given,
+}
 
 impl ProofChecker {
-    pub fn new(_given: Given) -> Self {
-        unimplemented!("new");
+    pub fn new(given: Given) -> Self {
+        ProofChecker { given }
     }
 
-    pub fn verify(&self, _proposition: Proposition, _proof: &[u8]) -> bool {
-        unimplemented!("verify");
+    pub fn verify(&self, proposition: Proposition, mut proof: &[u8]) -> bool {
+        let proof = match Proof::decode(&mut proof) {
+            Ok(p) => p,
+            Err(_) => return false,
+        };
+
+        self.verify_proposition(proposition, proof)
+    }
+
+    fn verify_proposition(&self, prop: Proposition, proof: Proof) -> bool {
+        match (prop, proof) {
+            (Proposition::ObjectIsValue(object_id, value), p) => {
+                let object_hash = crate::fractal_store::object_hash(&object_id, &value);
+                self.verify_proposition(Proposition::HashInObjectTree(object_hash), p)
+            }
+            (Proposition::HashInObjectTree(hash), Proof::Empty) => {
+                self.given == Given::RootIs(hash)
+            }
+        }
     }
 }

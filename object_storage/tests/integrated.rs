@@ -1,7 +1,6 @@
 use fractal_object_storage::{test::InMemoryDb, FractalStore, Given, ProofChecker, Proposition};
 
 #[test]
-#[ignore]
 fn proving_simple_value() {
     let storage = InMemoryDb::default();
     let mut fractal_store = FractalStore::new(storage);
