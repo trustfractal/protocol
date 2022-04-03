@@ -25,9 +25,9 @@ impl<D: Database + 'static> FractalStore<D> {
         FractalStore { db, objects }
     }
 
-    pub fn init(&mut self, id: &[u8], value: &[u8]) -> Result<(), Error<D::Error>> {
+    pub fn init(&mut self, id: &[u8], value: &[u8]) -> Result<(), InitError<D::Error>> {
         if self.objects.contains(id)? {
-            return Err(Error::IdExists);
+            return Err(InitError::IdExists);
         }
 
         self.db
@@ -38,38 +38,84 @@ impl<D: Database + 'static> FractalStore<D> {
         Ok(())
     }
 
-    pub fn root_hash(&self) -> Result<Hash, Error<D::Error>> {
+    pub fn root_hash(&self) -> Result<Hash, D::Error> {
         let mut merkle_tree = MerkleTree::new();
 
         let mut object_ids = self.objects.iter_lexicographic();
         while let Some(object_id) = object_ids.next()? {
-            merkle_tree.update(self.object_hash(object_id.as_ref())?);
+            let data = self.object_data(&object_id)?.unwrap();
+            merkle_tree.update(self.object_hash(&object_id, &data));
         }
 
         Ok(merkle_tree.finalize())
     }
 
-    fn object_hash(&self, object_id: &[u8]) -> Result<Hash, Error<D::Error>> {
-        let object_data = self
-            .db
-            .borrow()
-            .read_slices(&[OBJECT_DATA, object_id])?
-            .ok_or_else(|| Error::Internal("Could not find object with provided id".to_string()))?;
-
-        use blake2::Digest;
-        Ok(blake2::Blake2b512::digest(object_data).into())
+    fn object_data(&self, object_id: &[u8]) -> Result<Option<Vec<u8>>, D::Error> {
+        self.db.borrow().read_slices(&[OBJECT_DATA, object_id])
     }
 
-    pub fn prove_given(&self, _given: Given, _prop: Proposition) -> Result<Proof, D::Error> {
-        unimplemented!("prove_given");
+    fn object_hash(&self, object_id: &[u8], object_data: &[u8]) -> Hash {
+        use blake2::{Blake2b512, Digest};
+
+        let mut hasher = Blake2b512::default();
+        hasher.update(object_id);
+        hasher.update(Blake2b512::digest(object_data));
+        hasher.finalize().into()
+    }
+
+    pub fn prove_given(
+        &self,
+        given: Given,
+        prop: Proposition,
+    ) -> Result<Proof, ProofError<D::Error>> {
+        match (given, prop) {
+            (Given::RootIs(root), Proposition::ObjectIsValue(object_id, value)) => {
+                if root != self.root_hash()? {
+                    return Err(ProofError::RootHashMismatch)?;
+                }
+
+                let data = self
+                    .object_data(&object_id)?
+                    .ok_or(ProofError::MissingObject)?;
+                if value != data {
+                    return Err(ProofError::ValueMismatch)?;
+                }
+                let needed_hash = self.object_hash(&object_id, &data);
+
+                let hash_exists = self.prove_given(
+                    Given::RootIs(root),
+                    Proposition::HashInObjectTree(needed_hash),
+                )?;
+
+                Ok(Proof::ObjectValue {
+                    hash_exists: Box::new(hash_exists),
+                    object_id,
+                    value,
+                })
+            }
+            (Given::RootIs(root), Proposition::HashInObjectTree(hash)) => {
+                if root == hash {
+                    return Ok(Proof::Empty);
+                }
+
+                unimplemented!("hash_in_object_tree");
+            }
+        }
     }
 }
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum Error<E> {
+pub enum InitError<E> {
     Db(#[from] E),
     IdExists,
-    Internal(String),
+}
+
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum ProofError<E> {
+    Db(#[from] E),
+    RootHashMismatch,
+    MissingObject,
+    ValueMismatch,
 }
 
 pub trait Database {
@@ -218,7 +264,7 @@ mod tests {
             let db = Handle::new(InMemoryDb::default());
             let mut store = FractalStore::new_with_deps(db.clone(), kv_set);
 
-            assert_eq!(store.init(&[42], b"foo"), Err(Error::IdExists));
+            assert_eq!(store.init(&[42], b"foo"), Err(InitError::IdExists));
             assert_eq!(db.borrow().read(&[1, 42]).unwrap(), None);
         }
     }
