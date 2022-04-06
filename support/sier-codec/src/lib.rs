@@ -11,7 +11,7 @@ use object::{Object, Value};
 mod schema;
 use schema::{FieldDef, Id, StructDef, Type};
 
-mod json;
+pub mod json;
 
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;

@@ -1,8 +1,8 @@
-use crate::{Error, Object, StructDef, Type, Value};
+use crate::{Error, FieldDef, Object, StructDef, Type, Value};
 use serde_json::Value as SerdeValue;
 use std::sync::Arc;
 
-pub fn parse_serde_value<'a>(v: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
+fn parse_serde_value<'a>(v: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
     match v {
         SerdeValue::Null => unimplemented!(),
         SerdeValue::Bool(b) => {
@@ -65,4 +65,29 @@ pub fn transform_serde_obj<'a>(
     }
 
     Ok(Object::new(def.as_ref(), values))
+}
+
+fn transform_sier_value<'a>(sier_value: &'a Value) -> Result<serde_json::Value, Error<'a>> {
+    Ok(match sier_value {
+        Value::Bool(b) => serde_json::Value::Bool(*b),
+        Value::List(list) => serde_json::Value::Array(
+            list.iter()
+                .map(transform_sier_value)
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
+        Value::String(str) => serde_json::Value::String(str.clone()),
+        Value::Struct(obj) => transform_sier_obj(obj)?,
+        Value::U32(n) => serde_json::Value::Number(serde_json::Number::from(*n)),
+        Value::U64(n) => serde_json::Value::Number(serde_json::Number::from(*n)),
+        Value::U8(n) => serde_json::Value::Number(serde_json::Number::from(*n)),
+        Value::Unit => serde_json::Value::Null,
+    })
+}
+pub fn transform_sier_obj<'a>(sier_obj: &'a Object) -> Result<serde_json::Value, Error<'a>> {
+    let mut result = serde_json::Map::new();
+    for FieldDef { name, type_: _ } in sier_obj.schema().fields() {
+        result.insert(name.clone(), transform_sier_value(&sier_obj[name])?);
+    }
+
+    Ok(serde_json::Value::Object(result))
 }
