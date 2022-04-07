@@ -183,6 +183,7 @@ impl Type {
                 Ok((bytes, Value::List(items)))
             }
             Type::Struct(def) => {
+                let bytes = &bytes[8..];
                 let (bytes, obj) = def.parse(bytes)?;
                 Ok((bytes, Value::Struct(obj)))
             }
@@ -468,7 +469,7 @@ mod tests {
                     type_: Type::Struct(struct_),
                 };
 
-                let value = field.parse(&[42]).unwrap().1;
+                let value = field.parse(&[0, 0, 0, 0, 0, 0, 0, 0, 42]).unwrap().1;
                 let obj = value.as_object().unwrap();
                 assert_eq!(obj["bar"].as_u8(), Some(42));
             }
