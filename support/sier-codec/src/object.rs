@@ -18,13 +18,13 @@ impl<'s> Object<'s> {
     }
 
     pub fn serialize(&self) -> Vec<u8> {
-        self.inner_serialize(true)
-    }
-    pub fn inner_serialize(&self, top_level: bool) -> Vec<u8> {
         let mut result = Vec::new();
-        if top_level {
-            result.extend(self.schema.id().iter().cloned());
-        }
+        result.extend(self.schema.id());
+        result.extend(self.serialize_as_child());
+        result
+    }
+    fn serialize_as_child(&self) -> Vec<u8> {
+        let mut result = Vec::new();
         for value in &self.values {
             result.extend(value.serialize());
         }
@@ -185,7 +185,8 @@ impl<'s> Value<'s> {
                     .chain(item_bytes)
                     .collect()
             }
-            Value::Struct(obj) => obj.inner_serialize(false),
+
+            Value::Struct(obj) => obj.serialize_as_child(),
         }
     }
 
