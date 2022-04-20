@@ -4,6 +4,7 @@ members = [
   'blockchain/pallets/*',
   'blockchain/runtime',
   'explorer',
+  'object_storage',
   'support/*',
 ]
 
