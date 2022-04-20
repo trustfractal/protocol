@@ -47,6 +47,7 @@ sp-transaction-pool = {default-features = false, version = '3.0.0', git = 'https
 sp-version = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 
 fractal-minting = { default-features = false, path = '../pallets/minting' }
+fractal-token-distribution = { default-features = false, path = '../pallets/token_distribution' }
 
 [features]
 default = ['std']

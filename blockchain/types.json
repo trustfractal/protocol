@@ -1,4 +1,10 @@
 {
   "FractalId": "u64",
-  "MerkleTree": "Raw"
+  "MerkleTree": "Raw",
+  "Destination": {
+    "_enum": {
+      "Address": "AccountId",
+      "Purpose": "u8"
+    }
+  }
 }
