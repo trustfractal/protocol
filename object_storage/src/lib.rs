@@ -13,12 +13,8 @@ pub mod test;
 pub type Hash = [u8; 64];
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Given {
-    RootIs(Hash),
-}
-
-#[derive(Debug)]
 pub enum Proposition {
+    RootIs(Hash),
     ObjectIsValue(Vec<u8>, Vec<u8>),
     HashInObjectTree(Hash),
 }
@@ -35,11 +31,11 @@ impl Proof {
 }
 
 pub struct ProofChecker {
-    given: Given,
+    given: Proposition,
 }
 
 impl ProofChecker {
-    pub fn new(given: Given) -> Self {
+    pub fn new(given: Proposition) -> Self {
         ProofChecker { given }
     }
 
@@ -59,7 +55,10 @@ impl ProofChecker {
                 self.verify_proposition(Proposition::HashInObjectTree(object_hash), p)
             }
             (Proposition::HashInObjectTree(hash), Proof::Empty) => {
-                self.given == Given::RootIs(hash)
+                self.given == Proposition::RootIs(hash)
+            }
+            unhandled => {
+                unimplemented!("unhandled: {:?}", unhandled);
             }
         }
     }

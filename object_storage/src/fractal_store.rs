@@ -25,6 +25,7 @@ impl<D: Database + 'static> FractalStore<D> {
         FractalStore { db, objects }
     }
 
+    /// Create a new object with the specified id and value.
     pub fn init(&mut self, id: &[u8], value: &[u8]) -> Result<(), InitError<D::Error>> {
         if self.objects.contains(id)? {
             return Err(InitError::IdExists);
@@ -38,12 +39,15 @@ impl<D: Database + 'static> FractalStore<D> {
         Ok(())
     }
 
+    /// Calculate the hash representing the state of the entire tree.
     pub fn root_hash(&self) -> Result<Hash, D::Error> {
         let mut merkle_tree = MerkleTree::new();
 
         let mut object_ids = self.objects.iter_lexicographic();
         while let Some(object_id) = object_ids.next()? {
-            let data = self.object_data(&object_id)?.unwrap();
+            let data = self
+                .object_data(&object_id)?
+                .expect("should not have an object id without data");
             merkle_tree.update(object_hash(&object_id, &data));
         }
 
@@ -54,13 +58,14 @@ impl<D: Database + 'static> FractalStore<D> {
         self.db.borrow().read_slices(&[OBJECT_DATA, object_id])
     }
 
+    /// Generate a proof of the proposition given the provided one.
     pub fn prove_given(
         &self,
-        given: Given,
         prop: Proposition,
+        given: Proposition,
     ) -> Result<Proof, ProofError<D::Error>> {
         match (given, prop) {
-            (Given::RootIs(root), Proposition::ObjectIsValue(object_id, value)) => {
+            (Proposition::RootIs(root), Proposition::ObjectIsValue(object_id, value)) => {
                 if root != self.root_hash()? {
                     return Err(ProofError::RootHashMismatch);
                 }
@@ -74,16 +79,19 @@ impl<D: Database + 'static> FractalStore<D> {
                 let needed_hash = object_hash(&object_id, &data);
 
                 self.prove_given(
-                    Given::RootIs(root),
                     Proposition::HashInObjectTree(needed_hash),
+                    Proposition::RootIs(root),
                 )
             }
-            (Given::RootIs(root), Proposition::HashInObjectTree(hash)) => {
+            (Proposition::RootIs(root), Proposition::HashInObjectTree(hash)) => {
                 if root == hash {
                     return Ok(Proof::Empty);
                 }
 
                 unimplemented!("hash_in_object_tree");
+            }
+            unhandled => {
+                unimplemented!("unhandled: {:?}", unhandled);
             }
         }
     }
