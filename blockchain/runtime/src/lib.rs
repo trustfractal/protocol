@@ -25,7 +25,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
-pub use fractal_minting::Call as FractalMintingCall;
+pub use fractal_data_capture::Call as FractalMintingCall;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{KeyOwnerProofSystem, Randomness},
@@ -281,25 +281,15 @@ parameter_types! {
     pub const TotalIssuance: Balance = 400_000_000 * UNIT_BALANCE;
     pub const IssuanceHalfLife: BlockNumber = 10 * YEARS;
     pub const IssuanceCompleteAt: BlockNumber = 120 * YEARS;
-
-    // 5FCLexMpgW8XH8K79PYhVSgy52SqSWdfGstaBCDGWzQtHLhh
-    pub const ExcessMintingReceiver: AccountId =
-        AccountId::new(hex_literal::hex!["8a874a9c3d01537eee89ba2ef693c6a5fd71c8c8c63f74167dc642e4c9ad0203"]);
 }
 
-impl fractal_minting::Config for Runtime {
+impl fractal_data_capture::Config for Runtime {
     type Event = Event;
-
-    type Currency = Balances;
 
     type MaxRewardPerUser = MaxRewardPerUser;
     type MintEveryNBlocks = MintEveryNBlocks;
 
-    type TotalIssuance = TotalIssuance;
-    type IssuanceHalfLife = IssuanceHalfLife;
-    type IssuanceCompleteAt = IssuanceCompleteAt;
-
-    type ExcessMintingReceiver = ExcessMintingReceiver;
+    type TokenDistribution = FractalTokenDistribution;
 }
 
 impl fractal_token_distribution::Config for Runtime {
@@ -333,7 +323,9 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Event} = 9,
 
         // Fractal pallets
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
+        // This is still named FractalMinting for backwards compatibility with the Chrome
+        // Extension.
+        FractalMinting: fractal_data_capture::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
         FractalTokenDistribution: fractal_token_distribution::{Pallet, Call, Storage, Event<T>} = 10,
     }
 );

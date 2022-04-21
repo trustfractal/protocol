@@ -36,6 +36,11 @@ pub mod pallet {
         type IssuanceCompleteAt: Get<Self::BlockNumber>;
     }
 
+    pub trait TokenDistribution<T: Config> {
+        fn take_from(purpose: u8) -> BalanceOf<T>;
+        fn return_to(purpose: u8, amount: BalanceOf<T>);
+    }
+
     #[pallet::storage]
     pub type TotalIssuanceOffset<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
@@ -114,12 +119,12 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> Pallet<T> {
-        pub fn take_from(purpose: u8) -> BalanceOf<T> {
+    impl<T: Config> TokenDistribution<T> for Pallet<T> {
+        fn take_from(purpose: u8) -> BalanceOf<T> {
             PurposeBalances::<T>::take(purpose)
         }
 
-        pub fn return_to(purpose: u8, amount: BalanceOf<T>) {
+        fn return_to(purpose: u8, amount: BalanceOf<T>) {
             PurposeBalances::<T>::insert(purpose, amount);
         }
     }

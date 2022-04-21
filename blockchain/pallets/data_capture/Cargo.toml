@@ -1,10 +1,10 @@
 [package]
 authors = ['Shelby Doolittle <shelby@fractal.id>']
-description = "FRAME pallet for Fractal's minting logic."
+description = "FRAME pallet for Fractal's data capture logic."
 edition = '2018'
 homepage = 'https://trustfractal.com'
 license = 'MIT'
-name = 'fractal-minting'
+name = 'fractal-data-capture'
 repository = 'https://github.com/trustfractal/protocol/'
 version = '0.1.0'
 
@@ -16,8 +16,6 @@ targets = ['x86_64-unknown-linux-gnu']
 codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
 merklex = {default-features = false, path = '../../../support/merklex'}
 blake2 = {default-features = false, version = "0.9"}
-num-traits = {default-features = false, version = '0.2.14'}
-libm = {version = '0.2.1'}
 
 # Substrate dependencies
 frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
@@ -25,6 +23,8 @@ frame-support = {default-features = false, version = '3.0.0', git = 'https://git
 frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
 sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+
+fractal-token-distribution = { default-features = false, path = '../token_distribution' }
 
 [dev-dependencies]
 serde = '1.0.119'
@@ -41,10 +41,6 @@ std = [
   'frame-system/std',
   'frame-benchmarking/std',
   'merklex/std',
-  'num-traits/std',
   'sp-core/std',
 ]
 try-runtime = ['frame-support/try-runtime']
-
-[[bin]]
-name = 'plot_issuance'

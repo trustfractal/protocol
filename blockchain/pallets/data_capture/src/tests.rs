@@ -14,18 +14,16 @@ mod register_identity {
 
     // Based on configuration of Issuance, this is the amount that we expect in the first minting.
     const FIRST_MINTING_TOTAL: u64 = 4824112;
-    const SECOND_MINTING_TOTAL: u64 = 4768702;
 
     fn max_reward_per_user() -> u64 {
         <Test as crate::Config>::MaxRewardPerUser::get()
     }
 
-    fn excess_receiver_balance() -> u64 {
-        Balances::free_balance(&<Test as crate::Config>::ExcessMintingReceiver::get())
-    }
-
     fn run_test(f: impl FnOnce()) {
         new_test_ext().execute_with(|| {
+            use fractal_token_distribution::TokenDistribution;
+            FractalTokenDistribution::return_to(0, FIRST_MINTING_TOTAL);
+
             step_block();
             f();
         });
@@ -151,41 +149,6 @@ mod register_identity {
             run_to_next_minting();
 
             assert_eq!(Balances::free_balance(&1), max_reward_per_user());
-        });
-    }
-
-    #[test]
-    fn unclaimed_minting_goes_to_excess_receiver() {
-        run_test(|| {
-            run_to_next_minting();
-
-            assert_eq!(excess_receiver_balance(), FIRST_MINTING_TOTAL);
-        });
-    }
-
-    #[test]
-    fn only_unclaimed_minting_goes_to_excess_receiver() {
-        run_test(|| {
-            register_id_account(1, 1);
-            register_for_minting(1);
-
-            run_to_next_minting();
-
-            let expected = FIRST_MINTING_TOTAL - max_reward_per_user();
-            assert_eq!(excess_receiver_balance(), expected);
-        });
-    }
-
-    #[test]
-    fn mints_less_in_the_second_round() {
-        run_test(|| {
-            run_to_next_minting();
-            run_to_next_minting();
-
-            assert_eq!(
-                excess_receiver_balance(),
-                FIRST_MINTING_TOTAL + SECOND_MINTING_TOTAL
-            );
         });
     }
 
