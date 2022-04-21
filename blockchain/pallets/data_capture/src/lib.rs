@@ -224,10 +224,10 @@ pub mod pallet {
                 .unwrap_or(core::u32::MAX);
 
             let taken = T::TokenDistribution::take_from(DATA_CAPTURE_PURPOSE);
-            let even_mint_per_user = taken
+            let even_per_user = taken
                 .checked_div(&accounts_count.into())
-                .unwrap_or(BalanceOf::<T>::default());
-            let per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_mint_per_user);
+                .unwrap_or_default();
+            let per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_per_user);
             let total = per_user * accounts_count.into();
             let excess = taken - total;
             T::TokenDistribution::return_to(DATA_CAPTURE_PURPOSE, excess);

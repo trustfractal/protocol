@@ -12,8 +12,7 @@ mod register_identity {
     use frame_support::dispatch::PostDispatchInfo;
     use frame_support::pallet_prelude::Pays;
 
-    // Based on configuration of Issuance, this is the amount that we expect in the first minting.
-    const FIRST_MINTING_TOTAL: u64 = 4824112;
+    const FIRST_MINTING_TOTAL: u64 = 1_000_000;
 
     fn max_reward_per_user() -> u64 {
         <Test as crate::Config>::MaxRewardPerUser::get()

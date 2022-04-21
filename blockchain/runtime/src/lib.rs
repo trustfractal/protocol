@@ -276,7 +276,7 @@ impl pallet_sudo::Config for Runtime {
 
 parameter_types! {
     pub const MaxRewardPerUser: Balance = 16_400 * (UNIT_BALANCE / 1000);
-    pub const MintEveryNBlocks: BlockNumber = DAYS;
+    pub const MintEveryNBlocks: BlockNumber = 10;
 
     pub const TotalIssuance: Balance = 400_000_000 * UNIT_BALANCE;
     pub const IssuanceHalfLife: BlockNumber = 10 * YEARS;
