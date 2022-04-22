@@ -9,6 +9,9 @@ struct Options {
 
     #[structopt(long)]
     postgres: String,
+
+    #[structopt(long)]
+    redirect_https: bool,
 }
 
 #[actix_web::main]
@@ -30,7 +33,12 @@ async fn main() -> std::io::Result<()> {
         let mut app = App::new()
             .data(pool)
             .data(options.clone())
-            .data(pages::templates().unwrap());
+            .data(pages::templates().unwrap())
+            .wrap(
+                actix_web_middleware_redirect_scheme::RedirectSchemeBuilder::new()
+                    .enable(options.redirect_https)
+                    .build(),
+            );
 
         app = pages::resources()
             .into_iter()
