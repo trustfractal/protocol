@@ -2,12 +2,8 @@
 
 ## Purpose
 
-This pallet implements the Fractal protocol's minting logic.
+This pallet implements the Fractal Protocol's token minting and distribution logic.
 
-Users are able to provide data and a signed ID to be eligible for the daily token minting.
-
-## Dependencies
-
-### Genesis Configuration
-
-TODO(shelbyd): Write this.
+This pallet allows the root user(s) of the Protocol to configure the distribution of tokens without
+pushing a chain code update. It also allows some portion of the minting to go to on-chain "purposes"
+that don't correspond to an explicit address.

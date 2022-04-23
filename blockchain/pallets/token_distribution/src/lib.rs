@@ -162,8 +162,9 @@ pub mod pallet {
                         T::Currency::deposit_creating(&a, to_this);
                     }
                     Destination::Purpose(p) => {
-                        let new_balance = PurposeBalances::<T>::get(&p) + to_this;
-                        PurposeBalances::<T>::insert(p, new_balance);
+                        PurposeBalances::<T>::mutate(p, |balance| {
+                            *balance += to_this;
+                        });
                     }
                 }
             }
