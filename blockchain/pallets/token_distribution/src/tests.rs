@@ -181,7 +181,7 @@ mod token_distribution {
         fn accounts_for_genesis_issuance() {
             run_test(|| {
                 let _ = Balances::deposit_creating(&43, 100_000);
-                assert_ok!(FractalTokenDistribution::increment_issuance_offset(
+                assert_ok!(FractalTokenDistribution::increment_artificially_issued(
                     Origin::root(),
                     Balances::total_issuance()
                 ));
@@ -219,6 +219,46 @@ mod token_distribution {
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
+            });
+        }
+
+        #[test]
+        fn issues_more_to_offset() {
+            run_test(|| {
+                let _ = Balances::deposit_creating(&43, 100_000);
+                assert_ok!(FractalTokenDistribution::increment_artificially_issued(
+                    Origin::root(),
+                    120_000
+                ));
+
+                assert_ok!(FractalTokenDistribution::set_weight(
+                    Origin::root(),
+                    Destination::Address(42),
+                    1
+                ));
+                step_block();
+
+                assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL + 20_000);
+            });
+        }
+
+        #[test]
+        fn issues_less_to_offset() {
+            run_test(|| {
+                let _ = Balances::deposit_creating(&43, 1_000_000);
+                assert_ok!(FractalTokenDistribution::increment_artificially_issued(
+                    Origin::root(),
+                    20_000
+                ));
+
+                assert_ok!(FractalTokenDistribution::set_weight(
+                    Origin::root(),
+                    Destination::Address(42),
+                    1
+                ));
+                step_block();
+
+                assert_eq!(Balances::free_balance(&42), 0);
             });
         }
     }

@@ -18,7 +18,10 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
-    use frame_support::traits::{Currency, Get};
+    use frame_support::{
+        sp_runtime::traits::Saturating,
+        traits::{Currency, Get},
+    };
 
     pub type FractalId = u64;
 
@@ -36,8 +39,13 @@ pub mod pallet {
         type IssuanceCompleteAt: Get<Self::BlockNumber>;
     }
 
+    pub trait TokenDistribution<T: Config> {
+        fn take_from(purpose: u8) -> BalanceOf<T>;
+        fn return_to(purpose: u8, amount: BalanceOf<T>);
+    }
+
     #[pallet::storage]
-    pub type TotalIssuanceOffset<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    pub type ArtificiallyIssued<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type DestinationWeights<T: Config> =
@@ -86,12 +94,14 @@ pub mod pallet {
             DispatchClass::Normal,
             Pays::No
         ))]
-        pub fn increment_issuance_offset(
+        pub fn increment_artificially_issued(
             origin: OriginFor<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            TotalIssuanceOffset::<T>::set(TotalIssuanceOffset::<T>::get() + amount);
+            ArtificiallyIssued::<T>::mutate(|a| {
+                *a += amount;
+            });
             Ok(())
         }
 
@@ -108,18 +118,20 @@ pub mod pallet {
             ensure_root(origin)?;
 
             T::Currency::deposit_creating(&address, amount);
-            TotalIssuanceOffset::<T>::set(TotalIssuanceOffset::<T>::get() + amount);
+            ArtificiallyIssued::<T>::mutate(|a| {
+                *a += amount;
+            });
 
             Ok(())
         }
     }
 
-    impl<T: Config> Pallet<T> {
-        pub fn take_from(purpose: u8) -> BalanceOf<T> {
+    impl<T: Config> TokenDistribution<T> for Pallet<T> {
+        fn take_from(purpose: u8) -> BalanceOf<T> {
             PurposeBalances::<T>::take(purpose)
         }
 
-        pub fn return_to(purpose: u8, amount: BalanceOf<T>) {
+        fn return_to(purpose: u8, amount: BalanceOf<T>) {
             PurposeBalances::<T>::insert(purpose, amount);
         }
     }
@@ -136,10 +148,6 @@ pub mod pallet {
                 return;
             }
 
-            let already_issued = T::Currency::total_issuance()
-                + PurposeBalances::<T>::iter_values().sum()
-                - TotalIssuanceOffset::<T>::get();
-
             // Using Issuance like this makes it _technically_ possible for
             // consensus to fail if the CPU's floating point calculations are
             // different.
@@ -152,8 +160,14 @@ pub mod pallet {
                 half_life: T::IssuanceHalfLife::get(),
                 complete_at: T::IssuanceCompleteAt::get(),
             };
-            let to_issue = issuance.total_issued_by(block_number) - already_issued;
-            let unit_balance = to_issue / total_weight.into();
+
+            let should_be_issued =
+                issuance.total_issued_by(block_number) + ArtificiallyIssued::<T>::get();
+            let already_issued =
+                T::Currency::total_issuance() + PurposeBalances::<T>::iter_values().sum();
+
+            let unit_balance =
+                should_be_issued.saturating_sub(already_issued) / total_weight.into();
 
             for (dest, weight) in DestinationWeights::<T>::iter() {
                 let to_this = unit_balance * weight.into();
@@ -162,7 +176,7 @@ pub mod pallet {
                         T::Currency::deposit_creating(&a, to_this);
                     }
                     Destination::Purpose(p) => {
-                        PurposeBalances::<T>::mutate(p, |balance| {
+                        PurposeBalances::<T>::mutate(&p, |balance| {
                             *balance += to_this;
                         });
                     }

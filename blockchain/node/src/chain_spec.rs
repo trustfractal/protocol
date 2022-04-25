@@ -148,7 +148,7 @@ fn testnet_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
-    fractal_minting: FractalMintingConfig,
+    fractal_data_capture: FractalMintingConfig,
 ) -> GenesisConfig {
     GenesisConfig {
         frame_system: SystemConfig {
@@ -177,7 +177,7 @@ fn testnet_genesis(
             // Assign network admin rights.
             key: root_key,
         },
-        fractal_minting,
+        fractal_data_capture,
     }
 }
 
@@ -209,7 +209,7 @@ fn mainnet_genesis(
             // Assign network admin rights.
             key: root_key,
         },
-        fractal_minting: FractalMintingConfig {
+        fractal_data_capture: FractalMintingConfig {
             fractal_authoritative_account,
         },
     }

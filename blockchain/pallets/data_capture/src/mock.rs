@@ -1,4 +1,4 @@
-use crate as fractal_minting;
+use crate as fractal_data_capture;
 use frame_support::parameter_types;
 use frame_system as system;
 use sp_core::H256;
@@ -20,7 +20,8 @@ frame_support::construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
-        FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>},
+        FractalMinting: fractal_data_capture::{Pallet, Call, Storage, Config<T>, Event<T>},
+        FractalTokenDistribution: fractal_token_distribution::{Pallet, Call, Storage, Event<T>},
     }
 );
 
@@ -76,25 +77,28 @@ parameter_types! {
     pub const IssuanceHalfLife: u64 = 600;
     pub const IssuanceCompleteAt: u64 = 10_000;
     pub const MaxRewardPerUser: u64 = 420_000;
-
-    pub const ExcessMintingReceiver: u64 = 1234;
 }
 
-impl fractal_minting::Config for Test {
+impl fractal_data_capture::Config for Test {
+    type Event = Event;
+
+    type MintEveryNBlocks = MintEveryNBlocks;
+
+    type MaxRewardPerUser = MaxRewardPerUser;
+    type TokenDistribution = FractalTokenDistribution;
+}
+
+impl fractal_token_distribution::Config for Test {
     type Event = Event;
     type Currency = Balances;
     type TotalIssuance = TotalIssuance;
     type IssuanceHalfLife = IssuanceHalfLife;
     type IssuanceCompleteAt = IssuanceCompleteAt;
-    type MintEveryNBlocks = MintEveryNBlocks;
-    type ExcessMintingReceiver = ExcessMintingReceiver;
-
-    type MaxRewardPerUser = MaxRewardPerUser;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
     GenesisConfig {
-        fractal_minting: crate::GenesisConfig {
+        fractal_data_capture: crate::GenesisConfig {
             fractal_authoritative_account: 123,
         },
         ..Default::default()
