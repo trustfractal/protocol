@@ -302,6 +302,16 @@ impl fractal_minting::Config for Runtime {
     type ExcessMintingReceiver = ExcessMintingReceiver;
 }
 
+impl fractal_token_distribution::Config for Runtime {
+    type Event = Event;
+
+    type Currency = Balances;
+
+    type TotalIssuance = TotalIssuance;
+    type IssuanceHalfLife = IssuanceHalfLife;
+    type IssuanceCompleteAt = IssuanceCompleteAt;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -324,6 +334,7 @@ construct_runtime!(
 
         // Fractal pallets
         FractalMinting: fractal_minting::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
+        FractalTokenDistribution: fractal_token_distribution::{Pallet, Call, Storage, Event<T>} = 10,
     }
 );
 
