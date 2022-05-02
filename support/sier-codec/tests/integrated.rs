@@ -214,3 +214,17 @@ fn json() {
         vec![4, 2]
     );
 }
+
+#[test]
+fn to_json() {
+    let mut parser = Parser::default();
+    parser.add_file_defs(JSON_STRUCT_DEF).unwrap();
+
+    let def = parser.struct_def("Foo").unwrap();
+    let obj = parser.json_str(JSON, def).unwrap();
+
+    let json: serde_json::Value = sier_codec::json::transform_sier_obj(&obj).unwrap();
+
+    let serde_json: serde_json::Value = serde_json::from_str(JSON).unwrap();
+    assert_eq!(json, serde_json);
+}

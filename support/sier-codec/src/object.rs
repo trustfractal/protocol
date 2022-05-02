@@ -25,7 +25,6 @@ impl<'s> Object<'s> {
     }
     fn serialize_as_child(&self) -> Vec<u8> {
         let mut result = Vec::new();
-
         for value in &self.values {
             result.extend(value.serialize());
         }
@@ -186,6 +185,7 @@ impl<'s> Value<'s> {
                     .chain(item_bytes)
                     .collect()
             }
+
             Value::Struct(obj) => obj.serialize_as_child(),
         }
     }

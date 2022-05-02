@@ -1,8 +1,8 @@
-use crate::{Error, Object, StructDef, Type, Value};
-use serde_json::Value as SerdeValue;
+use crate::{Error, FieldDef, Object, StructDef, Type, Value};
+use serde_json::{json, Map as SerdeMap, Number as SerdeNumber, Value as SerdeValue};
 use std::sync::Arc;
 
-pub fn parse_serde_value<'a>(v: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
+fn parse_serde_value<'a>(v: &SerdeValue, type_: &'a Type) -> Result<Value<'a>, Error<'a>> {
     match v {
         SerdeValue::Null => unimplemented!(),
         SerdeValue::Bool(b) => {
@@ -52,7 +52,7 @@ pub fn parse_serde_value<'a>(v: &SerdeValue, type_: &'a Type) -> Result<Value<'a
 }
 
 pub fn transform_serde_obj<'a>(
-    json_obj: &serde_json::Map<String, SerdeValue>,
+    json_obj: &SerdeMap<String, SerdeValue>,
     def: &'a Arc<StructDef>,
 ) -> Result<Object<'a>, Error<'a>> {
     let mut values = Vec::with_capacity(json_obj.len());
@@ -65,4 +65,29 @@ pub fn transform_serde_obj<'a>(
     }
 
     Ok(Object::new(def.as_ref(), values))
+}
+
+fn transform_sier_value<'a>(sier_value: &'a Value) -> Result<SerdeValue, Error<'a>> {
+    Ok(match sier_value {
+        Value::Bool(b) => SerdeValue::Bool(*b),
+        Value::List(list) => SerdeValue::Array(
+            list.iter()
+                .map(transform_sier_value)
+                .collect::<Result<Vec<_>, _>>()?,
+        ),
+        Value::String(str) => SerdeValue::String(str.clone()),
+        Value::Struct(obj) => transform_sier_obj(obj)?,
+        Value::U32(n) => SerdeValue::Number(SerdeNumber::from(*n)),
+        Value::U64(n) => SerdeValue::Number(SerdeNumber::from(*n)),
+        Value::U8(n) => SerdeValue::Number(SerdeNumber::from(*n)),
+        Value::Unit => json!({}),
+    })
+}
+pub fn transform_sier_obj<'a>(sier_obj: &'a Object) -> Result<SerdeValue, Error<'a>> {
+    let mut result = SerdeMap::new();
+    for FieldDef { name, .. } in sier_obj.schema().fields() {
+        result.insert(name.clone(), transform_sier_value(&sier_obj[name])?);
+    }
+
+    Ok(SerdeValue::Object(result))
 }
