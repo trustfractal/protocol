@@ -8,9 +8,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod exponential_issuance;
-pub use exponential_issuance::*;
-
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::pallet_prelude::*;
@@ -19,8 +16,8 @@ pub mod pallet {
     use blake2::Blake2b;
 
     use core::convert::TryInto;
+    use fractal_token_distribution::TokenDistribution;
     use frame_support::{
-        dispatch::Vec,
         traits::{Currency, Get, Imbalance},
         weights::Weight,
     };
@@ -30,23 +27,20 @@ pub mod pallet {
 
     pub type FractalId = u64;
 
-    type BalanceOf<T> =
-        <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+    const DATA_CAPTURE_PURPOSE: u8 = 0;
+
+    type BalanceOf<T> = <<T as fractal_token_distribution::Config>::Currency as Currency<
+        <T as frame_system::Config>::AccountId,
+    >>::Balance;
 
     #[pallet::config]
-    pub trait Config: frame_system::Config {
+    pub trait Config: frame_system::Config + fractal_token_distribution::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        type Currency: Currency<Self::AccountId>;
-
-        type TotalIssuance: Get<BalanceOf<Self>>;
-        type IssuanceHalfLife: Get<Self::BlockNumber>;
-        type IssuanceCompleteAt: Get<Self::BlockNumber>;
         type MaxRewardPerUser: Get<BalanceOf<Self>>;
-
         type MintEveryNBlocks: Get<Self::BlockNumber>;
 
-        type ExcessMintingReceiver: Get<Self::AccountId>;
+        type TokenDistribution: TokenDistribution<Self>;
     }
 
     #[pallet::pallet]
@@ -212,11 +206,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        BalanceOf<T>: num_traits::PrimInt,
-        BlockNumberFor<T>: num_traits::PrimInt,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_initialize(_block_number: BlockNumberFor<T>) -> Weight {
             Weight::default()
         }
@@ -228,70 +218,38 @@ pub mod pallet {
                 return;
             }
 
-            let accounts = NextMintingRewards::<T>::iter().collect::<Vec<_>>();
-            let accounts_count: u32 = accounts.len().try_into().unwrap_or(core::u32::MAX);
+            let accounts_count = NextMintingRewards::<T>::iter()
+                .count()
+                .try_into()
+                .unwrap_or(core::u32::MAX);
 
-            let (mint_per_user, total_minted) = Self::minting_amount(block_number, accounts_count);
+            let taken = T::TokenDistribution::take_from(DATA_CAPTURE_PURPOSE);
+            let even_per_user = taken
+                .checked_div(&accounts_count.into())
+                .unwrap_or_default();
+            let per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_per_user);
+            let total = per_user * accounts_count.into();
+            let excess = taken - total;
+            T::TokenDistribution::return_to(DATA_CAPTURE_PURPOSE, excess);
 
-            let recipients = accounts
-                .iter()
+            let recipients = NextMintingRewards::<T>::iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
             let removed = recipients.inspect(|(id, _)| NextMintingRewards::<T>::remove(id));
 
             // Dropping the Imbalance resolves it.
             let _imbalance = removed
-                .map(|(_, account)| T::Currency::deposit_creating(account, mint_per_user))
+                .map(|(_, account)| T::Currency::deposit_creating(&account, per_user))
                 .fold(
                     <T::Currency as Currency<_>>::PositiveImbalance::zero(),
                     |acc, v| acc.merge(v),
                 );
 
-            let distributed_to_users = mint_per_user * accounts_count.into();
-            let unclaimed = total_minted - distributed_to_users;
-            T::Currency::deposit_creating(&T::ExcessMintingReceiver::get(), unclaimed);
-
-            TotalAlreadyMinted::<T>::set(TotalAlreadyMinted::<T>::get() + total_minted);
-
             Self::deposit_event(Event::Minted {
-                total: total_minted,
-                per_user: mint_per_user,
+                total,
+                per_user,
                 number_of_accounts: accounts_count,
-                excess: unclaimed,
+                excess,
             });
-        }
-    }
-
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: num_traits::PrimInt,
-        BlockNumberFor<T>: num_traits::PrimInt,
-    {
-        fn minting_amount(
-            block_number: BlockNumberFor<T>,
-            accounts_count: u32,
-        ) -> (BalanceOf<T>, BalanceOf<T>) {
-            // Using Issuance like this makes it _technically_ possible for
-            // consensus to fail if the CPU's floating point calculations are
-            // different.
-            //
-            // If this becomes a problem, we can have this value derived from
-            // an extrinsic that an authoritative account sets. Similar to how
-            // the timestamp pallet works.
-            let issuance = crate::Issuance {
-                total: T::TotalIssuance::get(),
-                half_life: T::IssuanceHalfLife::get(),
-                complete_at: T::IssuanceCompleteAt::get(),
-            };
-            let total_after_block = issuance.total_issued_by(block_number);
-            let to_issue = total_after_block - TotalAlreadyMinted::<T>::get();
-
-            let even_mint_per_user = to_issue
-                .checked_div(&accounts_count.into())
-                .unwrap_or_else(|| 0u32.into());
-
-            let mint_per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_mint_per_user);
-
-            (mint_per_user, to_issue)
         }
     }
 }

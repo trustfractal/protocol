@@ -1,4 +1,4 @@
-use fractal_minting::Issuance;
+use fractal_token_distribution::Issuance;
 
 /// Utility to generate issuance curves with hard-coded parameters for plotting
 /// with external tools.
