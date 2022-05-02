@@ -17,15 +17,15 @@ pub fn serialize(js_object: JsValue, file_defs: &str, struct_def: &str) -> js_sy
 
     let mut parser = Parser::default();
     parser.add_file_defs(file_defs).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(format!("Wrong file definitions provided {0}", e).as_str());
+        wasm_bindgen::throw_str(e.to_string().as_str());
     });
 
     let def = parser.struct_def(struct_def).unwrap_or_else(|| {
-        wasm_bindgen::throw_str("Wrong struct_def provided");
+        wasm_bindgen::throw_str(format!("Could not find struct {0} in provided definitions.", struct_def).as_str());
     });
 
     let obj = parser.json_str(json.as_str(), def).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(format!("Wrong JSON provided - {0}", e).as_str());
+        wasm_bindgen::throw_str(e.to_string().as_str());
     });
 
     js_sys::Uint8Array::from(&obj.serialize()[..])
