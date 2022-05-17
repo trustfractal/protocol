@@ -17,15 +17,20 @@ pub fn serialize(js_object: JsValue, file_defs: &str, struct_def: &str) -> js_sy
 
     let mut parser = Parser::default();
     parser.add_file_defs(file_defs).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(e.to_string().as_str());
+        wasm_bindgen::throw_str(&e.to_string());
     });
 
     let def = parser.struct_def(struct_def).unwrap_or_else(|| {
-        wasm_bindgen::throw_str(format!("Could not find struct {0} in provided definitions.", struct_def).as_str());
+        wasm_bindgen::throw_str(
+            &format!(
+                "Could not find struct {0} in provided definitions.",
+                struct_def
+            ),
+        );
     });
 
     let obj = parser.json_str(json.as_str(), def).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(e.to_string().as_str());
+        wasm_bindgen::throw_str(&e.to_string());
     });
 
     js_sys::Uint8Array::from(&obj.serialize()[..])
@@ -35,20 +40,21 @@ pub fn serialize(js_object: JsValue, file_defs: &str, struct_def: &str) -> js_sy
 pub fn deserialize(sier: js_sys::Uint8Array, file_defs: &str) -> JsValue {
     let mut parser = Parser::default();
     parser.add_file_defs(file_defs).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(format!("Wrong file definitions provided {0}", e).as_str());
+        wasm_bindgen::throw_str(&format!("Wrong file definitions provided {0}", e));
     });
 
     let obj = parser.parse(&sier.to_vec()).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(format!("Parse failed - {0}", e).as_str());
+        wasm_bindgen::throw_str(&format!("Parse failed - {0}", e));
     });
 
     let json = sier_codec::json::transform_sier_obj(&obj).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(format!("Transforming sier object failed - {0}", e).as_str());
+        wasm_bindgen::throw_str(&format!("Transforming sier object failed - {0}", e));
     });
 
     JsValue::from_serde(&json).unwrap_or_else(|e| {
-        wasm_bindgen::throw_str(
-            format!("Serde Value to Wasm JsValue parsing failed - {0}", e).as_str(),
-        );
+        wasm_bindgen::throw_str(&format!(
+            "Serde Value to Wasm JsValue parsing failed - {0}",
+            e
+        ));
     })
 }

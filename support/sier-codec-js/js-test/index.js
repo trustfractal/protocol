@@ -26,7 +26,7 @@ const FOO =
 };
 console.log(FOO);
 
-let sier = pkg.serialize(JSON.stringify(FOO), JSON_STRUCT_DEF, "Foo");
+let sier = pkg.serialize(FOO, JSON_STRUCT_DEF, "Foo");
 console.log(sier);
 let json = pkg.deserialize(sier, JSON_STRUCT_DEF);
 console.log(json);
