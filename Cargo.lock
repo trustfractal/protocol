@@ -2133,6 +2133,7 @@ name = "fractal-protocol-blockchain-runtime"
 version = "0.1.0"
 dependencies = [
  "fractal-data-capture",
+ "fractal-staking",
  "fractal-token-distribution",
  "frame-benchmarking",
  "frame-executive",
@@ -2163,6 +2164,22 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "substrate-wasm-builder",
+]
+
+[[package]]
+name = "fractal-staking"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "maplit",
+ "pallet-balances",
+ "parity-scale-codec 2.3.1",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
