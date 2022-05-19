@@ -53,9 +53,7 @@ pub mod pallet {
     #[pallet::metadata(BalanceOf<T> = "Balance")]
     #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
-        Distribution {
-            amount: BalanceOf<T>,
-        }
+        Distribution { amount: BalanceOf<T> },
     }
 
     #[pallet::error]
@@ -67,7 +65,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(0, 1))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
         pub fn stake(
             origin: OriginFor<T>,
             #[pallet::compact] amount: BalanceOf<T>,
@@ -91,7 +89,7 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(0, 1))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(10, 10))]
         pub fn withdraw(
             origin: OriginFor<T>,
             #[pallet::compact] amount: BalanceOf<T>,
@@ -109,7 +107,7 @@ pub mod pallet {
                 .fold(BalanceOf::<T>::zero(), |acc, b| acc + b);
 
             if total_unlocked < amount {
-                return Err(Error::<T>::NotEnoughUnlockedStake)?;
+                return Err(Error::<T>::NotEnoughUnlockedStake.into());
             }
 
             let mut blocks = unlocked_balances.into_keys();
