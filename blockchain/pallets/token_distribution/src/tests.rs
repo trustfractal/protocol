@@ -1,4 +1,4 @@
-use crate::{mock::*, *};
+use crate::mock::*;
 use frame_support::{
     assert_noop, assert_ok,
     traits::{tokens::currency::Currency, OnFinalize, OnInitialize},
@@ -10,7 +10,6 @@ mod token_distribution {
 
     const FIRST_MINTING_TOTAL: u64 = 484_923;
     const SECOND_MINTING_TOTAL: u64 = 484_363;
-    const TEST_PURPOSE: u8 = 13;
 
     fn run_test(f: impl FnOnce()) {
         new_test_ext().execute_with(|| {
@@ -34,11 +33,7 @@ mod token_distribution {
         #[test]
         fn distributes_to_single_address() {
             run_test(|| {
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
@@ -48,21 +43,9 @@ mod token_distribution {
         #[test]
         fn distributes_among_many_addresses() {
             run_test(|| {
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(43),
-                    1
-                ));
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(44),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 43, 1));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 44, 1));
 
                 step_block();
 
@@ -76,99 +59,16 @@ mod token_distribution {
         fn requires_root() {
             run_test(|| {
                 assert_noop!(
-                    FractalTokenDistribution::set_weight(
-                        Origin::signed(1),
-                        Destination::Address(42),
-                        1
-                    ),
+                    FractalTokenDistribution::set_weight(Origin::signed(1), 42, 1),
                     sp_runtime::traits::BadOrigin
                 );
             });
         }
 
-        #[cfg(test)]
-        mod purpose {
-            use super::*;
-
-            #[test]
-            fn distributes_to_single_purpose() {
-                run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_weight(
-                        Origin::root(),
-                        Destination::Purpose(TEST_PURPOSE),
-                        1
-                    ));
-                    step_block();
-
-                    assert_eq!(
-                        FractalTokenDistribution::take_from(TEST_PURPOSE),
-                        FIRST_MINTING_TOTAL
-                    );
-                });
-            }
-
-            #[test]
-            fn accounts_for_amount_in_distribution() {
-                run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_weight(
-                        Origin::root(),
-                        Destination::Purpose(TEST_PURPOSE),
-                        1
-                    ));
-                    step_block();
-
-                    assert_ok!(FractalTokenDistribution::set_weight(
-                        Origin::root(),
-                        Destination::Address(42),
-                        1
-                    ));
-                    step_block();
-
-                    assert_eq!(Balances::free_balance(42), SECOND_MINTING_TOTAL / 2);
-                });
-            }
-
-            #[test]
-            fn take_leaves_amount_as_zero() {
-                run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_weight(
-                        Origin::root(),
-                        Destination::Purpose(TEST_PURPOSE),
-                        1
-                    ));
-                    step_block();
-
-                    FractalTokenDistribution::take_from(TEST_PURPOSE);
-                    assert_eq!(FractalTokenDistribution::take_from(TEST_PURPOSE), 0);
-                });
-            }
-
-            #[test]
-            fn return_after_take() {
-                run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_weight(
-                        Origin::root(),
-                        Destination::Purpose(TEST_PURPOSE),
-                        1
-                    ));
-                    step_block();
-
-                    FractalTokenDistribution::take_from(TEST_PURPOSE);
-                    FractalTokenDistribution::return_to(TEST_PURPOSE, 100);
-
-                    assert_eq!(FractalTokenDistribution::take_from(TEST_PURPOSE), 100);
-                });
-            }
-        }
-
         #[test]
         fn distributes_additional_based_on_already_distributed() {
             run_test(|| {
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
                 let first = Balances::free_balance(&42);
 
@@ -186,11 +86,7 @@ mod token_distribution {
                     Balances::total_issuance()
                 ));
 
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
@@ -211,11 +107,7 @@ mod token_distribution {
             run_test(|| {
                 assert_ok!(FractalTokenDistribution::mint(Origin::root(), 43, 120000));
 
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
@@ -231,11 +123,7 @@ mod token_distribution {
                     120_000
                 ));
 
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL + 20_000);
@@ -251,11 +139,7 @@ mod token_distribution {
                     20_000
                 ));
 
-                assert_ok!(FractalTokenDistribution::set_weight(
-                    Origin::root(),
-                    Destination::Address(42),
-                    1
-                ));
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), 0);

@@ -9,8 +9,7 @@ use merklex::MerkleTree;
 #[cfg(test)]
 mod register_identity {
     use super::*;
-    use frame_support::dispatch::PostDispatchInfo;
-    use frame_support::pallet_prelude::Pays;
+    use frame_support::{dispatch::PostDispatchInfo, pallet_prelude::Pays, traits::Currency};
 
     const FIRST_MINTING_TOTAL: u64 = 1_000_000;
 
@@ -20,8 +19,10 @@ mod register_identity {
 
     fn run_test(f: impl FnOnce()) {
         new_test_ext().execute_with(|| {
-            use fractal_token_distribution::TokenDistribution;
-            FractalTokenDistribution::return_to(0, FIRST_MINTING_TOTAL);
+            Balances::make_free_balance_be(
+                &<Test as crate::Config>::HoldingAccount::get(),
+                FIRST_MINTING_TOTAL,
+            );
 
             step_block();
             f();
@@ -288,6 +289,21 @@ mod register_identity {
             let post = register_for_minting_dataset(1, &["a", "b", "c"]);
             assert_eq!(post.pays_fee, Pays::Yes);
             assert_eq!(post.actual_weight, None);
+        });
+    }
+
+    #[test]
+    fn returns_to_holding_account() {
+        run_test(|| {
+            register_id_account(1, 1);
+            register_for_minting(1);
+
+            run_to_next_minting();
+
+            assert_eq!(
+                Balances::free_balance(&<Test as crate::Config>::HoldingAccount::get()),
+                FIRST_MINTING_TOTAL - max_reward_per_user()
+            );
         });
     }
 

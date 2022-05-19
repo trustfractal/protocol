@@ -13,8 +13,6 @@ pub use exponential_issuance::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use codec::{Decode, Encode};
-
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
@@ -39,21 +37,12 @@ pub mod pallet {
         type IssuanceCompleteAt: Get<Self::BlockNumber>;
     }
 
-    pub trait TokenDistribution<T: Config> {
-        fn take_from(purpose: u8) -> BalanceOf<T>;
-        fn return_to(purpose: u8, amount: BalanceOf<T>);
-    }
-
     #[pallet::storage]
     pub type ArtificiallyIssued<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type DestinationWeights<T: Config> =
-        StorageMap<_, Blake2_128Concat, Destination<T::AccountId>, u32, ValueQuery>;
-
-    #[pallet::storage]
-    pub type PurposeBalances<T: Config> =
-        StorageMap<_, Blake2_128Concat, u8, BalanceOf<T>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -66,12 +55,6 @@ pub mod pallet {
     #[pallet::error]
     pub enum Error<T> {}
 
-    #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
-    pub enum Destination<A> {
-        Address(A),
-        Purpose(u8),
-    }
-
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight((
@@ -81,7 +64,7 @@ pub mod pallet {
         ))]
         pub fn set_weight(
             origin: OriginFor<T>,
-            address: Destination<T::AccountId>,
+            address: T::AccountId,
             #[pallet::compact] weight: u32,
         ) -> DispatchResult {
             ensure_root(origin)?;
@@ -126,16 +109,6 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> TokenDistribution<T> for Pallet<T> {
-        fn take_from(purpose: u8) -> BalanceOf<T> {
-            PurposeBalances::<T>::take(purpose)
-        }
-
-        fn return_to(purpose: u8, amount: BalanceOf<T>) {
-            PurposeBalances::<T>::insert(purpose, amount);
-        }
-    }
-
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
@@ -163,24 +136,14 @@ pub mod pallet {
 
             let should_be_issued =
                 issuance.total_issued_by(block_number) + ArtificiallyIssued::<T>::get();
-            let already_issued =
-                T::Currency::total_issuance() + PurposeBalances::<T>::iter_values().sum();
+            let already_issued = T::Currency::total_issuance();
 
             let unit_balance =
                 should_be_issued.saturating_sub(already_issued) / total_weight.into();
 
-            for (dest, weight) in DestinationWeights::<T>::iter() {
+            for (address, weight) in DestinationWeights::<T>::iter() {
                 let to_this = unit_balance * weight.into();
-                match dest {
-                    Destination::Address(a) => {
-                        T::Currency::deposit_creating(&a, to_this);
-                    }
-                    Destination::Purpose(p) => {
-                        PurposeBalances::<T>::mutate(&p, |balance| {
-                            *balance += to_this;
-                        });
-                    }
-                }
+                T::Currency::deposit_creating(&address, to_this);
             }
         }
     }
