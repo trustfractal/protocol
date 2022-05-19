@@ -77,15 +77,16 @@ parameter_types! {
     pub const IssuanceHalfLife: u64 = 600;
     pub const IssuanceCompleteAt: u64 = 10_000;
     pub const MaxRewardPerUser: u64 = 420_000;
+    pub const HoldingAccount: u64 = 42;
 }
 
 impl fractal_data_capture::Config for Test {
     type Event = Event;
 
     type MintEveryNBlocks = MintEveryNBlocks;
-
     type MaxRewardPerUser = MaxRewardPerUser;
-    type TokenDistribution = FractalTokenDistribution;
+
+    type HoldingAccount = HoldingAccount;
 }
 
 impl fractal_token_distribution::Config for Test {

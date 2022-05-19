@@ -16,7 +16,6 @@ pub mod pallet {
     use blake2::Blake2b;
 
     use core::convert::TryInto;
-    use fractal_token_distribution::TokenDistribution;
     use frame_support::{
         traits::{Currency, Get, Imbalance},
         weights::Weight,
@@ -26,8 +25,6 @@ pub mod pallet {
     use sp_runtime::traits::CheckedDiv;
 
     pub type FractalId = u64;
-
-    const DATA_CAPTURE_PURPOSE: u8 = 0;
 
     type BalanceOf<T> = <<T as fractal_token_distribution::Config>::Currency as Currency<
         <T as frame_system::Config>::AccountId,
@@ -40,7 +37,7 @@ pub mod pallet {
         type MaxRewardPerUser: Get<BalanceOf<Self>>;
         type MintEveryNBlocks: Get<Self::BlockNumber>;
 
-        type TokenDistribution: TokenDistribution<Self>;
+        type HoldingAccount: Get<Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -223,14 +220,14 @@ pub mod pallet {
                 .try_into()
                 .unwrap_or(core::u32::MAX);
 
-            let taken = T::TokenDistribution::take_from(DATA_CAPTURE_PURPOSE);
+            let taken = T::Currency::free_balance(&T::HoldingAccount::get());
             let even_per_user = taken
                 .checked_div(&accounts_count.into())
                 .unwrap_or_default();
             let per_user = core::cmp::min(T::MaxRewardPerUser::get(), even_per_user);
             let total = per_user * accounts_count.into();
             let excess = taken - total;
-            T::TokenDistribution::return_to(DATA_CAPTURE_PURPOSE, excess);
+            T::Currency::make_free_balance_be(&T::HoldingAccount::get(), excess);
 
             let recipients = NextMintingRewards::<T>::iter()
                 .take(accounts_count.try_into().expect("at least 32bit OS"));
