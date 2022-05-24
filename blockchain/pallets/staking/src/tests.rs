@@ -64,6 +64,20 @@ mod register_identity {
     }
 
     #[test]
+    fn distributes_to_reserved_balance() {
+        run_test(|| {
+            set_distribution_source(100_000);
+
+            let _ = Balances::deposit_creating(&1, 100_000);
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+
+            run_to_distribution();
+
+            assert_eq!(Balances::free_balance(1), 0);
+        });
+    }
+
+    #[test]
     fn disallows_staking_more_than_owned() {
         run_test(|| {
             let _ = Balances::deposit_creating(&1, 100_000);

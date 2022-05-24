@@ -304,9 +304,6 @@ parameter_types! {
     // 5FCLStakingDistributionSourcexxxxxxxxxxxxxxxxwX3
     pub const DistributionSource: AccountId =
         AccountId::new(hex_literal::hex!("8a8697584b3c01d56761b4f0cad6a17ab72df5805ee45716d40e222b7d4a5737"));
-    // 5FCLStakingHoLdingxxxxxxxxxxxxxxxxxxxxxxxxxxxjV6
-    pub const HoldingAccount: AccountId =
-        AccountId::new(hex_literal::hex!("8a8697584b3c01f391910a8f167c5d29e7068f768397cc3fab3beb0375ee7047"));
 }
 
 impl fractal_staking::Config for Runtime {
@@ -317,7 +314,6 @@ impl fractal_staking::Config for Runtime {
     type DistributeEveryNBlocks = DistributeEveryNBlocks;
     type StakingLockPeriod = StakingLockPeriod;
     type DistributionSource = DistributionSource;
-    type HoldingAccount = HoldingAccount;
 }
 
 impl fractal_token_distribution::Config for Runtime {

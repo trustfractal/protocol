@@ -86,7 +86,6 @@ impl fractal_staking::Config for Test {
     type StakingLockPeriod = StakingLockPeriod;
 
     type DistributionSource = DistributionSource;
-    type HoldingAccount = HoldingAccount;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

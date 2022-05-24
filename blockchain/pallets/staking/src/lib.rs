@@ -15,7 +15,7 @@ pub mod pallet {
     use codec::alloc::collections::BTreeMap;
     use frame_support::{
         sp_runtime::traits::Zero,
-        traits::{Currency, ExistenceRequirement, Get},
+        traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
     };
     use frame_system::ensure_signed;
 
@@ -26,13 +26,15 @@ pub mod pallet {
     pub trait Config: frame_system::Config + pallet_balances::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        type Currency: Currency<Self::AccountId>;
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         type DistributeEveryNBlocks: Get<Self::BlockNumber>;
         type StakingLockPeriod: Get<Self::BlockNumber>;
 
         type DistributionSource: Get<Self::AccountId>;
-        type HoldingAccount: Get<Self::AccountId>;
     }
+
+    #[pallet::storage]
+    pub type TotalStaked<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type StakedAmounts<T: Config> = StorageDoubleMap<
@@ -72,19 +74,15 @@ pub mod pallet {
         ) -> DispatchResult {
             let address = ensure_signed(origin)?;
 
-            T::Currency::transfer(
-                &address,
-                &T::HoldingAccount::get(),
-                amount,
-                ExistenceRequirement::AllowDeath,
-            )
-            .map_err(|_| Error::<T>::CannotStakeMoreThanBalance)?;
+            T::Currency::reserve(&address, amount)
+                .map_err(|_| Error::<T>::CannotStakeMoreThanBalance)?;
 
             StakedAmounts::<T>::insert(
                 address,
                 <frame_system::Pallet<T>>::block_number() + T::StakingLockPeriod::get(),
                 amount,
             );
+            TotalStaked::<T>::mutate(|b| *b += amount);
 
             Ok(())
         }
@@ -122,13 +120,8 @@ pub mod pallet {
                 });
             }
 
-            T::Currency::transfer(
-                &T::HoldingAccount::get(),
-                &address,
-                amount,
-                ExistenceRequirement::AllowDeath,
-            )
-            .map_err(|_| Error::<T>::Internal)?;
+            T::Currency::unreserve(&address, amount);
+            TotalStaked::<T>::mutate(|b| *b -= amount);
 
             Ok(())
         }
@@ -145,18 +138,29 @@ pub mod pallet {
             }
 
             let to_distribute = T::Currency::free_balance(&T::DistributionSource::get());
-            let total_staked = T::Currency::free_balance(&T::HoldingAccount::get());
+            let total_staked = TotalStaked::<T>::get();
 
             let mut distributed = BalanceOf::<T>::zero();
             for (address, block, _) in StakedAmounts::<T>::iter() {
-                StakedAmounts::<T>::mutate(address, block, |b| {
+                let amount = StakedAmounts::<T>::mutate(&address, block, |b| {
                     let amount = to_distribute * *b / total_staked;
                     *b += amount;
-                    distributed += amount;
+                    amount
                 });
+
+                distributed += amount;
+
+                T::Currency::transfer(
+                    &T::DistributionSource::get(),
+                    &address,
+                    amount,
+                    ExistenceRequirement::AllowDeath,
+                )
+                .expect("distributing based on balance");
+                T::Currency::reserve(&address, amount).expect("just deposited to this account");
             }
 
-            T::Currency::deposit_creating(&T::HoldingAccount::get(), distributed);
+            TotalStaked::<T>::mutate(|b| *b += distributed);
             T::Currency::make_free_balance_be(
                 &T::DistributionSource::get(),
                 to_distribute - distributed,
