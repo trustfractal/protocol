@@ -71,7 +71,6 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
     pub const DistributeEveryNBlocks: u64 = 10;
-    pub const StakingLockPeriod: u64 = 3;
 
     pub const DistributionSource: u64 = 42;
     pub const HoldingAccount: u64 = 43;
@@ -83,7 +82,6 @@ impl fractal_staking::Config for Test {
     type Currency = Balances;
 
     type DistributeEveryNBlocks = DistributeEveryNBlocks;
-    type StakingLockPeriod = StakingLockPeriod;
 
     type DistributionSource = DistributionSource;
 }

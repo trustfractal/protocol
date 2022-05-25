@@ -13,8 +13,15 @@ mod register_identity {
     fn run_test(f: impl FnOnce()) {
         new_test_ext().execute_with(|| {
             step_block();
+            assert_ok!(FractalStaking::set_lock_period_shares(
+                Origin::root(),
+                3,
+                10
+            ));
 
             f();
+
+            check_invariants();
         });
     }
 
@@ -24,6 +31,21 @@ mod register_identity {
         System::set_block_number(System::block_number() + 1);
         System::on_initialize(System::block_number());
         FractalStaking::on_initialize(System::block_number());
+    }
+
+    fn check_invariants() {
+        let coin_shares: u64 = crate::pallet::StakedAmounts::<Test>::iter()
+            .map(|(_, _, (balance, shares))| balance * u64::from(shares))
+            .sum();
+        assert_eq!(
+            coin_shares,
+            crate::pallet::TotalCoinShares::<Test>::get(),
+            "TotalCoinShares incorrect"
+        );
+
+        for (_, _, (balance, _)) in crate::pallet::StakedAmounts::<Test>::iter() {
+            assert_ne!(balance, 0);
+        }
     }
 
     fn run_to_distribution() {
@@ -43,7 +65,7 @@ mod register_identity {
     }
 
     fn step_past_lock_period() {
-        for _ in 0..<Test as crate::Config>::StakingLockPeriod::get() {
+        for _ in 0..3 {
             step_block();
         }
     }
@@ -54,7 +76,7 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             run_to_distribution();
 
@@ -69,7 +91,7 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             run_to_distribution();
 
@@ -82,7 +104,7 @@ mod register_identity {
         run_test(|| {
             let _ = Balances::deposit_creating(&1, 100_000);
             assert_noop!(
-                FractalStaking::stake(Origin::signed(1), 100_001),
+                FractalStaking::stake(Origin::signed(1), 3, 100_001),
                 Error::CannotStakeMoreThanBalance
             );
         });
@@ -92,7 +114,7 @@ mod register_identity {
     fn disallows_withdrawing_more_than_staked() {
         run_test(|| {
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             step_past_lock_period();
 
@@ -107,7 +129,7 @@ mod register_identity {
     fn disallows_double_withdraw() {
         run_test(|| {
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             step_past_lock_period();
 
@@ -125,10 +147,10 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             let _ = Balances::deposit_creating(&2, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(2), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(2), 3, 100_000));
 
             run_to_distribution();
 
@@ -149,12 +171,12 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
             step_past_lock_period();
             assert_ok!(FractalStaking::withdraw(Origin::signed(1), 100_000));
 
             let _ = Balances::deposit_creating(&2, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(2), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(2), 3, 100_000));
 
             run_to_distribution();
 
@@ -168,10 +190,10 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             let _ = Balances::deposit_creating(&2, 50_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(2), 50_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(2), 3, 50_000));
 
             run_to_distribution();
 
@@ -192,10 +214,10 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
 
             let _ = Balances::deposit_creating(&2, 50_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(2), 50_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(2), 3, 50_000));
 
             run_to_distribution();
 
@@ -212,11 +234,35 @@ mod register_identity {
             set_distribution_source(100_000);
 
             let _ = Balances::deposit_creating(&1, 100_000);
-            assert_ok!(FractalStaking::stake(Origin::signed(1), 100_000));
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
             assert_noop!(
                 FractalStaking::withdraw(Origin::signed(1), 1),
                 Error::NotEnoughUnlockedStake
             );
+        });
+    }
+
+    #[test]
+    fn distributes_more_from_larger_locks() {
+        run_test(|| {
+            set_distribution_source(100_000);
+
+            assert_ok!(FractalStaking::set_lock_period_shares(
+                Origin::root(),
+                5,
+                20
+            ));
+
+            let _ = Balances::deposit_creating(&1, 100_000);
+            assert_ok!(FractalStaking::stake(Origin::signed(1), 3, 100_000));
+
+            let _ = Balances::deposit_creating(&2, 100_000);
+            assert_ok!(FractalStaking::stake(Origin::signed(2), 5, 100_000));
+
+            run_to_distribution();
+
+            assert_eq!(Balances::reserved_balance(1), 133_333);
+            assert_eq!(Balances::reserved_balance(2), 166_666);
         });
     }
 }

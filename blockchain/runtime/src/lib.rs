@@ -299,8 +299,6 @@ impl fractal_data_capture::Config for Runtime {
 parameter_types! {
     pub const DistributeEveryNBlocks: BlockNumber = DAYS;
 
-    pub const StakingLockPeriod: BlockNumber = 30 * DAYS;
-
     // 5FCLStakingDistributionSourcexxxxxxxxxxxxxxxxwX3
     pub const DistributionSource: AccountId =
         AccountId::new(hex_literal::hex!("8a8697584b3c01d56761b4f0cad6a17ab72df5805ee45716d40e222b7d4a5737"));
@@ -312,7 +310,6 @@ impl fractal_staking::Config for Runtime {
     type Currency = Balances;
 
     type DistributeEveryNBlocks = DistributeEveryNBlocks;
-    type StakingLockPeriod = StakingLockPeriod;
     type DistributionSource = DistributionSource;
 }
 

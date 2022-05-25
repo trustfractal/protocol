@@ -28,13 +28,12 @@ pub mod pallet {
 
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         type DistributeEveryNBlocks: Get<Self::BlockNumber>;
-        type StakingLockPeriod: Get<Self::BlockNumber>;
 
         type DistributionSource: Get<Self::AccountId>;
     }
 
     #[pallet::storage]
-    pub type TotalStaked<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    pub type TotalCoinShares<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
     pub type StakedAmounts<T: Config> = StorageDoubleMap<
@@ -43,9 +42,13 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         BlockNumberFor<T>,
-        BalanceOf<T>,
+        (BalanceOf<T>, u32),
         ValueQuery,
     >;
+
+    #[pallet::storage]
+    pub type LockPeriodShares<T: Config> =
+        StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, u32, OptionQuery>;
 
     #[pallet::pallet]
     #[pallet::generate_store(pub(super) trait Store)]
@@ -62,27 +65,44 @@ pub mod pallet {
     pub enum Error<T> {
         CannotStakeMoreThanBalance,
         NotEnoughUnlockedStake,
-        Internal,
+        UnknownLockPeriod,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
+        pub fn set_lock_period_shares(
+            origin: OriginFor<T>,
+            #[pallet::compact] blocks: BlockNumberFor<T>,
+            #[pallet::compact] shares: u32,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+
+            LockPeriodShares::<T>::insert(blocks, shares);
+
+            Ok(())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
         pub fn stake(
             origin: OriginFor<T>,
+            #[pallet::compact] lock_period: BlockNumberFor<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let address = ensure_signed(origin)?;
+
+            let shares =
+                LockPeriodShares::<T>::get(lock_period).ok_or(Error::<T>::UnknownLockPeriod)?;
 
             T::Currency::reserve(&address, amount)
                 .map_err(|_| Error::<T>::CannotStakeMoreThanBalance)?;
 
             StakedAmounts::<T>::insert(
                 address,
-                <frame_system::Pallet<T>>::block_number() + T::StakingLockPeriod::get(),
-                amount,
+                <frame_system::Pallet<T>>::block_number() + lock_period,
+                (amount, shares),
             );
-            TotalStaked::<T>::mutate(|b| *b += amount);
+            TotalCoinShares::<T>::mutate(|b| *b += amount * shares.into());
 
             Ok(())
         }
@@ -94,6 +114,8 @@ pub mod pallet {
         ) -> DispatchResult {
             let address = ensure_signed(origin)?;
 
+            let zero_balance = BalanceOf::<T>::zero();
+
             let block_number = <frame_system::Pallet<T>>::block_number();
             let unlocked_balances: BTreeMap<_, _> = StakedAmounts::<T>::iter_prefix(&address)
                 .filter(|(n, _)| n <= &block_number)
@@ -101,27 +123,35 @@ pub mod pallet {
 
             let total_unlocked: BalanceOf<T> = unlocked_balances
                 .values()
-                .cloned()
-                .fold(BalanceOf::<T>::zero(), |acc, b| acc + b);
+                .fold(zero_balance, |acc, (b, _)| acc + *b);
 
             if total_unlocked < amount {
                 return Err(Error::<T>::NotEnoughUnlockedStake.into());
             }
 
-            let mut blocks = unlocked_balances.into_keys();
             let mut remaining = amount;
-            while remaining > BalanceOf::<T>::zero() {
+            let mut withdrawn_shares = zero_balance;
+
+            let mut blocks = unlocked_balances.into_keys();
+            while remaining > zero_balance {
                 let block = blocks.next().expect("Already checked for enough balance");
 
-                StakedAmounts::<T>::mutate(&address, block, |b| {
+                let should_remove = StakedAmounts::<T>::mutate(&address, block, |(b, shares)| {
                     let amount = core::cmp::min(*b, remaining);
                     *b -= amount;
                     remaining -= amount;
+                    withdrawn_shares += amount * (*shares).into();
+
+                    *b == zero_balance
                 });
+
+                if should_remove {
+                    StakedAmounts::<T>::remove(&address, block);
+                }
             }
 
             T::Currency::unreserve(&address, amount);
-            TotalStaked::<T>::mutate(|b| *b -= amount);
+            TotalCoinShares::<T>::mutate(|b| *b -= withdrawn_shares);
 
             Ok(())
         }
@@ -138,13 +168,17 @@ pub mod pallet {
             }
 
             let to_distribute = T::Currency::free_balance(&T::DistributionSource::get());
-            let total_staked = TotalStaked::<T>::get();
+            let total_staked = TotalCoinShares::<T>::get();
 
             let mut distributed = BalanceOf::<T>::zero();
+            let mut distributed_shares = BalanceOf::<T>::zero();
             for (address, block, _) in StakedAmounts::<T>::iter() {
-                let amount = StakedAmounts::<T>::mutate(&address, block, |b| {
-                    let amount = to_distribute * *b / total_staked;
+                let amount = StakedAmounts::<T>::mutate(&address, block, |(b, shares)| {
+                    let amount = to_distribute * *b * (*shares).into() / total_staked;
                     *b += amount;
+
+                    distributed_shares += amount * (*shares).into();
+
                     amount
                 });
 
@@ -160,7 +194,7 @@ pub mod pallet {
                 T::Currency::reserve(&address, amount).expect("just deposited to this account");
             }
 
-            TotalStaked::<T>::mutate(|b| *b += distributed);
+            TotalCoinShares::<T>::mutate(|b| *b += distributed_shares);
             T::Currency::make_free_balance_be(
                 &T::DistributionSource::get(),
                 to_distribute - distributed,
