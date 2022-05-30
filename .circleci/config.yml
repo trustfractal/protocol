@@ -58,6 +58,7 @@ jobs:
       - run:
           name: Build all targets
           command: cargo build --release
+          no_output_timeout: 30m
       - *save_cache
       - run:
           name: Run all tests
