@@ -281,6 +281,10 @@ parameter_types! {
     pub const TotalIssuance: Balance = 400_000_000 * UNIT_BALANCE;
     pub const IssuanceHalfLife: BlockNumber = 10 * YEARS;
     pub const IssuanceCompleteAt: BlockNumber = 120 * YEARS;
+
+    // 5FCLDataCaptureRewardsxxxxxxxxxxxxxxxxxxxxxxxk7C
+    pub const DataCaptureHoldingAccount: AccountId =
+        AccountId::new(hex_literal::hex!("8a85d1a80e8d35f0c904d78df91ac99f03d623ccf349ad1dce71a3011fdde447"));
 }
 
 impl fractal_data_capture::Config for Runtime {
@@ -289,7 +293,7 @@ impl fractal_data_capture::Config for Runtime {
     type MaxRewardPerUser = MaxRewardPerUser;
     type MintEveryNBlocks = MintEveryNBlocks;
 
-    type TokenDistribution = FractalTokenDistribution;
+    type HoldingAccount = DataCaptureHoldingAccount;
 }
 
 impl fractal_token_distribution::Config for Runtime {
