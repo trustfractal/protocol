@@ -31,7 +31,7 @@ setup_steps:
   - &restore_cache
     restore_cache:
       keys:
-        - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+        - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-{{ .Environment.CACHE_VERSION }}
   - &save_cache
     save_cache:
       paths:
@@ -39,7 +39,7 @@ setup_steps:
         - target/release/.fingerprint
         - target/release/build
         - target/release/deps
-      key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+      key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-{{ .Environment.CACHE_VERSION }}
 
 jobs:
   build-and-test:
