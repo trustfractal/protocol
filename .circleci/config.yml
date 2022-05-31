@@ -44,7 +44,7 @@ setup_steps:
 jobs:
   build-and-test:
     docker:
-      - image: circleci/rust
+      - image: cimg/rust
     environment:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
@@ -71,7 +71,7 @@ jobs:
 
   security:
     docker:
-      - image: circleci/rust
+      - image: cimg/rust
     steps:
       - *install_deps
       - *setup_rust
@@ -97,7 +97,7 @@ jobs:
 
   format:
     docker:
-      - image: circleci/rust
+      - image: cimg/rust
     steps:
       - *install_deps
       - *setup_rust
@@ -115,7 +115,7 @@ jobs:
 
   lint:
     docker:
-      - image: circleci/rust
+      - image: cimg/rust
     resource_class: large
     steps:
       - *install_deps
@@ -141,7 +141,7 @@ jobs:
 
   deploy_node:
     docker:
-      - image: circleci/rust
+      - image: cimg/rust
     steps:
       - attach_workspace:
           at: /home/circleci/project
