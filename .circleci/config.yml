@@ -57,8 +57,7 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build --release
-          no_output_timeout: 30m
+          command: cargo build --release --verbose --jobs 1
       - *save_cache
       - run:
           name: Run all tests
