@@ -265,4 +265,16 @@ mod register_identity {
             assert_eq!(Balances::reserved_balance(2), 166_666);
         });
     }
+
+    #[test]
+    fn disallows_stake_below_minimum() {
+        run_test(|| {
+            assert_ok!(FractalStaking::set_minimum_stake(Origin::root(), Some(100)));
+
+            assert_noop!(
+                FractalStaking::stake(Origin::signed(1), 3, 99),
+                Error::AmountBelowMinimum
+            );
+        });
+    }
 }

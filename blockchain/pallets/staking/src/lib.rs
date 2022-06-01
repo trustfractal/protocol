@@ -33,6 +33,9 @@ pub mod pallet {
     }
 
     #[pallet::storage]
+    pub type MinimumStake<T: Config> = StorageValue<_, BalanceOf<T>, OptionQuery>;
+
+    #[pallet::storage]
     pub type TotalCoinShares<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
@@ -66,11 +69,32 @@ pub mod pallet {
         CannotStakeMoreThanBalance,
         NotEnoughUnlockedStake,
         UnknownLockPeriod,
+        AmountBelowMinimum,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
+        #[pallet::weight((
+            10_000 + T::DbWeight::get().reads_writes(0, 1),
+            DispatchClass::Normal,
+            Pays::No
+        ))]
+        pub fn set_minimum_stake(
+            origin: OriginFor<T>,
+            min: Option<BalanceOf<T>>,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+
+            MinimumStake::<T>::set(min);
+
+            Ok(())
+        }
+
+        #[pallet::weight((
+            10_000 + T::DbWeight::get().reads_writes(0, 1),
+            DispatchClass::Normal,
+            Pays::No
+        ))]
         pub fn set_lock_period_shares(
             origin: OriginFor<T>,
             #[pallet::compact] blocks: BlockNumberFor<T>,
@@ -83,13 +107,19 @@ pub mod pallet {
             Ok(())
         }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(2, 2))]
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(4, 2))]
         pub fn stake(
             origin: OriginFor<T>,
             #[pallet::compact] lock_period: BlockNumberFor<T>,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             let address = ensure_signed(origin)?;
+
+            if let Some(min) = MinimumStake::<T>::get() {
+                if amount < min {
+                    return Err(Error::<T>::AmountBelowMinimum.into());
+                }
+            }
 
             let shares =
                 LockPeriodShares::<T>::get(lock_period).ok_or(Error::<T>::UnknownLockPeriod)?;
