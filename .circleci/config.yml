@@ -54,7 +54,7 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build --release --verbose
+          command: cargo build --release --jobs 1
       - *save_cache
       - run:
           name: Run all tests
