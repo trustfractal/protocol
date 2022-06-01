@@ -53,11 +53,10 @@ jobs:
       - *setup_rust
       - *version_info
       - checkout
-      - *restore_cache
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build --release --verbose --jobs 1
+          command: cargo build --release --verbose
       - *save_cache
       - run:
           name: Run all tests
