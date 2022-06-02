@@ -35,10 +35,7 @@ setup_steps:
   - &save_cache
     save_cache:
       paths:
-        - /usr/local/cargo/registry
-        - target/release/.fingerprint
-        - target/release/build
-        - target/release/deps
+        - target/
       key: v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-{{ .Environment.CACHE_VERSION }}
 
 jobs:
@@ -57,7 +54,7 @@ jobs:
       - *cargo_fetch_retry
       - run:
           name: Build all targets
-          command: cargo build --release
+          command: cargo build --release --jobs 1
           no_output_timeout: 30m
       - *save_cache
       - run:
