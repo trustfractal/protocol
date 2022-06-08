@@ -12,6 +12,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
+    use codec::alloc::collections::BTreeMap;
     use frame_support::{
         sp_runtime::traits::Zero,
         traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
@@ -44,7 +45,7 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         BlockNumberFor<T>,
-        (BalanceOf<T>, u32),
+        BTreeMap<u32, BalanceOf<T>>,
         ValueQuery,
     >;
 
@@ -132,10 +133,12 @@ pub mod pallet {
             T::Currency::reserve(&address, amount)
                 .map_err(|_| Error::<T>::CannotStakeMoreThanBalance)?;
 
-            StakedAmounts::<T>::insert(
+            StakedAmounts::<T>::mutate(
                 address,
                 <frame_system::Pallet<T>>::block_number() + lock_period,
-                (amount, shares),
+                |map| {
+                    *map.entry(shares).or_insert(BalanceOf::<T>::zero()) += amount;
+                },
             );
             TotalCoinShares::<T>::mutate(|b| *b += amount * shares.into());
 
@@ -149,13 +152,16 @@ pub mod pallet {
             BalanceOf<T>: core::iter::Sum,
         {
             StakedAmounts::<T>::iter_prefix_values(account)
-                .map(|(balance, _shares)| balance)
+                .map(|map| map.values().cloned().sum())
                 .sum()
         }
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+    where
+        BalanceOf<T>: core::iter::Sum,
+    {
         fn on_finalize(block_number: BlockNumberFor<T>) {
             if block_number % T::DistributeEveryNBlocks::get() != 0u32.into() {
                 return;
@@ -167,14 +173,18 @@ pub mod pallet {
             let mut distributed = BalanceOf::<T>::zero();
             let mut distributed_shares = BalanceOf::<T>::zero();
             for (address, block, _) in StakedAmounts::<T>::iter() {
-                let amount = StakedAmounts::<T>::mutate(&address, block, |(b, shares)| {
-                    let shares = (*shares).into();
+                let amount = StakedAmounts::<T>::mutate(&address, block, |map| {
+                    let mut amount = BalanceOf::<T>::zero();
 
-                    let amount = to_distribute * *b * shares / total_staked;
-                    *b += amount;
+                    for (shares, b) in map.iter_mut() {
+                        let shares = (*shares).into();
 
-                    distributed += amount;
-                    distributed_shares += amount * shares;
+                        amount += to_distribute * *b * shares / total_staked;
+                        *b += amount;
+
+                        distributed += amount;
+                        distributed_shares += amount * shares;
+                    }
 
                     amount
                 });
@@ -189,9 +199,15 @@ pub mod pallet {
                 T::Currency::reserve(&address, amount).expect("just deposited to this account");
 
                 if block <= block_number {
-                    let (balance, shares) = StakedAmounts::<T>::take(&address, &block);
+                    let map = StakedAmounts::<T>::take(&address, &block);
 
-                    TotalCoinShares::<T>::mutate(|b| *b -= balance * shares.into());
+                    let balance = map
+                        .into_iter()
+                        .inspect(|&(shares, balance)| {
+                            TotalCoinShares::<T>::mutate(|b| *b -= balance * shares.into());
+                        })
+                        .map(|(_, b)| b)
+                        .sum();
                     T::Currency::unreserve(&address, balance);
 
                     Self::deposit_event(Event::<T>::Unstaked {

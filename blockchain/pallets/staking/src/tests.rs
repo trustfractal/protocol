@@ -37,7 +37,7 @@ mod register_identity {
 
     fn check_invariants() {
         let coin_shares: u64 = crate::pallet::StakedAmounts::<Test>::iter()
-            .map(|(_, _, (balance, shares))| balance * u64::from(shares))
+            .map(|(_, _, map)| map.iter().map(|(&s, &b)| b * u64::from(s)).sum::<u64>())
             .sum();
         assert_eq!(
             coin_shares,
@@ -45,8 +45,10 @@ mod register_identity {
             "TotalCoinShares incorrect"
         );
 
-        for (_, _, (balance, _)) in crate::pallet::StakedAmounts::<Test>::iter() {
-            assert_ne!(balance, 0);
+        for (_, _, map) in crate::pallet::StakedAmounts::<Test>::iter() {
+            for (_, balance) in map {
+                assert_ne!(balance, 0);
+            }
         }
     }
 
@@ -286,5 +288,58 @@ mod register_identity {
                 Error::AmountBelowMinimum
             );
         });
+    }
+
+    #[cfg(test)]
+    mod many_in_one_block {
+        use super::*;
+
+        #[test]
+        fn increments_staked_amounts_with_multiple_in_one_block() {
+            run_test(|| {
+                let _ = Balances::deposit_creating(&1, 100_000);
+
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK,
+                    50_000
+                ));
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK,
+                    50_000
+                ));
+
+                assert_eq!(FractalStaking::staked_balance(1), 100_000);
+            });
+        }
+
+        #[test]
+        fn stakes_with_mismatched_shares() {
+            run_test(|| {
+                assert_ok!(FractalStaking::set_lock_period_shares(
+                    Origin::root(),
+                    DEFAULT_LOCK + 1,
+                    20
+                ));
+
+                let _ = Balances::deposit_creating(&1, 100_000);
+
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK + 1,
+                    50_000
+                ));
+                step_block();
+
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK,
+                    50_000
+                ));
+
+                assert_eq!(FractalStaking::staked_balance(1), 100_000);
+            });
+        }
     }
 }
