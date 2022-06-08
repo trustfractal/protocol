@@ -12,7 +12,6 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
-    use codec::alloc::collections::BTreeMap;
     use frame_support::{
         sp_runtime::traits::Zero,
         traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
@@ -61,7 +60,13 @@ pub mod pallet {
     #[pallet::metadata(BalanceOf<T> = "Balance")]
     #[pallet::generate_deposit(pub fn deposit_event)]
     pub enum Event<T: Config> {
-        Distribution { amount: BalanceOf<T> },
+        Distribution {
+            amount: BalanceOf<T>,
+        },
+        Unstaked {
+            amount: BalanceOf<T>,
+            who: T::AccountId,
+        },
     }
 
     #[pallet::error]
@@ -136,62 +141,21 @@ pub mod pallet {
 
             Ok(())
         }
+    }
 
-        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(10, 10))]
-        pub fn withdraw(
-            origin: OriginFor<T>,
-            #[pallet::compact] amount: BalanceOf<T>,
-        ) -> DispatchResult {
-            let address = ensure_signed(origin)?;
-
-            let zero_balance = BalanceOf::<T>::zero();
-
-            let block_number = <frame_system::Pallet<T>>::block_number();
-            let unlocked_balances: BTreeMap<_, _> = StakedAmounts::<T>::iter_prefix(&address)
-                .filter(|(n, _)| n <= &block_number)
-                .collect();
-
-            let total_unlocked: BalanceOf<T> = unlocked_balances
-                .values()
-                .fold(zero_balance, |acc, (b, _)| acc + *b);
-
-            if total_unlocked < amount {
-                return Err(Error::<T>::NotEnoughUnlockedStake.into());
-            }
-
-            let mut remaining = amount;
-            let mut withdrawn_shares = zero_balance;
-
-            let mut blocks = unlocked_balances.into_keys();
-            while remaining > zero_balance {
-                let block = blocks.next().expect("Already checked for enough balance");
-
-                let should_remove = StakedAmounts::<T>::mutate(&address, block, |(b, shares)| {
-                    let amount = core::cmp::min(*b, remaining);
-                    *b -= amount;
-                    remaining -= amount;
-                    withdrawn_shares += amount * (*shares).into();
-
-                    *b == zero_balance
-                });
-
-                if should_remove {
-                    StakedAmounts::<T>::remove(&address, block);
-                }
-            }
-
-            T::Currency::unreserve(&address, amount);
-            TotalCoinShares::<T>::mutate(|b| *b -= withdrawn_shares);
-
-            Ok(())
+    impl<T: Config> Pallet<T> {
+        pub fn staked_balance(account: T::AccountId) -> BalanceOf<T>
+        where
+            BalanceOf<T>: core::iter::Sum,
+        {
+            StakedAmounts::<T>::iter_prefix_values(account)
+                .map(|(balance, _shares)| balance)
+                .sum()
         }
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        BalanceOf<T>: core::iter::Sum,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_finalize(block_number: BlockNumberFor<T>) {
             if block_number % T::DistributeEveryNBlocks::get() != 0u32.into() {
                 return;
@@ -204,15 +168,16 @@ pub mod pallet {
             let mut distributed_shares = BalanceOf::<T>::zero();
             for (address, block, _) in StakedAmounts::<T>::iter() {
                 let amount = StakedAmounts::<T>::mutate(&address, block, |(b, shares)| {
-                    let amount = to_distribute * *b * (*shares).into() / total_staked;
+                    let shares = (*shares).into();
+
+                    let amount = to_distribute * *b * shares / total_staked;
                     *b += amount;
 
-                    distributed_shares += amount * (*shares).into();
+                    distributed += amount;
+                    distributed_shares += amount * shares;
 
                     amount
                 });
-
-                distributed += amount;
 
                 T::Currency::transfer(
                     &T::DistributionSource::get(),
@@ -222,6 +187,18 @@ pub mod pallet {
                 )
                 .expect("distributing based on balance");
                 T::Currency::reserve(&address, amount).expect("just deposited to this account");
+
+                if block <= block_number {
+                    let (balance, shares) = StakedAmounts::<T>::take(&address, &block);
+
+                    TotalCoinShares::<T>::mutate(|b| *b -= balance * shares.into());
+                    T::Currency::unreserve(&address, balance);
+
+                    Self::deposit_event(Event::<T>::Unstaked {
+                        amount: balance,
+                        who: address,
+                    });
+                }
             }
 
             TotalCoinShares::<T>::mutate(|b| *b += distributed_shares);
