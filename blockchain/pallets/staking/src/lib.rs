@@ -137,7 +137,7 @@ pub mod pallet {
                 address,
                 <frame_system::Pallet<T>>::block_number() + lock_period,
                 |map| {
-                    *map.entry(shares).or_insert(BalanceOf::<T>::zero()) += amount;
+                    *map.entry(shares).or_insert_with(BalanceOf::<T>::zero) += amount;
                 },
             );
             TotalCoinShares::<T>::mutate(|b| *b += amount * shares.into());
