@@ -13,11 +13,10 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
 
     use codec::alloc::collections::BTreeMap;
-    use frame_support::{
-        sp_runtime::traits::Zero,
-        traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
-    };
+    use core::{convert::TryFrom, ops::Add};
+    use frame_support::traits::{Currency, ExistenceRequirement, Get, ReservableCurrency};
     use frame_system::ensure_signed;
+    use num_bigint::BigUint;
 
     type BalanceOf<T> =
         <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -36,7 +35,7 @@ pub mod pallet {
     pub type MinimumStake<T: Config> = StorageValue<_, BalanceOf<T>, OptionQuery>;
 
     #[pallet::storage]
-    pub type TotalCoinShares<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+    pub type TotalCoinShares<T: Config> = StorageValue<_, EncodableBigUint, ValueQuery>;
 
     #[pallet::storage]
     pub type StakedAmounts<T: Config> = StorageDoubleMap<
@@ -45,7 +44,7 @@ pub mod pallet {
         T::AccountId,
         Blake2_128Concat,
         BlockNumberFor<T>,
-        BTreeMap<u32, BalanceOf<T>>,
+        ShareBalance<BalanceOf<T>>,
         ValueQuery,
     >;
 
@@ -78,8 +77,79 @@ pub mod pallet {
         AmountBelowMinimum,
     }
 
+    #[derive(Default, Decode, Encode, Debug, Clone)]
+    pub struct EncodableBigUint {
+        digits: Vec<u32>,
+    }
+
+    impl From<BigUint> for EncodableBigUint {
+        fn from(n: BigUint) -> Self {
+            Self {
+                digits: n.to_u32_digits(),
+            }
+        }
+    }
+
+    impl Into<BigUint> for EncodableBigUint {
+        fn into(self) -> BigUint {
+            BigUint::new(self.digits)
+        }
+    }
+
+    #[derive(Default, Decode, Encode)]
+    pub struct ShareBalance<B> {
+        map: BTreeMap<u32, B>,
+    }
+
+    impl<B> ShareBalance<B>
+    where
+        B: Default + Copy + sp_arithmetic::traits::AtLeast32BitUnsigned,
+    {
+        pub fn coin_shares(&self) -> BigUint
+        where
+            BigUint: Add<B, Output = BigUint> + From<B>,
+        {
+            self.map.iter().map(|(&s, &b)| BigUint::from(b) * s).sum()
+        }
+
+        pub fn balance(&self) -> B {
+            self.map
+                .values()
+                .cloned()
+                .fold(B::default(), |acc, b| acc + b)
+        }
+
+        fn distribute(&mut self, to_distribute: B, total_staked: &BigUint) -> B
+        where
+            BigUint: From<B>,
+            B: TryFrom<BigUint>,
+        {
+            let mut total = B::default();
+
+            for (&shares, b) in self.map.iter_mut() {
+                let big_amount =
+                    BigUint::from(to_distribute) * BigUint::from(*b) * shares / total_staked;
+                let this_amount = B::try_from(big_amount)
+                    .ok() // Silence error since it's not Debug
+                    .expect("should never distribute more than B can handle");
+
+                *b += this_amount;
+                total += this_amount;
+            }
+
+            total
+        }
+
+        fn increment(&mut self, shares: u32, amount: B) {
+            *self.map.entry(shares).or_default() += amount;
+        }
+    }
+
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        BigUint: From<BalanceOf<T>>,
+    {
         #[pallet::weight((
             10_000 + T::DbWeight::get().reads_writes(0, 1),
             DispatchClass::Normal,
@@ -136,95 +206,65 @@ pub mod pallet {
             StakedAmounts::<T>::mutate(
                 address,
                 <frame_system::Pallet<T>>::block_number() + lock_period,
-                |map| {
-                    *map.entry(shares).or_insert_with(BalanceOf::<T>::zero) += amount;
-                },
+                |sb| sb.increment(shares, amount),
             );
-            TotalCoinShares::<T>::mutate(|b| *b += amount * shares.into());
+            TotalCoinShares::<T>::mutate(|b| {
+                let current_value: BigUint = b.clone().into();
+                let increment = BigUint::from(amount) * shares;
+                *b = EncodableBigUint::from(current_value + increment)
+            });
 
             Ok(())
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        pub fn staked_balance(account: T::AccountId) -> BalanceOf<T>
-        where
-            BalanceOf<T>: core::iter::Sum,
-        {
-            StakedAmounts::<T>::iter_prefix_values(account)
-                .map(|map| map.values().cloned().sum())
-                .sum()
         }
     }
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
     where
-        BalanceOf<T>: core::iter::Sum,
+        BigUint: From<BalanceOf<T>> + Add<BalanceOf<T>, Output = BigUint>,
+        BalanceOf<T>: TryFrom<BigUint>,
     {
-        fn on_finalize(block_number: BlockNumberFor<T>) {
-            if block_number % T::DistributeEveryNBlocks::get() != 0u32.into() {
+        fn on_finalize(current_block: BlockNumberFor<T>) {
+            if current_block % T::DistributeEveryNBlocks::get() != 0u32.into() {
                 return;
             }
 
             let to_distribute = T::Currency::free_balance(&T::DistributionSource::get());
-            let total_staked = TotalCoinShares::<T>::get();
+            let total_staked = TotalCoinShares::<T>::get().into();
 
-            let mut distributed = BalanceOf::<T>::zero();
-            let mut distributed_shares = BalanceOf::<T>::zero();
-            for (address, block, _) in StakedAmounts::<T>::iter() {
-                let amount = StakedAmounts::<T>::mutate(&address, block, |map| {
-                    let mut amount = BalanceOf::<T>::zero();
+            let mut new_coin_shares = BigUint::default();
 
-                    for (shares, b) in map.iter_mut() {
-                        let shares = (*shares).into();
-
-                        amount += to_distribute * *b * shares / total_staked;
-                        *b += amount;
-
-                        distributed += amount;
-                        distributed_shares += amount * shares;
-                    }
-
-                    amount
-                });
+            StakedAmounts::<T>::translate(|addr, unstake_at, mut sb: ShareBalance<_>| {
+                let amt_to_this = sb.distribute(to_distribute, &total_staked);
 
                 T::Currency::transfer(
                     &T::DistributionSource::get(),
-                    &address,
-                    amount,
+                    &addr,
+                    amt_to_this,
                     ExistenceRequirement::AllowDeath,
                 )
                 .expect("distributing based on balance");
-                T::Currency::reserve(&address, amount).expect("just deposited to this account");
 
-                if block <= block_number {
-                    let map = StakedAmounts::<T>::take(&address, &block);
-
-                    let balance = map
-                        .into_iter()
-                        .inspect(|&(shares, balance)| {
-                            TotalCoinShares::<T>::mutate(|b| *b -= balance * shares.into());
-                        })
-                        .map(|(_, b)| b)
-                        .sum();
-                    T::Currency::unreserve(&address, balance);
+                if unstake_at <= current_block {
+                    T::Currency::unreserve(&addr, sb.balance() - amt_to_this);
 
                     Self::deposit_event(Event::<T>::Unstaked {
-                        amount: balance,
-                        who: address,
+                        amount: sb.balance(),
+                        who: addr,
                     });
+                    return None;
                 }
-            }
 
-            TotalCoinShares::<T>::mutate(|b| *b += distributed_shares);
-            T::Currency::make_free_balance_be(
-                &T::DistributionSource::get(),
-                to_distribute - distributed,
-            );
+                T::Currency::reserve(&addr, amt_to_this).expect("just deposited to this account");
+                new_coin_shares += sb.coin_shares();
+
+                Some(sb)
+            });
+
+            TotalCoinShares::<T>::set(new_coin_shares.into());
 
             Self::deposit_event(Event::<T>::Distribution {
-                amount: distributed,
+                amount: to_distribute - T::Currency::free_balance(&T::DistributionSource::get()),
             });
         }
     }

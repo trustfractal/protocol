@@ -3,6 +3,7 @@ use frame_support::{
     assert_noop, assert_ok,
     traits::{Currency, OnFinalize, OnInitialize},
 };
+use num_bigint::BigUint;
 
 #[cfg(test)]
 mod register_identity {
@@ -36,20 +37,24 @@ mod register_identity {
     }
 
     fn check_invariants() {
-        let coin_shares: u64 = crate::pallet::StakedAmounts::<Test>::iter()
-            .map(|(_, _, map)| map.iter().map(|(&s, &b)| b * u64::from(s)).sum::<u64>())
+        let coin_shares: BigUint = crate::pallet::StakedAmounts::<Test>::iter()
+            .map(|(_, _, sb)| sb.coin_shares())
             .sum();
         assert_eq!(
             coin_shares,
-            crate::pallet::TotalCoinShares::<Test>::get(),
+            crate::pallet::TotalCoinShares::<Test>::get().into(),
             "TotalCoinShares incorrect"
         );
 
-        for (_, _, map) in crate::pallet::StakedAmounts::<Test>::iter() {
-            for (_, balance) in map {
-                assert_ne!(balance, 0);
-            }
+        for (_, _, sb) in crate::pallet::StakedAmounts::<Test>::iter() {
+            assert_ne!(sb.balance(), 0);
         }
+    }
+
+    fn staked_balance(account: u64) -> u64 {
+        crate::StakedAmounts::<Test>::iter_prefix_values(account)
+            .map(|sb| sb.balance())
+            .sum()
     }
 
     fn run_to_distribution() {
@@ -88,7 +93,7 @@ mod register_identity {
 
             run_to_distribution();
 
-            assert_eq!(FractalStaking::staked_balance(1), 200_000);
+            assert_eq!(staked_balance(1), 200_000);
         });
     }
 
@@ -142,8 +147,8 @@ mod register_identity {
 
             run_to_distribution();
 
-            assert_eq!(FractalStaking::staked_balance(1), 150_000);
-            assert_eq!(FractalStaking::staked_balance(2), 150_000);
+            assert_eq!(staked_balance(1), 150_000);
+            assert_eq!(staked_balance(2), 150_000);
         });
     }
 
@@ -164,7 +169,36 @@ mod register_identity {
             run_to_distribution();
 
             assert_eq!(Balances::free_balance(1), 100_000);
-            assert_eq!(FractalStaking::staked_balance(1), 0);
+            assert_eq!(staked_balance(1), 0);
+        });
+    }
+
+    #[test]
+    fn only_withdraws_amount_distributed_this_time() {
+        run_test(|| {
+            let first_stake_at = System::block_number();
+            let _ = Balances::deposit_creating(&1, 100_000);
+            assert_ok!(FractalStaking::stake(
+                Origin::signed(1),
+                DEFAULT_LOCK,
+                50_000
+            ));
+            run_to_distribution();
+
+            assert_ok!(FractalStaking::stake(
+                Origin::signed(1),
+                DEFAULT_LOCK,
+                50_000
+            ));
+
+            while System::block_number() < (first_stake_at + DEFAULT_LOCK) {
+                step_block();
+            }
+            set_distribution_source(20_000);
+            run_to_distribution();
+
+            assert_eq!(Balances::free_balance(1), 50_000 + 10_000);
+            assert_eq!(staked_balance(1), 50_000 + 10_000);
         });
     }
 
@@ -192,7 +226,7 @@ mod register_identity {
 
             run_to_distribution();
 
-            assert_eq!(FractalStaking::staked_balance(2), 200_000);
+            assert_eq!(staked_balance(2), 200_000);
         });
     }
 
@@ -217,8 +251,8 @@ mod register_identity {
 
             run_to_distribution();
 
-            assert_eq!(FractalStaking::staked_balance(1), 100_000 + 66_666);
-            assert_eq!(FractalStaking::staked_balance(2), 50_000 + 33_333);
+            assert_eq!(staked_balance(1), 100_000 + 66_666);
+            assert_eq!(staked_balance(2), 50_000 + 33_333);
         });
     }
 
@@ -310,7 +344,7 @@ mod register_identity {
                     50_000
                 ));
 
-                assert_eq!(FractalStaking::staked_balance(1), 100_000);
+                assert_eq!(staked_balance(1), 100_000);
             });
         }
 
@@ -338,8 +372,58 @@ mod register_identity {
                     50_000
                 ));
 
-                assert_eq!(FractalStaking::staked_balance(1), 100_000);
+                assert_eq!(staked_balance(1), 100_000);
             });
         }
+
+        #[test]
+        fn does_not_overdistribute_to_multiple_stakes() {
+            run_test(|| {
+                assert_ok!(FractalStaking::set_lock_period_shares(
+                    Origin::root(),
+                    DEFAULT_LOCK + 1,
+                    10
+                ));
+
+                let _ = Balances::deposit_creating(&1, 100_000);
+
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK + 1,
+                    50_000
+                ));
+                step_block();
+
+                assert_ok!(FractalStaking::stake(
+                    Origin::signed(1),
+                    DEFAULT_LOCK,
+                    50_000
+                ));
+
+                set_distribution_source(100_000);
+                run_to_distribution();
+
+                assert_eq!(staked_balance(1), 200_000);
+            });
+        }
+    }
+
+    #[test]
+    fn does_not_fail_on_overflow() {
+        run_test(|| {
+            set_distribution_source(100_000);
+
+            let balance = u64::MAX - 100_000;
+            let _ = Balances::deposit_creating(&1, balance);
+            assert_ok!(FractalStaking::stake(
+                Origin::signed(1),
+                DEFAULT_LOCK,
+                balance
+            ));
+
+            run_to_distribution();
+
+            assert_eq!(staked_balance(1), u64::MAX);
+        });
     }
 }
