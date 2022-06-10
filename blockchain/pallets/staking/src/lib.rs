@@ -14,7 +14,10 @@ pub mod pallet {
 
     use codec::alloc::collections::BTreeMap;
     use core::{convert::TryFrom, ops::Add};
-    use frame_support::traits::{Currency, ExistenceRequirement, Get, ReservableCurrency};
+    use frame_support::{
+        inherent::Vec,
+        traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
+    };
     use frame_system::ensure_signed;
     use num_bigint::BigUint;
 
