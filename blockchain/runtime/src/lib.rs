@@ -276,7 +276,7 @@ impl pallet_sudo::Config for Runtime {
 
 parameter_types! {
     pub const MaxRewardPerUser: Balance = 16_400 * (UNIT_BALANCE / 1000);
-    pub const MintEveryNBlocks: BlockNumber = 10;
+    pub const MintEveryNBlocks: BlockNumber = DAYS;
 
     pub const TotalIssuance: Balance = 400_000_000 * UNIT_BALANCE;
     pub const IssuanceHalfLife: BlockNumber = 10 * YEARS;
@@ -294,6 +294,23 @@ impl fractal_data_capture::Config for Runtime {
     type MintEveryNBlocks = MintEveryNBlocks;
 
     type HoldingAccount = DataCaptureHoldingAccount;
+}
+
+parameter_types! {
+    pub const DistributeEveryNBlocks: BlockNumber = DAYS;
+
+    // 5FCLStakingDistributionSourcexxxxxxxxxxxxxxxxwX3
+    pub const DistributionSource: AccountId =
+        AccountId::new(hex_literal::hex!("8a8697584b3c01d56761b4f0cad6a17ab72df5805ee45716d40e222b7d4a5737"));
+}
+
+impl fractal_staking::Config for Runtime {
+    type Event = Event;
+
+    type Currency = Balances;
+
+    type DistributeEveryNBlocks = DistributeEveryNBlocks;
+    type DistributionSource = DistributionSource;
 }
 
 impl fractal_token_distribution::Config for Runtime {
@@ -331,6 +348,7 @@ construct_runtime!(
         // Extension.
         FractalMinting: fractal_data_capture::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
         FractalTokenDistribution: fractal_token_distribution::{Pallet, Call, Storage, Event<T>} = 10,
+        FractalStaking: fractal_staking::{Pallet, Call, Storage, Event<T>} = 11,
     }
 );
 
