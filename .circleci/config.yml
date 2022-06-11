@@ -28,15 +28,15 @@ setup_steps:
       name: Fetch dependencies with retry
       command: |
         for i in {1..10}; do cargo fetch && break || sleep 15; done
-  - &restore_cache
-    restore_cache:
-      keys:
-        - v1-cargo-cache-{{ arch }}-{{ .Environment.CACHE_VERSION }}
   - &save_cache
     save_cache:
       paths:
         - target/
-      key: v1-cargo-cache-{{ arch }}-{{ .Environment.CACHE_VERSION }}
+      key: v1-cargo-cache-{{ checksum "Cargo.lock" }}-{{ .Environment.CACHE_VERSION }}
+  - &restore_cache
+    restore_cache:
+      keys:
+        - v1-cargo-cache-{{ checksum "Cargo.lock" }}-{{ .Environment.CACHE_VERSION }}
 
 jobs:
   build-and-test:
