@@ -12,13 +12,12 @@ pub fn resources() -> impl Iterator<Item = Resource> {
         web::resource("/metrics/identities").to(metrics_identities),
     ]
     .into_iter()
+    .chain(crate::swap_chains::resources())
     .chain(entities::resources())
 }
 
 pub fn templates() -> anyhow::Result<Ramhorns> {
-    let mod_file = std::path::PathBuf::from(file!());
-    let pages = mod_file.parent().unwrap();
-    Ok(Ramhorns::from_folder(pages)?)
+    Ok(Ramhorns::from_folder("explorer/src")?)
 }
 
 #[derive(Content)]
@@ -26,7 +25,7 @@ struct Page {
     page: String,
 }
 
-fn html_page(
+pub fn html_page(
     templates: web::Data<Ramhorns>,
     content: impl ToString,
 ) -> actix_web::Result<HttpResponse> {
@@ -38,7 +37,7 @@ fn html_page(
         .content_type("text/html; charset=utf-8")
         .body(
             templates
-                .get("root.html")
+                .get("pages/root.html")
                 .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
                 .render(&page),
         ))
@@ -134,7 +133,7 @@ async fn metrics_identities(
     };
 
     let page = templates
-        .get("metrics/identities.html")
+        .get("pages/metrics/identities.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&counts);
     html_page(templates, page)

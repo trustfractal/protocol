@@ -90,7 +90,7 @@ pub async fn home(
         .map_err(ErrorInternalServerError)?;
 
     let page = templates
-        .get("home.html")
+        .get("pages/home.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&home_data);
     html_page(templates, page)

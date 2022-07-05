@@ -1,0 +1,29 @@
+<h1>Swap FCL Between Chains</h1>
+
+<div id="app">
+  <div class="progress">
+    <div class="indeterminate"></div>
+  </div>
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js"
+    }
+  }
+</script>
+<script type="module">
+  import { createApp } from 'vue';
+
+  const app = createApp({
+    data() {
+      return {
+        message: 'Hello Vue!'
+      }
+    },
+    template: `<p>Loaded</p>`,
+  });
+
+  app.mount('#app');
+</script>

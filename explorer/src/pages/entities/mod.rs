@@ -76,7 +76,7 @@ async fn address(
     };
 
     let page = templates
-        .get("entities/address.html")
+        .get("pages/entities/address.html")
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&address_content);
     html_page(templates, page)
