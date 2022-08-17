@@ -78,7 +78,15 @@ pub enum SwapState {
         payment_request: String,
         receive_address: String,
     },
+
+    #[serde(rename_all = "camelCase")]
     Finalizing {},
+
+    #[serde(rename_all = "camelCase")]
+    Finished {
+        txn_id: String,
+        txn_link: String,
+    },
 }
 
 async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResponse> {
