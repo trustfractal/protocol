@@ -1,7 +1,13 @@
 import { React, html } from "/static/deps.js";
 
-export async function fetchJson(path) {
-  const response = await fetch(path);
+export async function fetchJson(path, body, opts) {
+  const bodyString = typeof body == "object" ? JSON.stringify(body) : body;
+
+  const response = await fetch(path, {
+    body: bodyString,
+    ...opts,
+  });
+
   if (!response.ok) {
     throw new Error(`Fetch to ${path} failed with status ${response.status}`)
   }

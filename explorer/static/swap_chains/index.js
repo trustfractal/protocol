@@ -25,11 +25,27 @@ const Index = (props) => {
   const startEnabled = sendAddress != "" && !startingSwap;
 
   const startSwap = async () => {
-    setStartingSwap(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setStartingSwap(false);
-    // TODO(shelbyd): Pick up here.
-    throw new Error('Not implemented!');
+    try {
+      setStartingSwap(true);
+      const body = {
+        systemReceive: systemReceive.id,
+        systemSend: systemSend.id,
+        sendAddress: sendAddress,
+      };
+      console.log('body', body);
+      const startedId = await fetchJson("/swap_chains/create.json", body, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      window.location.href = `/swap_chains/${startedId}`;
+    } catch (e) {
+      // TODO(shelbyd): Handle errors better.
+      console.error(e);
+      setStartingSwap(false);
+    }
   };
 
   const sendButtons = chainOptions.systemSend.map(chain => {
@@ -74,7 +90,7 @@ const Index = (props) => {
         className=${`btn ${startEnabled ? "" : "disabled"}`}
         onClick=${() => startSwap()}>
       Start
-      ${startingSwap && html`<i class="material-icons right">cloud_sync</i>`}
+      ${startingSwap && html`<i className="material-icons right">cloud_sync</i>`}
     </button>
   `;
 }
