@@ -50,6 +50,7 @@ async fn chain_options() -> actix_web::Result<impl Responder> {
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[allow(dead_code)]
 struct CreateSwap {
     system_receive: String,
     system_send: String,
