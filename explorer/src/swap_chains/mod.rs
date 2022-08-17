@@ -2,6 +2,8 @@ use actix_web::{error::*, *};
 use ramhorns::Ramhorns;
 use serde::{Deserialize, Serialize};
 
+mod test_data;
+
 pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
         web::resource("/swap_chains").to(index),
@@ -62,19 +64,20 @@ async fn create_swap(options: web::Json<CreateSwap>) -> actix_web::Result<impl R
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct Swap {
+pub struct Swap {
     id: String,
     state: SwapState,
 }
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-enum SwapState {
+pub enum SwapState {
     #[serde(rename_all = "camelCase")]
     AwaitingReceive {
         payment_request: String,
         receive_address: String,
     },
+    Finalizing {},
 }
 
 async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResponse> {
@@ -85,12 +88,13 @@ async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResp
     crate::pages::html_page(templates.clone(), page)
 }
 
-async fn get_swap(web::Path((id,)): web::Path<(String,)>) -> actix_web::Result<impl Responder> {
-    Ok(web::Json(Swap {
-        id,
-        state: SwapState::AwaitingReceive {
-            payment_request: String::from("bitcoincash:qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
-            receive_address: String::from("qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
-        },
-    }))
+async fn get_swap(web::Path((id,)): web::Path<(String,)>) -> impl Responder {
+    let test_swap = match test_data::get(&id) {
+        Some(s) => s,
+        None => {
+            return HttpResponse::NotFound().finish();
+        }
+    };
+
+    HttpResponse::Ok().json(test_swap)
 }
