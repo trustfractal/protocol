@@ -54,16 +54,27 @@ struct CreateSwap {
     send_address: String,
 }
 
-#[derive(Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Swap {
-    id: String,
-}
-
 async fn create_swap(options: web::Json<CreateSwap>) -> actix_web::Result<impl Responder> {
     log::info!("{:?}", &options);
 
     Ok(web::Json(String::from("test-started")))
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct Swap {
+    id: String,
+    state: SwapState,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+enum SwapState {
+    #[serde(rename_all = "camelCase")]
+    AwaitingReceive {
+        payment_request: String,
+        receive_address: String,
+    },
 }
 
 async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResponse> {
@@ -75,5 +86,11 @@ async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResp
 }
 
 async fn get_swap(web::Path((id,)): web::Path<(String,)>) -> actix_web::Result<impl Responder> {
-    Ok(web::Json(Swap { id }))
+    Ok(web::Json(Swap {
+        id,
+        state: SwapState::AwaitingReceive {
+            payment_request: String::from("bitcoincash:qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
+            receive_address: String::from("qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
+        },
+    }))
 }

@@ -60,38 +60,40 @@ const Index = (props) => {
   });
 
   return html`
-    <h2>You Send${systemReceive != null && `: ${systemReceive.name}`}</h2>
+    <div>
+      <h2>You Send${systemReceive != null && `: ${systemReceive.name}`}</h2>
 
-    <div className="receive-buttons">
-      ${receiveButtons}
+      <div className="receive-buttons">
+        ${receiveButtons}
+      </div>
+
+      ${systemReceive != null && html`
+        <h2>You Receive${systemSend != null && `: ${systemSend.name}`}</h2>
+
+        <div className="send-buttons">
+          ${sendButtons}
+        </div>
+      `}
+
+      ${systemSend != null && html`
+        <div>
+          <label>
+            <input type="text"
+                placeholder="Address"
+                value=${sendAddress}
+                onChange=${(event) => setSendAddress(event.target.value)} />
+            Receive Address
+          </label>
+        </div>
+      `}
+
+      <button
+          className=${`btn ${startEnabled ? "" : "disabled"}`}
+          onClick=${() => startSwap()}>
+        Start
+        ${startingSwap && html`<i className="material-icons right">cloud_sync</i>`}
+      </button>
     </div>
-
-    ${systemReceive != null && html`
-      <h2>You Receive${systemSend != null && `: ${systemSend.name}`}</h2>
-
-      <div className="send-buttons">
-        ${sendButtons}
-      </div>
-    `}
-
-    ${systemSend != null && html`
-      <div>
-        <label>
-          <input type="text"
-              placeholder="Address"
-              value=${sendAddress}
-              onChange=${(event) => setSendAddress(event.target.value)} />
-          Receive Address
-        </label>
-      </div>
-    `}
-
-    <button
-        className=${`btn ${startEnabled ? "" : "disabled"}`}
-        onClick=${() => startSwap()}>
-      Start
-      ${startingSwap && html`<i className="material-icons right">cloud_sync</i>`}
-    </button>
   `;
 }
 
