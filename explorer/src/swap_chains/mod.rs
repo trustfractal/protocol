@@ -1,6 +1,9 @@
 use actix_web::{error::*, *};
+use block_pool::Pool;
 use ramhorns::Ramhorns;
 use serde::{Deserialize, Serialize};
+
+use crate::retry_blocking;
 
 mod test_data;
 
@@ -50,27 +53,95 @@ async fn chain_options() -> actix_web::Result<impl Responder> {
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[allow(dead_code)]
 struct CreateSwap {
     system_receive: String,
     system_send: String,
     send_address: String,
 }
 
-async fn create_swap(options: web::Json<CreateSwap>) -> actix_web::Result<impl Responder> {
-    log::info!("{:?}", &options);
+async fn create_swap(
+    options: web::Json<CreateSwap>,
+    pg: web::Data<Pool<postgres::Client>>,
+) -> actix_web::Result<impl Responder> {
+    let id = bs58::encode(rand::random::<u64>().to_string()).into_string();
+    let receiver = receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
 
-    Ok(web::Json(String::from("test-started")))
+    let state = receiver.create_receive_request();
+    let swap = Swap {
+        id: id.clone(),
+        state,
+    };
+
+    insert_swap(swap, pg).await?;
+
+    Ok(web::Json(id))
 }
 
-#[derive(Serialize, Debug)]
+fn receiver(id: &str) -> anyhow::Result<Box<dyn Receiver>> {
+    match id {
+        "test" => Ok(Box::new(Test)),
+        _ => anyhow::bail!("Unrecognized receiver {}", id),
+    }
+}
+
+trait Receiver {
+    fn create_receive_request(&self) -> SwapState;
+}
+
+struct Test;
+
+impl Receiver for Test {
+    fn create_receive_request(&self) -> SwapState {
+        SwapState::AwaitingReceive {
+            payment_request: "test:abcdef".to_string(),
+            receive_address: "abcdef".to_string(),
+        }
+    }
+}
+
+async fn insert_swap(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> actix_web::Result<()> {
+    retry_blocking(move || {
+        let pg = &mut pg.take();
+
+        let id = &swap.id;
+        let json = serde_json::to_value(&swap)?;
+
+        let do_insert = |pg: &mut postgres::Client| {
+            pg.execute("INSERT INTO swaps (id, json) VALUES ($1, $2)", &[id, &json])
+        };
+
+        if let Err(e) = do_insert(pg) {
+            if let Some(db_error) = e.as_db_error() {
+                if db_error.message() == "relation \"swaps\" does not exist" {
+                    pg.execute(
+                        "CREATE TABLE swaps (
+                            id TEXT PRIMARY KEY NOT NULL,
+                            json JSON NOT NULL
+                        )",
+                        &[],
+                    )?;
+                    do_insert(pg)?;
+                    return Ok(());
+                }
+            }
+
+            anyhow::bail!(e);
+        }
+
+        Ok(())
+    })
+    .await
+    .map_err(|e: anyhow::Error| ErrorInternalServerError(e))
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Swap {
     id: String,
     state: SwapState,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum SwapState {
     #[serde(rename_all = "camelCase")]
@@ -94,13 +165,31 @@ async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResp
     crate::pages::html_page(templates.clone(), page)
 }
 
-async fn get_swap(web::Path((id,)): web::Path<(String,)>) -> impl Responder {
-    let test_swap = match test_data::get(&id) {
-        Some(s) => s,
-        None => {
-            return HttpResponse::NotFound().finish();
-        }
-    };
+async fn get_swap(
+    web::Path((id,)): web::Path<(String,)>,
+    pg: web::Data<Pool<postgres::Client>>,
+) -> actix_web::Result<impl Responder> {
+    if let Some(test) = test_data::get(&id) {
+        return Ok(HttpResponse::Ok().json(test));
+    }
 
-    HttpResponse::Ok().json(test_swap)
+    let queried = retry_blocking(move || {
+        let pg = &mut pg.take();
+        let queried = pg.query_opt("SELECT json FROM swaps WHERE id = $1", &[&id])?;
+        let row = match queried {
+            Some(r) => r,
+            None => return Ok(None),
+        };
+        let json = row.get("json");
+        let swap: Swap = serde_json::from_value(json)?;
+
+        Ok(Some(swap))
+    })
+    .await
+    .map_err(|e: anyhow::Error| ErrorInternalServerError(e))?;
+    if let Some(queried) = queried {
+        return Ok(HttpResponse::Ok().json(queried));
+    }
+
+    Ok(HttpResponse::NotFound().finish())
 }

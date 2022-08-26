@@ -3,6 +3,8 @@ use block_pool::Pool;
 use ramhorns::{Content, Ramhorns};
 use std::collections::BTreeMap;
 
+use crate::retry_blocking;
+
 mod entities;
 mod home;
 
@@ -137,37 +139,6 @@ async fn metrics_identities(
         .ok_or_else(|| ErrorInternalServerError("Could not find template"))?
         .render(&counts);
     html_page(templates, page)
-}
-
-async fn retry_blocking<R, E, F>(f: F) -> Result<R, E>
-where
-    F: FnMut() -> Result<R, E> + Send + 'static,
-    R: Send + 'static,
-    E: Send + core::fmt::Debug + 'static,
-{
-    let mut tries = 3;
-    let f = std::sync::Arc::new(std::sync::Mutex::new(f));
-    loop {
-        let f = std::sync::Arc::clone(&f);
-        let result = web::block(move || {
-            let mut f = f.lock().unwrap();
-            f()
-        })
-        .await;
-
-        match result {
-            Ok(v) => return Ok(v),
-            Err(BlockingError::Error(e)) => return Err(e),
-            Err(BlockingError::Canceled) => {
-                tries -= 1;
-                if tries == 0 {
-                    panic!("Blocking call cancelled.");
-                } else {
-                    log::warn!("Blocking call cancelled.");
-                }
-            }
-        }
-    }
 }
 
 pub async fn not_found() -> actix_web::Result<String> {

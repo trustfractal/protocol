@@ -2252,12 +2252,14 @@ dependencies = [
  "actix-web-middleware-redirect-scheme",
  "anyhow",
  "block_pool",
+ "bs58",
  "derive_more",
  "log",
  "native-tls",
  "postgres",
  "postgres-native-tls",
  "ramhorns",
+ "rand 0.8.5",
  "serde",
  "serde_json",
  "shared_lru",
@@ -5651,6 +5653,8 @@ dependencies = [
  "bytes 1.1.0",
  "fallible-iterator",
  "postgres-protocol",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
