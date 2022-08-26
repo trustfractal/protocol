@@ -1,13 +1,10 @@
-use actix_web::{error::*, *};
+use actix_web::*;
 use block_pool::Pool;
 use std::sync::Arc;
 
 use crate::{retry_blocking, swap_chains::Swap};
 
-pub async fn insert_swap(
-    swap: Swap,
-    pg: web::Data<Pool<postgres::Client>>,
-) -> actix_web::Result<()> {
+pub async fn insert_swap(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> anyhow::Result<()> {
     retry_blocking(move || {
         let pg = &mut pg.take();
 
@@ -39,7 +36,6 @@ pub async fn insert_swap(
         Ok(())
     })
     .await
-    .map_err(|e: anyhow::Error| ErrorInternalServerError(e))
 }
 
 pub async fn find_by_id(

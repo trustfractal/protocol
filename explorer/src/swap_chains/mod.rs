@@ -78,7 +78,9 @@ async fn create_swap(
         events: Default::default(),
     };
 
-    storage::insert_swap(swap, pg).await?;
+    storage::insert_swap(swap, pg)
+        .await
+        .map_err(ErrorInternalServerError)?;
 
     Ok(web::Json(id))
 }
