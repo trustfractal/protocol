@@ -3,8 +3,7 @@ use block_pool::Pool;
 use ramhorns::Ramhorns;
 use serde::{Deserialize, Serialize};
 
-use crate::retry_blocking;
-
+mod storage;
 mod test_data;
 
 pub fn resources() -> impl Iterator<Item = Resource> {
@@ -53,6 +52,7 @@ async fn chain_options() -> actix_web::Result<impl Responder> {
 
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[allow(dead_code)]
 struct CreateSwap {
     system_receive: String,
     system_send: String,
@@ -72,7 +72,7 @@ async fn create_swap(
         state,
     };
 
-    insert_swap(swap, pg).await?;
+    storage::insert_swap(swap, pg).await?;
 
     Ok(web::Json(id))
 }
@@ -97,41 +97,6 @@ impl Receiver for Test {
             receive_address: "abcdef".to_string(),
         }
     }
-}
-
-async fn insert_swap(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> actix_web::Result<()> {
-    retry_blocking(move || {
-        let pg = &mut pg.take();
-
-        let id = &swap.id;
-        let json = serde_json::to_value(&swap)?;
-
-        let do_insert = |pg: &mut postgres::Client| {
-            pg.execute("INSERT INTO swaps (id, json) VALUES ($1, $2)", &[id, &json])
-        };
-
-        if let Err(e) = do_insert(pg) {
-            if let Some(db_error) = e.as_db_error() {
-                if db_error.message() == "relation \"swaps\" does not exist" {
-                    pg.execute(
-                        "CREATE TABLE swaps (
-                            id TEXT PRIMARY KEY NOT NULL,
-                            json JSON NOT NULL
-                        )",
-                        &[],
-                    )?;
-                    do_insert(pg)?;
-                    return Ok(());
-                }
-            }
-
-            anyhow::bail!(e);
-        }
-
-        Ok(())
-    })
-    .await
-    .map_err(|e: anyhow::Error| ErrorInternalServerError(e))
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -173,22 +138,11 @@ async fn get_swap(
         return Ok(HttpResponse::Ok().json(test));
     }
 
-    let queried = retry_blocking(move || {
-        let pg = &mut pg.take();
-        let queried = pg.query_opt("SELECT json FROM swaps WHERE id = $1", &[&id])?;
-        let row = match queried {
-            Some(r) => r,
-            None => return Ok(None),
-        };
-        let json = row.get("json");
-        let swap: Swap = serde_json::from_value(json)?;
-
-        Ok(Some(swap))
-    })
-    .await
-    .map_err(|e: anyhow::Error| ErrorInternalServerError(e))?;
-    if let Some(queried) = queried {
-        return Ok(HttpResponse::Ok().json(queried));
+    let found = storage::find_by_id(id.clone(), pg)
+        .await
+        .map_err(ErrorInternalServerError)?;
+    if let Some(found) = found {
+        return Ok(HttpResponse::Ok().json(found));
     }
 
     Ok(HttpResponse::NotFound().finish())
