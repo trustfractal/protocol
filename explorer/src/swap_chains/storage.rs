@@ -59,3 +59,7 @@ pub async fn find_by_id(
     })
     .await
 }
+
+pub async fn update(_swap: Swap, _pg: web::Data<Pool<postgres::Client>>) -> anyhow::Result<Swap> {
+    todo!()
+}

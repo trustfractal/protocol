@@ -3,6 +3,10 @@ use block_pool::Pool;
 use ramhorns::Ramhorns;
 use serde::{Deserialize, Serialize};
 
+mod chains;
+pub use chains::Receiver;
+
+mod drive;
 mod storage;
 mod test_data;
 
@@ -33,43 +37,41 @@ struct ChainOptions {
 }
 
 #[derive(Serialize, Clone)]
-struct ChainInfo {
+pub struct ChainInfo {
     id: String,
     name: String,
 }
 
 async fn chain_options() -> actix_web::Result<impl Responder> {
-    let test_chain = ChainInfo {
-        id: String::from("test"),
-        name: String::from("Test"),
-    };
+    let receivers = chains::receivers().map(|r| r.info());
+    let senders = chains::senders().map(|r| r.info());
 
     Ok(web::Json(ChainOptions {
-        system_receive: vec![test_chain.clone()],
-        system_send: vec![test_chain],
+        system_receive: receivers.collect(),
+        system_send: senders.collect(),
     }))
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[allow(dead_code)]
-struct CreateSwap {
+struct UserOptions {
     system_receive: String,
     system_send: String,
     send_address: String,
 }
 
 async fn create_swap(
-    options: web::Json<CreateSwap>,
+    options: web::Json<UserOptions>,
     pg: web::Data<Pool<postgres::Client>>,
 ) -> actix_web::Result<impl Responder> {
     let id = bs58::encode(rand::random::<u64>().to_string()).into_string();
-    let receiver = receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
+    let receiver = chains::receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
 
     let state = receiver.create_receive_request();
     let swap = Swap {
         id: id.clone(),
         state,
+        user: options.0,
     };
 
     storage::insert_swap(swap, pg).await?;
@@ -77,36 +79,15 @@ async fn create_swap(
     Ok(web::Json(id))
 }
 
-fn receiver(id: &str) -> anyhow::Result<Box<dyn Receiver>> {
-    match id {
-        "test" => Ok(Box::new(Test)),
-        _ => anyhow::bail!("Unrecognized receiver {}", id),
-    }
-}
-
-trait Receiver {
-    fn create_receive_request(&self) -> SwapState;
-}
-
-struct Test;
-
-impl Receiver for Test {
-    fn create_receive_request(&self) -> SwapState {
-        SwapState::AwaitingReceive {
-            payment_request: "test:abcdef".to_string(),
-            receive_address: "abcdef".to_string(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Swap {
     id: String,
     state: SwapState,
+    user: UserOptions,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum SwapState {
     #[serde(rename_all = "camelCase")]
@@ -133,17 +114,36 @@ async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResp
 async fn get_swap(
     web::Path((id,)): web::Path<(String,)>,
     pg: web::Data<Pool<postgres::Client>>,
-) -> actix_web::Result<impl Responder> {
+) -> actix_web::Result<web::Json<Swap>> {
     if let Some(test) = test_data::get(&id) {
-        return Ok(HttpResponse::Ok().json(test));
+        return Ok(web::Json(test));
     }
 
-    let found = storage::find_by_id(id.clone(), pg)
+    if let Some(found) = find_and_drive(id.clone(), pg)
         .await
-        .map_err(ErrorInternalServerError)?;
-    if let Some(found) = found {
-        return Ok(HttpResponse::Ok().json(found));
+        .map_err(ErrorInternalServerError)?
+    {
+        return Ok(web::Json(found));
     }
 
-    Ok(HttpResponse::NotFound().finish())
+    Err(ErrorNotFound(anyhow::anyhow!("No swap with id {}", id)))
+}
+
+async fn find_and_drive(
+    id: String,
+    pg: web::Data<Pool<postgres::Client>>,
+) -> anyhow::Result<Option<Swap>> {
+    let found = storage::find_by_id(id.clone(), pg.clone()).await?;
+
+    if let Some(mut result) = found {
+        let mut driven = result.clone();
+        drive::drive(&mut driven, chains::receiver(&result.user.system_receive)?).await?;
+        if driven != result {
+            result = storage::update(driven, pg).await?;
+        }
+
+        return Ok(Some(result));
+    }
+
+    Ok(None)
 }
