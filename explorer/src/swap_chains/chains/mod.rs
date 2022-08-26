@@ -1,11 +1,15 @@
-use super::{ChainInfo, SwapState};
+use super::{ChainInfo, Swap, SwapState};
 
-pub trait Chain {
+mod test;
+use test::Test;
+
+pub trait Chain: Sync + Send {
     fn info(&self) -> ChainInfo;
 }
 
 pub trait Receiver: Chain {
     fn create_receive_request(&self) -> SwapState;
+    fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
 }
 
 pub trait Sender: Chain {}
@@ -23,25 +27,3 @@ pub fn receiver(id: &str) -> anyhow::Result<Box<dyn Receiver>> {
         .find(|r| r.info().id == id)
         .ok_or_else(|| anyhow::anyhow!("Unrecognized receiver {}", id))
 }
-
-struct Test;
-
-impl Chain for Test {
-    fn info(&self) -> ChainInfo {
-        ChainInfo {
-            id: String::from("test"),
-            name: String::from("Test"),
-        }
-    }
-}
-
-impl Receiver for Test {
-    fn create_receive_request(&self) -> SwapState {
-        SwapState::AwaitingReceive {
-            payment_request: "test:abcdef".to_string(),
-            receive_address: "abcdef".to_string(),
-        }
-    }
-}
-
-impl Sender for Test {}

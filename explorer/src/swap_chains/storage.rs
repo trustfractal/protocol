@@ -1,5 +1,6 @@
 use actix_web::{error::*, *};
 use block_pool::Pool;
+use std::sync::Arc;
 
 use crate::{retry_blocking, swap_chains::Swap};
 
@@ -60,6 +61,19 @@ pub async fn find_by_id(
     .await
 }
 
-pub async fn update(_swap: Swap, _pg: web::Data<Pool<postgres::Client>>) -> anyhow::Result<Swap> {
-    todo!()
+pub async fn update(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> anyhow::Result<Swap> {
+    let swap = Arc::new(swap);
+
+    let clone = swap.clone();
+    retry_blocking(move || -> anyhow::Result<_> {
+        let pg = &mut pg.take();
+
+        let json = serde_json::to_value(&*clone)?;
+        pg.execute("UPDATE swaps SET json=$2 WHERE id=$1", &[&clone.id, &json])?;
+
+        Ok(())
+    })
+    .await?;
+
+    Ok(Arc::try_unwrap(swap).unwrap())
 }

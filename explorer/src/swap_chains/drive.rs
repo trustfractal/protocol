@@ -1,7 +1,8 @@
-use super::{Receiver, Swap, SwapState};
-use crate::retry_blocking;
+use actix_web::{error::BlockingError, web};
 
-pub async fn drive(swap: &mut Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<()> {
+use super::{Event, Receiver, Swap, SwapState};
+
+pub async fn drive(swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<Swap> {
     match &swap.state {
         SwapState::AwaitingReceive { .. } => drive_receive(swap, receiver).await,
         unhandled => {
@@ -10,6 +11,14 @@ pub async fn drive(swap: &mut Swap, receiver: Box<dyn Receiver>) -> anyhow::Resu
     }
 }
 
-async fn drive_receive(_swap: &mut Swap, _receiver: Box<dyn Receiver>) -> anyhow::Result<()> {
-    retry_blocking(|| Ok(())).await
+async fn drive_receive(mut swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<Swap> {
+    web::block(move || {
+        if receiver.has_received(&mut swap)? {
+            let prev_state = core::mem::replace(&mut swap.state, SwapState::Finalizing {});
+            swap.push_event(Event::TransitionedFromState(prev_state));
+        }
+        Ok(swap)
+    })
+    .await
+    .map_err(|e: BlockingError<anyhow::Error>| anyhow::anyhow!(e))
 }

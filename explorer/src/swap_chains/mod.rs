@@ -1,7 +1,9 @@
 use actix_web::{error::*, *};
 use block_pool::Pool;
+use chrono::{DateTime, Utc};
 use ramhorns::Ramhorns;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 
 mod chains;
 pub use chains::Receiver;
@@ -72,6 +74,8 @@ async fn create_swap(
         id: id.clone(),
         state,
         user: options.0,
+        public_sidecar: Default::default(),
+        events: Default::default(),
     };
 
     storage::insert_swap(swap, pg).await?;
@@ -85,6 +89,51 @@ pub struct Swap {
     id: String,
     state: SwapState,
     user: UserOptions,
+
+    #[serde(default)]
+    public_sidecar: Sidecar,
+
+    events: VecDeque<TimedEvent>,
+}
+
+impl Swap {
+    pub fn push_event(&mut self, event: Event) {
+        self.events.push_front(TimedEvent {
+            at: Utc::now(),
+            event,
+        });
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct TimedEvent {
+    at: DateTime<Utc>,
+    event: Event,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Sidecar(HashMap<String, serde_json::Value>);
+
+impl Sidecar {
+    pub fn with_mut<R, T: DeserializeOwned + Serialize + Default>(
+        &mut self,
+        key: &str,
+        f: impl FnOnce(&mut T) -> R,
+    ) -> anyhow::Result<R> {
+        let mut t = self
+            .0
+            .remove(key)
+            .map(|json| serde_json::from_value(json))
+            .transpose()?
+            .unwrap_or_default();
+
+        let r = f(&mut t);
+
+        self.0.insert(key.to_string(), serde_json::to_value(t)?);
+        Ok(r)
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -101,6 +150,11 @@ pub enum SwapState {
 
     #[serde(rename_all = "camelCase")]
     Finished { txn_id: String, txn_link: String },
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub enum Event {
+    TransitionedFromState(SwapState),
 }
 
 async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResponse> {
@@ -136,8 +190,11 @@ async fn find_and_drive(
     let found = storage::find_by_id(id.clone(), pg.clone()).await?;
 
     if let Some(mut result) = found {
-        let mut driven = result.clone();
-        drive::drive(&mut driven, chains::receiver(&result.user.system_receive)?).await?;
+        let driven = drive::drive(
+            result.clone(),
+            chains::receiver(&result.user.system_receive)?,
+        )
+        .await?;
         if driven != result {
             result = storage::update(driven, pg).await?;
         }
