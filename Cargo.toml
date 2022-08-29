@@ -3,12 +3,12 @@ members = [
   'blockchain/node',
   'blockchain/pallets/*',
   'blockchain/runtime',
-  'explorer',
   'object_storage',
   'support/*',
 ]
 
 exclude = [
+  'explorer',
   'support/@trustfractal',
   'support/node-production-aws-sns',
 ]

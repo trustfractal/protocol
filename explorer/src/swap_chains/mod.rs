@@ -156,6 +156,11 @@ impl Sidecar {
         self.0.insert(key.to_string(), serde_json::to_value(t)?);
         Ok(r)
     }
+
+    pub fn set<T: Serialize>(&mut self, key: &str, value: T) -> anyhow::Result<()> {
+        self.0.insert(key.to_string(), serde_json::to_value(value)?);
+        Ok(())
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
