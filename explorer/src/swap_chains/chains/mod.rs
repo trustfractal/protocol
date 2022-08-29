@@ -5,6 +5,9 @@ mod substrate;
 mod test;
 use test::Test;
 
+pub type ReceiverRef = &'static dyn Receiver;
+pub type SenderRef = &'static dyn Sender;
+
 pub trait Chain: Sync + Send {
     fn info(&self) -> ChainInfo;
 }
@@ -19,25 +22,32 @@ pub trait Sender: Chain {
     fn send(&self, swap: &mut Swap) -> anyhow::Result<SwapState>;
 }
 
-pub fn receivers() -> impl Iterator<Item = Box<dyn Receiver>> {
-    vec![
-        Box::new(Test) as Box<dyn Receiver>,
+lazy_static::lazy_static! {
+    static ref RECEIVERS: Vec<Box<dyn Receiver>> = vec![
+        Box::new(Test),
         Box::new(substrate::Substrate {}),
-    ]
-    .into_iter()
+    ];
+
+    static ref SENDERS: Vec<Box<dyn Sender>> = vec![
+        Box::new(Test),
+    ];
 }
 
-pub fn senders() -> impl Iterator<Item = Box<dyn Sender>> {
-    vec![Box::new(Test) as Box<dyn Sender>].into_iter()
+pub fn receivers() -> impl Iterator<Item = ReceiverRef> {
+    RECEIVERS.iter().map(|r| r.as_ref())
 }
 
-pub fn receiver(id: &str) -> anyhow::Result<Box<dyn Receiver>> {
+pub fn senders() -> impl Iterator<Item = SenderRef> {
+    SENDERS.iter().map(|s| s.as_ref())
+}
+
+pub fn receiver(id: &str) -> anyhow::Result<ReceiverRef> {
     receivers()
         .find(|r| r.info().id == id)
         .ok_or_else(|| anyhow::anyhow!("Unrecognized receiver {}", id))
 }
 
-pub fn sender(id: &str) -> anyhow::Result<Box<dyn Sender>> {
+pub fn sender(id: &str) -> anyhow::Result<SenderRef> {
     senders()
         .find(|r| r.info().id == id)
         .ok_or_else(|| anyhow::anyhow!("Unrecognized sender {}", id))

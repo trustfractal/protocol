@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 
 mod chains;
-pub use chains::{Receiver, Sender};
+pub use chains::{Receiver, ReceiverRef, Sender, SenderRef};
 
 mod drive;
 mod storage;

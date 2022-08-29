@@ -1,12 +1,8 @@
 use actix_web::web;
 
-use super::{Receiver, Sender, Swap, SwapState};
+use super::*;
 
-pub async fn drive(
-    swap: Swap,
-    receiver: Box<dyn Receiver>,
-    sender: Box<dyn Sender>,
-) -> anyhow::Result<Swap> {
+pub async fn drive(swap: Swap, receiver: ReceiverRef, sender: SenderRef) -> anyhow::Result<Swap> {
     match &swap.state {
         SwapState::AwaitingReceive { .. } => drive_receive(swap, receiver).await,
         SwapState::Finalizing { .. } => drive_finalizing(swap, receiver, sender).await,
@@ -14,7 +10,7 @@ pub async fn drive(
     }
 }
 
-async fn drive_receive(mut swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<Swap> {
+async fn drive_receive(mut swap: Swap, receiver: ReceiverRef) -> anyhow::Result<Swap> {
     web::block(move || {
         if receiver.has_received(&mut swap)? {
             swap.transition_to(SwapState::Finalizing {});
@@ -27,8 +23,8 @@ async fn drive_receive(mut swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::R
 
 async fn drive_finalizing(
     mut swap: Swap,
-    receiver: Box<dyn Receiver>,
-    sender: Box<dyn Sender>,
+    receiver: ReceiverRef,
+    sender: SenderRef,
 ) -> anyhow::Result<Swap> {
     web::block(move || {
         if receiver.has_finalized(&mut swap)? {

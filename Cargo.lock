@@ -2267,6 +2267,7 @@ dependencies = [
  "bs58",
  "chrono",
  "derive_more",
+ "lazy_static",
  "log",
  "native-tls",
  "postgres",
