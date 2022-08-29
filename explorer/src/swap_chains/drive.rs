@@ -1,24 +1,42 @@
-use actix_web::{error::BlockingError, web};
+use actix_web::web;
 
-use super::{Event, Receiver, Swap, SwapState};
+use super::{Receiver, Sender, Swap, SwapState};
 
-pub async fn drive(swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<Swap> {
+pub async fn drive(
+    swap: Swap,
+    receiver: Box<dyn Receiver>,
+    sender: Box<dyn Sender>,
+) -> anyhow::Result<Swap> {
     match &swap.state {
         SwapState::AwaitingReceive { .. } => drive_receive(swap, receiver).await,
-        unhandled => {
-            unimplemented!("unhandled: {:?}", unhandled);
-        }
+        SwapState::Finalizing { .. } => drive_finalizing(swap, receiver, sender).await,
+        SwapState::Finished { .. } => Ok(swap),
     }
 }
 
 async fn drive_receive(mut swap: Swap, receiver: Box<dyn Receiver>) -> anyhow::Result<Swap> {
     web::block(move || {
         if receiver.has_received(&mut swap)? {
-            let prev_state = core::mem::replace(&mut swap.state, SwapState::Finalizing {});
-            swap.push_event(Event::TransitionedFromState(prev_state));
+            swap.transition_to(SwapState::Finalizing {});
         }
-        Ok(swap)
+        anyhow::Ok(swap)
     })
     .await
-    .map_err(|e: BlockingError<anyhow::Error>| anyhow::anyhow!(e))
+    .map_err(anyhow::Error::new)
+}
+
+async fn drive_finalizing(
+    mut swap: Swap,
+    receiver: Box<dyn Receiver>,
+    sender: Box<dyn Sender>,
+) -> anyhow::Result<Swap> {
+    web::block(move || {
+        if receiver.has_finalized(&mut swap)? {
+            let finished = sender.send(&mut swap)?;
+            swap.transition_to(finished);
+        }
+        anyhow::Ok(swap)
+    })
+    .await
+    .map_err(anyhow::Error::new)
 }

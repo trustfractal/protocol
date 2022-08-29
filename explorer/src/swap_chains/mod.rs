@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 
 mod chains;
-pub use chains::Receiver;
+pub use chains::{Receiver, Sender};
 
 mod drive;
 mod storage;
@@ -105,6 +105,11 @@ impl Swap {
             event,
         });
     }
+
+    pub fn transition_to(&mut self, state: SwapState) {
+        let prev_state = core::mem::replace(&mut self.state, state);
+        self.push_event(Event::TransitionedFromState(prev_state));
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -155,6 +160,7 @@ pub enum SwapState {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub enum Event {
     TransitionedFromState(SwapState),
 }
@@ -195,6 +201,7 @@ async fn find_and_drive(
         let driven = drive::drive(
             result.clone(),
             chains::receiver(&result.user.system_receive)?,
+            chains::sender(&result.user.system_send)?,
         )
         .await?;
         if driven != result {
