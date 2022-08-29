@@ -28,6 +28,7 @@ pub fn get(id: &str) -> Option<Swap> {
         state,
         user,
         public_sidecar: Default::default(),
+        secret_sidecar: Default::default(),
         events: Default::default(),
     })
 }

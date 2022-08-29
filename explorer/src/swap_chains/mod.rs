@@ -69,12 +69,13 @@ async fn create_swap(
     let id = bs58::encode(rand::random::<u64>().to_string()).into_string();
     let receiver = chains::receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
 
-    let state = receiver.create_receive_request();
+    let (state, secret_sidecar) = receiver.create_receive_request();
     let swap = Swap {
         id: id.clone(),
         state,
         user: options.0,
         public_sidecar: Default::default(),
+        secret_sidecar: secret_sidecar.unwrap_or_default(),
         events: Default::default(),
     };
 
@@ -87,13 +88,15 @@ async fn create_swap(
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct Swap {
+pub struct Swap<S = Sidecar> {
     id: String,
     state: SwapState,
     user: UserOptions,
 
     #[serde(default)]
     public_sidecar: Sidecar,
+    #[serde(default)]
+    secret_sidecar: S,
 
     events: VecDeque<TimedEvent>,
 }
@@ -109,6 +112,18 @@ impl Swap {
     pub fn transition_to(&mut self, state: SwapState) {
         let prev_state = core::mem::replace(&mut self.state, state);
         self.push_event(Event::TransitionedFromState(prev_state));
+    }
+
+    pub fn strip_secrets(self) -> Swap<()> {
+        Swap {
+            secret_sidecar: (),
+
+            id: self.id,
+            state: self.state,
+            user: self.user,
+            public_sidecar: self.public_sidecar,
+            events: self.events,
+        }
     }
 }
 
@@ -176,16 +191,16 @@ async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResp
 async fn get_swap(
     web::Path((id,)): web::Path<(String,)>,
     pg: web::Data<Pool<postgres::Client>>,
-) -> actix_web::Result<web::Json<Swap>> {
+) -> actix_web::Result<web::Json<Swap<()>>> {
     if let Some(test) = test_data::get(&id) {
-        return Ok(web::Json(test));
+        return Ok(web::Json(test.strip_secrets()));
     }
 
     if let Some(found) = find_and_drive(id.clone(), pg)
         .await
         .map_err(ErrorInternalServerError)?
     {
-        return Ok(web::Json(found));
+        return Ok(web::Json(found.strip_secrets()));
     }
 
     Err(ErrorNotFound(anyhow::anyhow!("No swap with id {}", id)))

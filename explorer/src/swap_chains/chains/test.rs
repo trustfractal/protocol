@@ -16,11 +16,14 @@ impl Chain for Test {
 }
 
 impl Receiver for Test {
-    fn create_receive_request(&self) -> SwapState {
-        SwapState::AwaitingReceive {
-            payment_request: "test:abcdef".to_string(),
-            receive_address: "abcdef".to_string(),
-        }
+    fn create_receive_request(&self) -> (SwapState, Option<Sidecar>) {
+        (
+            SwapState::AwaitingReceive {
+                payment_request: "test:abcdef".to_string(),
+                receive_address: "abcdef".to_string(),
+            },
+            None,
+        )
     }
 
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool> {

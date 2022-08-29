@@ -1,4 +1,6 @@
-use super::{ChainInfo, Swap, SwapState};
+use super::{ChainInfo, Sidecar, Swap, SwapState};
+
+mod substrate;
 
 mod test;
 use test::Test;
@@ -8,7 +10,7 @@ pub trait Chain: Sync + Send {
 }
 
 pub trait Receiver: Chain {
-    fn create_receive_request(&self) -> SwapState;
+    fn create_receive_request(&self) -> (SwapState, Option<Sidecar>);
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
     fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool>;
 }
@@ -18,7 +20,11 @@ pub trait Sender: Chain {
 }
 
 pub fn receivers() -> impl Iterator<Item = Box<dyn Receiver>> {
-    vec![Box::new(Test) as Box<dyn Receiver>].into_iter()
+    vec![
+        Box::new(Test) as Box<dyn Receiver>,
+        Box::new(substrate::Substrate {}),
+    ]
+    .into_iter()
 }
 
 pub fn senders() -> impl Iterator<Item = Box<dyn Sender>> {
