@@ -29,7 +29,6 @@ chrono = { version = "0.4.22", features = ["serde"] }
 lazy_static = "1.4.0"
 
 sp-core = "*"
-# TODO(juliosantos): Figure out how to include this.
 subxt = "^0.23.0"
 
 [[bin]]

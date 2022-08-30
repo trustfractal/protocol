@@ -18,15 +18,15 @@ num-traits = {default-features = false, version = '0.2.14'}
 libm = {version = '0.2.1'}
 
 # Substrate dependencies
-frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+frame-benchmarking = {default-features = false, optional = true, version = '4.0.0-dev', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
+frame-support = {default-features = false, version = '4.0.0-dev', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
+frame-system = {default-features = false, version = '4.0.0-dev', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
+sp-core = {default-features = false, version = '6.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
+sp-runtime = {default-features = false, version = '6.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
 
 [dev-dependencies]
-sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
-pallet-balances = { default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05' }
+sp-io = {default-features = false, version = '6.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08'}
+pallet-balances = { default-features = false, version = '4.0.0-dev', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2022-08' }
 
 [features]
 default = ['std']
