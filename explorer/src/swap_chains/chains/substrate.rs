@@ -15,6 +15,22 @@ impl Substrate {
             api: Api::new(url.as_ref().to_string())?,
         })
     }
+
+    fn balance_at_block(
+        &self,
+        account: &AccountId32,
+        block: impl Into<Option<Hash>>,
+    ) -> anyhow::Result<u128> {
+        let account_data =
+            self.api
+                .get_storage_map("System", "Account", account.encode(), block.into())?;
+        let account_info = match account_data {
+            None => return Ok(0),
+            Some(b) => b.decode::<AccountInfo>()?,
+        };
+
+        Ok(account_info.data.free)
+    }
 }
 
 impl Chain for Substrate {
@@ -38,40 +54,49 @@ impl Receiver for Substrate {
 
         let mut sidecar = Sidecar::default();
         sidecar
-            .set("substrate/receive", ReceiveSidecar { secret_key })
+            .set(
+                "substrate/receive",
+                ReceiveSidecar {
+                    secret_key,
+                    receive_address: account_id.to_string(),
+                },
+            )
             .unwrap();
 
         (state, Some(sidecar))
     }
 
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool> {
-        let receive_address = match &swap.state {
-            SwapState::AwaitingReceive {
-                receive_address, ..
-            } => receive_address,
+        match &swap.state {
+            SwapState::AwaitingReceive { .. } => {}
             _ => return Ok(true),
         };
-        let receive_account = AccountId32::from_str(receive_address)
-            .map_err(|e| anyhow::anyhow!("Error parsing receive address {}", e))?;
-        let account_data =
-            self.api
-                .get_storage_map("System", "Account", receive_account.encode(), None)?;
-        let account_info = match account_data {
-            None => return Ok(false),
-            Some(b) => b.decode::<AccountInfo>()?,
-        };
 
-        Ok(account_info.data.free > 0)
+        let balance = self.balance_at_block(&get_receive_account(swap)?, None)?;
+        Ok(balance > 0)
     }
 
-    fn has_finalized(&self, _swap: &mut Swap) -> anyhow::Result<bool> {
-        unimplemented!("has_finalized");
+    fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool> {
+        match &swap.state {
+            SwapState::AwaitingReceive { .. } => return Ok(false),
+            SwapState::Finalizing { .. } => {}
+            SwapState::Finished { .. } => return Ok(true),
+        }
+
+        let finalized_head = self
+            .api
+            .get_finalized_head()?
+            .ok_or(anyhow::anyhow!("No finalized head"))?;
+
+        let finalized_balance = self.balance_at_block(&get_receive_account(swap)?, finalized_head)?;
+        Ok(finalized_balance > 0)
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ReceiveSidecar {
     secret_key: String,
+    receive_address: String,
 }
 
 #[derive(Decode, Debug)]
@@ -88,4 +113,14 @@ struct AccountData {
     free: u128,
     _reserved: u128,
     _misc_frozen: u128,
+}
+
+fn get_receive_account(swap: &Swap) -> anyhow::Result<AccountId32> {
+    let address = swap
+        .secret_sidecar
+        .get::<ReceiveSidecar>("substrate/receive")?
+        .ok_or_else(|| anyhow::anyhow!("Missing sidecar for substrate receive"))?
+        .receive_address;
+
+    AccountId32::from_str(&address).map_err(|e| anyhow::anyhow!("Error parsing address: {}", e))
 }

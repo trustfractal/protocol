@@ -161,6 +161,13 @@ impl Sidecar {
         self.0.insert(key.to_string(), serde_json::to_value(value)?);
         Ok(())
     }
+
+    pub fn get<T: DeserializeOwned>(&self, key: &str) -> anyhow::Result<Option<T>> {
+        match self.0.get(key) {
+            None => Ok(None),
+            Some(v) => Ok(Some(serde_json::from_value(v.clone())?)),
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
