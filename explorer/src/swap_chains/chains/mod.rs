@@ -25,7 +25,7 @@ pub trait Sender: Chain {
 lazy_static::lazy_static! {
     static ref RECEIVERS: Vec<Box<dyn Receiver>> = vec![
         Box::new(Test),
-        Box::new(substrate::Substrate {}),
+        Box::new(substrate::Substrate::new(fractal_protocol_url()).unwrap()),
     ];
 
     static ref SENDERS: Vec<Box<dyn Sender>> = vec![
@@ -51,4 +51,9 @@ pub fn sender(id: &str) -> anyhow::Result<SenderRef> {
     senders()
         .find(|r| r.info().id == id)
         .ok_or_else(|| anyhow::anyhow!("Unrecognized sender {}", id))
+}
+
+fn fractal_protocol_url() -> String {
+    std::env::var("SUBSTRATE_CHAIN_URL")
+        .unwrap_or_else(|_| "wss://nodes.mainnet.fractalprotocol.com:443".to_string())
 }
