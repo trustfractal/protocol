@@ -1,9 +1,7 @@
 use super::{ChainInfo, Sidecar, Swap, SwapState};
 
 mod substrate;
-
 mod test;
-use test::Test;
 
 pub type ReceiverRef = &'static dyn Receiver;
 pub type SenderRef = &'static dyn Sender;
@@ -23,22 +21,26 @@ pub trait Sender: Chain {
 }
 
 lazy_static::lazy_static! {
-    static ref RECEIVERS: Vec<Box<dyn Receiver>> = vec![
-        Box::new(Test),
-        Box::new(substrate::Substrate::new(fractal_protocol_url()).unwrap()),
+    static ref TEST: test::Test = test::Test;
+    static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(fractal_protocol_url()).unwrap();
+
+    static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
+        &*TEST,
+        &*SUBSTRATE,
     ];
 
-    static ref SENDERS: Vec<Box<dyn Sender>> = vec![
-        Box::new(Test),
+    static ref SENDERS: Vec<&'static dyn Sender> = vec![
+        &*TEST,
+        &*SUBSTRATE,
     ];
 }
 
 pub fn receivers() -> impl Iterator<Item = ReceiverRef> {
-    RECEIVERS.iter().map(|r| r.as_ref())
+    RECEIVERS.iter().map(|&r| r)
 }
 
 pub fn senders() -> impl Iterator<Item = SenderRef> {
-    SENDERS.iter().map(|s| s.as_ref())
+    SENDERS.iter().map(|&s| s)
 }
 
 pub fn receiver(id: &str) -> anyhow::Result<ReceiverRef> {

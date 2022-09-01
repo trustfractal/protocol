@@ -7,12 +7,15 @@ use super::*;
 
 pub struct Substrate {
     api: Api<sr25519::Pair>,
+    url: String,
 }
 
 impl Substrate {
     pub fn new(url: impl AsRef<str>) -> anyhow::Result<Self> {
+        let url = url.as_ref().to_string();
         Ok(Substrate {
-            api: Api::new(url.as_ref().to_string())?,
+            api: Api::new(url.clone())?,
+            url,
         })
     }
 
@@ -20,7 +23,7 @@ impl Substrate {
         &self,
         account: &AccountId32,
         block: impl Into<Option<Hash>>,
-    ) -> anyhow::Result<u128> {
+    ) -> anyhow::Result<Balance> {
         let account_data =
             self.api
                 .get_storage_map("System", "Account", account.encode(), block.into())?;
@@ -76,6 +79,7 @@ impl Receiver for Substrate {
         Ok(balance > 0)
     }
 
+    // TODO(shelbyd): Burn after finalized.
     fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool> {
         match &swap.state {
             SwapState::AwaitingReceive { .. } => return Ok(false),
@@ -88,8 +92,45 @@ impl Receiver for Substrate {
             .get_finalized_head()?
             .ok_or(anyhow::anyhow!("No finalized head"))?;
 
-        let finalized_balance = self.balance_at_block(&get_receive_account(swap)?, finalized_head)?;
+        let finalized_balance =
+            self.balance_at_block(&get_receive_account(swap)?, finalized_head)?;
         Ok(finalized_balance > 0)
+    }
+}
+
+impl Sender for Substrate {
+    // TODO(shelbyd): Mint tokens.
+    fn send(&self, swap: &mut Swap) -> anyhow::Result<SwapState> {
+        let key = swap
+            .secret_sidecar
+            .get::<ReceiveSidecar>("substrate/receive")?
+            .ok_or_else(|| anyhow::anyhow!("Missing sidecar for substrate receive"))?
+            .secret_key;
+        let (pair, _) = sr25519::Pair::from_phrase(&key, None).expect("valid pair key");
+        let temp_api = Api::new(self.url.clone())?.set_signer(pair)?;
+
+        let to = AccountId32::from_str(&swap.user.send_address).expect("valid user address");
+
+        let txn = compose_extrinsic(
+            &temp_api,
+            "Balances",
+            "transfer",
+            (
+                GenericAddress::Id(to),
+                parity_scale_codec::Compact(1234 * 10u128.pow(12)),
+            ),
+        );
+
+        let hash = self
+            .api
+            .send_extrinsic(txn.hex_encode(), XtStatus::InBlock)?
+            .expect("extrinsic will result in hash");
+        let hash_str = format!("{:x}", hash);
+
+        Ok(SwapState::Finished {
+            txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
+            txn_id: hash_str,
+        })
     }
 }
 
@@ -110,9 +151,9 @@ struct AccountInfo {
 
 #[derive(Decode, Debug)]
 struct AccountData {
-    free: u128,
-    _reserved: u128,
-    _misc_frozen: u128,
+    free: Balance,
+    _reserved: Balance,
+    _misc_frozen: Balance,
 }
 
 fn get_receive_account(swap: &Swap) -> anyhow::Result<AccountId32> {

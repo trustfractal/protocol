@@ -12,6 +12,8 @@ mod drive;
 mod storage;
 mod test_data;
 
+pub type Balance = u128;
+
 pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
         web::resource("/swap_chains").to(index),
