@@ -40,16 +40,17 @@ impl Receiver for Test {
             })
     }
 
-    fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool> {
+    fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>> {
         swap.public_sidecar
             .with_mut("test_receive", |s: &mut TestReceiveSidecar| {
                 let now = Utc::now();
                 match s.will_finalize_at {
                     None => {
                         s.will_finalize_at = Some(now + Duration::seconds(10));
-                        false
+                        None
                     }
-                    Some(at) => at <= now,
+                    Some(at) if at <= now => Some(1234),
+                    Some(_) => None,
                 }
             })
     }
@@ -62,11 +63,11 @@ struct TestReceiveSidecar {
 }
 
 impl Sender for Test {
-    fn send(&self, swap: &mut Swap) -> anyhow::Result<SwapState> {
+    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
         let send_to = &swap.user.send_address;
         Ok(SwapState::Finished {
-            txn_id: format!("send_to:{}", send_to),
-            txn_link: format!("https://example.com/{}", send_to),
+            txn_id: format!("send_to:{}/{}", send_to, received_amount),
+            txn_link: format!("https://example.com/{}/{}", send_to, received_amount),
         })
     }
 }

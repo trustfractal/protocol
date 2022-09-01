@@ -1,4 +1,4 @@
-use super::{ChainInfo, Sidecar, Swap, SwapState};
+use super::{Balance, ChainInfo, Sidecar, Swap, SwapState};
 
 mod substrate;
 mod test;
@@ -13,11 +13,15 @@ pub trait Chain: Sync + Send {
 pub trait Receiver: Chain {
     fn create_receive_request(&self) -> (SwapState, Option<Sidecar>);
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
-    fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool>;
+    fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>>;
+
+    fn after_finalized(&self, _swap: &mut Swap) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait Sender: Chain {
-    fn send(&self, swap: &mut Swap) -> anyhow::Result<SwapState>;
+    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState>;
 }
 
 lazy_static::lazy_static! {

@@ -3,7 +3,7 @@ use sp_core::{crypto::AccountId32, *};
 use std::str::FromStr;
 use substrate_api_client::*;
 
-use super::*;
+use super::{Balance, *};
 
 pub struct Substrate {
     api: Api<sr25519::Pair>,
@@ -80,11 +80,11 @@ impl Receiver for Substrate {
     }
 
     // TODO(shelbyd): Burn after finalized.
-    fn has_finalized(&self, swap: &mut Swap) -> anyhow::Result<bool> {
+    fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>> {
         match &swap.state {
-            SwapState::AwaitingReceive { .. } => return Ok(false),
+            SwapState::AwaitingReceive { .. } => return Ok(None),
             SwapState::Finalizing { .. } => {}
-            SwapState::Finished { .. } => return Ok(true),
+            SwapState::Finished { .. } => unreachable!(),
         }
 
         let finalized_head = self
@@ -94,13 +94,18 @@ impl Receiver for Substrate {
 
         let finalized_balance =
             self.balance_at_block(&get_receive_account(swap)?, finalized_head)?;
-        Ok(finalized_balance > 0)
+
+        if finalized_balance > 0 {
+            Ok(Some(finalized_balance))
+        } else {
+            Ok(None)
+        }
     }
 }
 
 impl Sender for Substrate {
     // TODO(shelbyd): Mint tokens.
-    fn send(&self, swap: &mut Swap) -> anyhow::Result<SwapState> {
+    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
         let key = swap
             .secret_sidecar
             .get::<ReceiveSidecar>("substrate/receive")?
@@ -117,7 +122,7 @@ impl Sender for Substrate {
             "transfer",
             (
                 GenericAddress::Id(to),
-                parity_scale_codec::Compact(1234 * 10u128.pow(12)),
+                parity_scale_codec::Compact(received_amount),
             ),
         );
 

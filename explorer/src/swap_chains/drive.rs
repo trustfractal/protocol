@@ -27,8 +27,10 @@ async fn drive_finalizing(
     sender: SenderRef,
 ) -> anyhow::Result<Swap> {
     web::block(move || {
-        if receiver.has_finalized(&mut swap)? {
-            let finished = sender.send(&mut swap)?;
+        if let Some(balance) = receiver.finalized_amount(&mut swap)? {
+            receiver.after_finalized(&mut swap)?;
+
+            let finished = sender.send(&mut swap, balance)?;
             swap.transition_to(finished);
         }
         anyhow::Ok(swap)
