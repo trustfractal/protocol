@@ -41,6 +41,9 @@ pub mod pallet {
     pub type ArtificiallyIssued<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
+    pub type ArtificiallyBurned<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+    #[pallet::storage]
     pub type DestinationWeights<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
@@ -82,9 +85,7 @@ pub mod pallet {
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            ArtificiallyIssued::<T>::mutate(|a| {
-                *a += amount;
-            });
+            Self::increase_artificial(amount);
             Ok(())
         }
 
@@ -101,11 +102,55 @@ pub mod pallet {
             ensure_root(origin)?;
 
             T::Currency::deposit_creating(&address, amount);
-            ArtificiallyIssued::<T>::mutate(|a| {
-                *a += amount;
-            });
+            Self::increase_artificial(amount);
 
             Ok(())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1, 1))]
+        pub fn burn(origin: OriginFor<T>, amount: Option<BalanceOf<T>>) -> DispatchResult {
+            let address = ensure_signed(origin)?;
+
+            let slash = match amount {
+                Some(amount) => core::cmp::min(amount, T::Currency::free_balance(&address)),
+                None => T::Currency::free_balance(&address),
+            };
+            T::Currency::slash(&address, slash);
+
+            Self::decrease_artificial(slash);
+
+            Ok(())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        fn increase_artificial(amount: BalanceOf<T>) {
+            let after_from = ArtificiallyBurned::<T>::mutate(|a| {
+                let orig_a = *a;
+                *a = a.saturating_sub(amount);
+                amount - orig_a
+            });
+            ArtificiallyIssued::<T>::mutate(|a| {
+                *a += after_from;
+            });
+        }
+
+        fn decrease_artificial(amount: BalanceOf<T>) {
+            let after_from = ArtificiallyIssued::<T>::mutate(|a| {
+                let orig_a = *a;
+                *a = a.saturating_sub(amount);
+                amount - orig_a
+            });
+            ArtificiallyBurned::<T>::mutate(|a| {
+                *a += after_from;
+            });
+        }
+
+        fn needed_to_reach(total: BalanceOf<T>) -> BalanceOf<T> {
+            let should_be_issued = total + ArtificiallyIssued::<T>::get();
+            let already_issued = T::Currency::total_issuance() + ArtificiallyBurned::<T>::get();
+
+            should_be_issued.saturating_sub(already_issued)
         }
     }
 
@@ -134,12 +179,8 @@ pub mod pallet {
                 complete_at: T::IssuanceCompleteAt::get(),
             };
 
-            let should_be_issued =
-                issuance.total_issued_by(block_number) + ArtificiallyIssued::<T>::get();
-            let already_issued = T::Currency::total_issuance();
-
-            let unit_balance =
-                should_be_issued.saturating_sub(already_issued) / total_weight.into();
+            let needed = Self::needed_to_reach(issuance.total_issued_by(block_number));
+            let unit_balance = needed / total_weight.into();
 
             for (address, weight) in DestinationWeights::<T>::iter() {
                 let to_this = unit_balance * weight.into();

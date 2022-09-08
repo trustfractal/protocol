@@ -1,7 +1,9 @@
 use crate::mock::*;
 use frame_support::{
     assert_noop, assert_ok,
-    traits::{tokens::currency::Currency, OnFinalize, OnInitialize},
+    traits::{
+        tokens::currency::Currency, tokens::currency::ReservableCurrency, OnFinalize, OnInitialize,
+    },
 };
 
 #[cfg(test)]
@@ -143,6 +145,67 @@ mod token_distribution {
                 step_block();
 
                 assert_eq!(Balances::free_balance(&42), 0);
+            });
+        }
+
+        #[cfg(test)]
+        mod burn {
+            use super::*;
+
+            #[test]
+            fn burns_all_balance_without_amount() {
+                run_test(|| {
+                    let _ = Balances::deposit_creating(&42, 10_000);
+                    assert_ok!(FractalTokenDistribution::burn(Origin::signed(42), None));
+
+                    assert_eq!(Balances::free_balance(&42), 0);
+                });
+            }
+
+            #[test]
+            fn burns_specified_amount() {
+                run_test(|| {
+                    let _ = Balances::deposit_creating(&42, 10_000);
+                    assert_ok!(FractalTokenDistribution::burn(
+                        Origin::signed(42),
+                        Some(1_000)
+                    ));
+
+                    assert_eq!(Balances::free_balance(&42), 9_000);
+                });
+            }
+
+            #[test]
+            fn only_burns_free_balance() {
+                run_test(|| {
+                    let _ = Balances::deposit_creating(&42, 10_001);
+                    let _ = Balances::reserve(&42, 1);
+
+                    assert_ok!(FractalTokenDistribution::burn(
+                        Origin::signed(42),
+                        Some(10_001)
+                    ),);
+
+                    assert_eq!(Balances::free_balance(&42), 0);
+                    assert_eq!(Balances::reserved_balance(&42), 1);
+                });
+            }
+        }
+
+        #[test]
+        fn accounts_for_burned_tokens() {
+            run_test(|| {
+                let _ = Balances::deposit_creating(&43, 10_000);
+                assert_ok!(FractalTokenDistribution::increment_artificially_issued(
+                    Origin::root(),
+                    Balances::total_issuance()
+                ));
+                assert_ok!(FractalTokenDistribution::burn(Origin::signed(43), None,));
+
+                assert_ok!(FractalTokenDistribution::set_weight(Origin::root(), 42, 1));
+                step_block();
+
+                assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
             });
         }
     }

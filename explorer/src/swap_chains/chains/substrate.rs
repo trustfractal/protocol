@@ -1,22 +1,47 @@
 use serde::*;
 use sp_core::{crypto::AccountId32, *};
-use std::str::FromStr;
+use std::{str::FromStr, sync::RwLock};
 use substrate_api_client::*;
 
 use super::{Balance, *};
 
 pub struct Substrate {
-    api: Api<sr25519::Pair>,
     url: String,
+    // We maintain a mutable connected client to gracefully handle when the chain is inaccessible.
+    connected_api: RwLock<Option<Api<sr25519::Pair>>>,
 }
 
 impl Substrate {
-    pub fn new(url: impl AsRef<str>) -> anyhow::Result<Self> {
+    pub fn new(url: impl AsRef<str>) -> Self {
         let url = url.as_ref().to_string();
-        Ok(Substrate {
-            api: Api::new(url.clone())?,
+        Substrate {
             url,
-        })
+            connected_api: RwLock::new(None),
+        }
+    }
+
+    fn api_call<R>(
+        &self,
+        call: impl FnOnce(&Api<sr25519::Pair>) -> Result<R, ApiClientError>,
+    ) -> anyhow::Result<R> {
+        if self.connected_api.read().unwrap().is_none() {
+            let mut lock = self.connected_api.write().unwrap();
+            *lock = Some(Api::new(self.url.clone())?);
+        }
+
+        let lock = self.connected_api.read().unwrap();
+        let api = &lock.as_ref().unwrap();
+        match call(api) {
+            Ok(r) => Ok(r),
+            Err(e) => {
+                if let ApiClientError::Disconnected(_) = &e {
+                    drop(lock);
+                    log::info!("Disconnected from {}, dropping client", self.url);
+                    *self.connected_api.write().unwrap() = None;
+                }
+                Err(e.into())
+            }
+        }
     }
 
     fn balance_at_block(
@@ -24,9 +49,9 @@ impl Substrate {
         account: &AccountId32,
         block: impl Into<Option<Hash>>,
     ) -> anyhow::Result<Balance> {
-        let account_data =
-            self.api
-                .get_storage_map("System", "Account", account.encode(), block.into())?;
+        let account_data = self.api_call(|api| {
+            api.get_storage_map("System", "Account", account.encode(), block.into())
+        })?;
         let account_info = match account_data {
             None => return Ok(0),
             Some(b) => b.decode::<AccountInfo>()?,
@@ -79,7 +104,6 @@ impl Receiver for Substrate {
         Ok(balance > 0)
     }
 
-    // TODO(shelbyd): Burn after finalized.
     fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>> {
         match &swap.state {
             SwapState::AwaitingReceive { .. } => return Ok(None),
@@ -88,8 +112,7 @@ impl Receiver for Substrate {
         }
 
         let finalized_head = self
-            .api
-            .get_finalized_head()?
+            .api_call(|api| api.get_finalized_head())?
             .ok_or(anyhow::anyhow!("No finalized head"))?;
 
         let finalized_balance =
@@ -101,11 +124,31 @@ impl Receiver for Substrate {
             Ok(None)
         }
     }
+
+    fn post_finalize_txns(&self, swap: &mut Swap) -> anyhow::Result<Vec<Txn>> {
+        let sidecar = get_receive_sidecar(swap)?;
+        let (signer, _) =
+            sr25519::Pair::from_phrase(&sidecar.secret_key, None).expect("valid pair key");
+
+        let signer_api = Api::new(self.url.clone())?.set_signer(signer)?;
+        let _txn = compose_extrinsic(
+            &signer_api,
+            "FractalTokenDistribution",
+            "burn",
+            (None::<Balance>,),
+        );
+
+        unimplemented!("after_finalized");
+    }
 }
 
 impl Sender for Substrate {
     // TODO(shelbyd): Mint tokens.
-    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
+    fn send_txns(
+        &self,
+        swap: &mut Swap,
+        received_amount: Balance,
+    ) -> anyhow::Result<(SwapState, Vec<Txn>)> {
         let key = swap
             .secret_sidecar
             .get::<ReceiveSidecar>("substrate/receive")?
@@ -127,15 +170,18 @@ impl Sender for Substrate {
         );
 
         let hash = self
-            .api
-            .send_extrinsic(txn.hex_encode(), XtStatus::InBlock)?
+            .api_call(|api| api.send_extrinsic(txn.hex_encode(), XtStatus::InBlock))?
             .expect("extrinsic will result in hash");
         let hash_str = format!("{:x}", hash);
 
-        Ok(SwapState::Finished {
-            txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
-            txn_id: hash_str,
-        })
+        #[allow(unreachable_code)]
+        Ok((
+            SwapState::Finished {
+                txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
+                txn_id: hash_str,
+            },
+            todo!(),
+        ))
     }
 }
 
@@ -161,12 +207,13 @@ struct AccountData {
     _misc_frozen: Balance,
 }
 
-fn get_receive_account(swap: &Swap) -> anyhow::Result<AccountId32> {
-    let address = swap
-        .secret_sidecar
+fn get_receive_sidecar(swap: &Swap) -> anyhow::Result<ReceiveSidecar> {
+    swap.secret_sidecar
         .get::<ReceiveSidecar>("substrate/receive")?
-        .ok_or_else(|| anyhow::anyhow!("Missing sidecar for substrate receive"))?
-        .receive_address;
+        .ok_or_else(|| anyhow::anyhow!("Missing sidecar for substrate receive"))
+}
 
-    AccountId32::from_str(&address).map_err(|e| anyhow::anyhow!("Error parsing address: {}", e))
+fn get_receive_account(swap: &Swap) -> anyhow::Result<AccountId32> {
+    AccountId32::from_str(&get_receive_sidecar(swap)?.receive_address)
+        .map_err(|e| anyhow::anyhow!("Error parsing address: {}", e))
 }

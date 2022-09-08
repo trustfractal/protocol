@@ -13,6 +13,7 @@ mod storage;
 mod test_data;
 
 pub type Balance = u128;
+pub type Txn = Vec<u8>;
 
 pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
@@ -78,6 +79,9 @@ async fn create_swap(
         user: options.0,
         public_sidecar: Default::default(),
         secret_sidecar: secret_sidecar.unwrap_or_default(),
+        receiver_txns: Vec::new(),
+        sender_txns: Vec::new(),
+        after_txns_submitted: None,
         events: Default::default(),
     };
 
@@ -99,6 +103,10 @@ pub struct Swap<S = Sidecar> {
     public_sidecar: Sidecar,
     #[serde(default)]
     secret_sidecar: S,
+
+    receiver_txns: Vec<Txn>,
+    sender_txns: Vec<Txn>,
+    after_txns_submitted: Option<SwapState>,
 
     events: VecDeque<TimedEvent>,
 }
@@ -124,6 +132,9 @@ impl Swap {
             state: self.state,
             user: self.user,
             public_sidecar: self.public_sidecar,
+            receiver_txns: self.receiver_txns,
+            sender_txns: self.sender_txns,
+            after_txns_submitted: self.after_txns_submitted,
             events: self.events,
         }
     }

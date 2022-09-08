@@ -1,4 +1,4 @@
-use super::{Balance, ChainInfo, Sidecar, Swap, SwapState};
+use super::{Balance, ChainInfo, Sidecar, Swap, SwapState, Txn};
 
 mod substrate;
 mod test;
@@ -8,6 +8,10 @@ pub type SenderRef = &'static dyn Sender;
 
 pub trait Chain: Sync + Send {
     fn info(&self) -> ChainInfo;
+
+    fn ensure_submitted(&self, _txn: &Txn) -> anyhow::Result<()> {
+        todo!("ensure_submitted");
+    }
 }
 
 pub trait Receiver: Chain {
@@ -15,18 +19,22 @@ pub trait Receiver: Chain {
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
     fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>>;
 
-    fn after_finalized(&self, _swap: &mut Swap) -> anyhow::Result<()> {
-        Ok(())
+    fn post_finalize_txns(&self, _swap: &mut Swap) -> anyhow::Result<Vec<Txn>> {
+        Ok(Vec::new())
     }
 }
 
 pub trait Sender: Chain {
-    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState>;
+    fn send_txns(
+        &self,
+        swap: &mut Swap,
+        received_amount: Balance,
+    ) -> anyhow::Result<(SwapState, Vec<Txn>)>;
 }
 
 lazy_static::lazy_static! {
     static ref TEST: test::Test = test::Test;
-    static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(fractal_protocol_url()).unwrap();
+    static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(fractal_protocol_url());
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
         &*TEST,

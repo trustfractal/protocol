@@ -29,6 +29,9 @@ pub fn get(id: &str) -> Option<Swap> {
         user,
         public_sidecar: Default::default(),
         secret_sidecar: Default::default(),
+        receiver_txns: Default::default(),
+        sender_txns: Default::default(),
+        after_txns_submitted: Default::default(),
         events: Default::default(),
     })
 }

@@ -63,12 +63,19 @@ struct TestReceiveSidecar {
 }
 
 impl Sender for Test {
-    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
+    fn send_txns(
+        &self,
+        swap: &mut Swap,
+        received_amount: Balance,
+    ) -> anyhow::Result<(SwapState, Vec<Txn>)> {
         let send_to = &swap.user.send_address;
-        Ok(SwapState::Finished {
-            txn_id: format!("send_to:{}/{}", send_to, received_amount),
-            txn_link: format!("https://example.com/{}/{}", send_to, received_amount),
-        })
+        Ok((
+            SwapState::Finished {
+                txn_id: format!("send_to:{}/{}", send_to, received_amount),
+                txn_link: format!("https://example.com/{}/{}", send_to, received_amount),
+            },
+            Vec::new(),
+        ))
     }
 }
 
