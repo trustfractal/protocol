@@ -1,3 +1,5 @@
+#![allow(unreachable_code, unused_variables)]
+
 use serde::*;
 use sp_core::{crypto::AccountId32, *};
 use std::{str::FromStr, sync::RwLock};
@@ -108,7 +110,7 @@ impl Receiver for Substrate {
         match &swap.state {
             SwapState::AwaitingReceive { .. } => return Ok(None),
             SwapState::Finalizing { .. } => {}
-            SwapState::Finished { .. } => unreachable!(),
+            SwapState::Sending { .. } | SwapState::Finished { .. } => unreachable!(),
         }
 
         let finalized_head = self
@@ -125,30 +127,28 @@ impl Receiver for Substrate {
         }
     }
 
-    fn post_finalize_txns(&self, swap: &mut Swap) -> anyhow::Result<Vec<Txn>> {
+    fn after_finalized(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<()> {
         let sidecar = get_receive_sidecar(swap)?;
         let (signer, _) =
             sr25519::Pair::from_phrase(&sidecar.secret_key, None).expect("valid pair key");
 
         let signer_api = Api::new(self.url.clone())?.set_signer(signer)?;
-        let _txn = compose_extrinsic(
+        let txn = compose_extrinsic(
             &signer_api,
             "FractalTokenDistribution",
             "burn",
-            (None::<Balance>,),
+            (Some(amount),),
         );
 
-        unimplemented!("after_finalized");
+        todo!();
+
+        Ok(())
     }
 }
 
 impl Sender for Substrate {
     // TODO(shelbyd): Mint tokens.
-    fn send_txns(
-        &self,
-        swap: &mut Swap,
-        received_amount: Balance,
-    ) -> anyhow::Result<(SwapState, Vec<Txn>)> {
+    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
         let key = swap
             .secret_sidecar
             .get::<ReceiveSidecar>("substrate/receive")?
@@ -159,6 +159,7 @@ impl Sender for Substrate {
 
         let to = AccountId32::from_str(&swap.user.send_address).expect("valid user address");
 
+        todo!("Correct txn");
         let txn = compose_extrinsic(
             &temp_api,
             "Balances",
@@ -174,14 +175,10 @@ impl Sender for Substrate {
             .expect("extrinsic will result in hash");
         let hash_str = format!("{:x}", hash);
 
-        #[allow(unreachable_code)]
-        Ok((
-            SwapState::Finished {
-                txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
-                txn_id: hash_str,
-            },
-            todo!(),
-        ))
+        Ok(SwapState::Finished {
+            txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
+            txn_id: hash_str,
+        })
     }
 }
 

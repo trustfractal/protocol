@@ -13,7 +13,6 @@ mod storage;
 mod test_data;
 
 pub type Balance = u128;
-pub type Txn = Vec<u8>;
 
 pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
@@ -79,9 +78,6 @@ async fn create_swap(
         user: options.0,
         public_sidecar: Default::default(),
         secret_sidecar: secret_sidecar.unwrap_or_default(),
-        receiver_txns: Vec::new(),
-        sender_txns: Vec::new(),
-        after_txns_submitted: None,
         events: Default::default(),
     };
 
@@ -104,10 +100,6 @@ pub struct Swap<S = Sidecar> {
     #[serde(default)]
     secret_sidecar: S,
 
-    receiver_txns: Vec<Txn>,
-    sender_txns: Vec<Txn>,
-    after_txns_submitted: Option<SwapState>,
-
     events: VecDeque<TimedEvent>,
 }
 
@@ -123,7 +115,9 @@ impl Swap {
         let prev_state = core::mem::replace(&mut self.state, state);
         self.push_event(Event::TransitionedFromState(prev_state));
     }
+}
 
+impl<S> Swap<S> {
     pub fn strip_secrets(self) -> Swap<()> {
         Swap {
             secret_sidecar: (),
@@ -132,9 +126,6 @@ impl Swap {
             state: self.state,
             user: self.user,
             public_sidecar: self.public_sidecar,
-            receiver_txns: self.receiver_txns,
-            sender_txns: self.sender_txns,
-            after_txns_submitted: self.after_txns_submitted,
             events: self.events,
         }
     }
@@ -196,6 +187,13 @@ pub enum SwapState {
     Finalizing {},
 
     #[serde(rename_all = "camelCase")]
+    Sending {
+        // This is kept as a string because serde_json does not support u128.
+        // https://github.com/serde-rs/json/issues/625
+        amount_str: String,
+    },
+
+    #[serde(rename_all = "camelCase")]
     Finished { txn_id: String, txn_link: String },
 }
 
@@ -217,18 +215,20 @@ async fn get_swap(
     web::Path((id,)): web::Path<(String,)>,
     pg: web::Data<Pool<postgres::Client>>,
 ) -> actix_web::Result<web::Json<Swap<()>>> {
-    if let Some(test) = test_data::get(&id) {
-        return Ok(web::Json(test.strip_secrets()));
-    }
+    let swap = {
+        if let Some(test) = test_data::get(&id) {
+            test
+        } else if let Some(found) = find_and_drive(id.clone(), pg)
+            .await
+            .map_err(ErrorInternalServerError)?
+        {
+            found
+        } else {
+            return Err(ErrorNotFound(anyhow::anyhow!("No swap with id {}", id)));
+        }
+    };
 
-    if let Some(found) = find_and_drive(id.clone(), pg)
-        .await
-        .map_err(ErrorInternalServerError)?
-    {
-        return Ok(web::Json(found.strip_secrets()));
-    }
-
-    Err(ErrorNotFound(anyhow::anyhow!("No swap with id {}", id)))
+    Ok(web::Json(swap.strip_secrets()))
 }
 
 async fn find_and_drive(

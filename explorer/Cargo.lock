@@ -1375,7 +1375,6 @@ dependencies = [
  "sp-core",
  "structopt",
  "substrate-api-client",
- "tokio 1.20.1",
 ]
 
 [[package]]
