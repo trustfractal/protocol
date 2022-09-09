@@ -52,6 +52,8 @@ const Swap = (props) => {
     currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive} />`;
   } else if (swap.state.finalizing !== undefined) {
     currentState = html`<${Finalizing} state=${swap.state.finalizing} />`;
+  } else if (swap.state.sending !== undefined) {
+    currentState = html`<${Sending} state=${swap.state.sending} />`;
   } else if (swap.state.finished !== undefined) {
     currentState = html`<${Finished} state=${swap.state.finished} />`;
   } else {
@@ -105,6 +107,20 @@ const Finalizing = (props) => {
 
       <p>
         Transaction received, waiting for finalization.
+      </p>
+
+      <${LoadingSpinner} />
+    </div>
+  `;
+};
+
+const Sending = (props) => {
+  return html`
+    <div>
+      <h2>Sending</h2>
+
+      <p>
+        Transaction finalized, sending.
       </p>
 
       <${LoadingSpinner} />

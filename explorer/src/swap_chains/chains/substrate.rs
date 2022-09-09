@@ -1,5 +1,3 @@
-#![allow(unreachable_code, unused_variables)]
-
 use serde::*;
 use sp_core::{crypto::AccountId32, *};
 use std::{str::FromStr, sync::RwLock};
@@ -9,15 +7,18 @@ use super::{Balance, *};
 
 pub struct Substrate {
     url: String,
+    minting_pair: sr25519::Pair,
+
     // We maintain a mutable connected client to gracefully handle when the chain is inaccessible.
     connected_api: RwLock<Option<Api<sr25519::Pair>>>,
 }
 
 impl Substrate {
-    pub fn new(url: impl AsRef<str>) -> Self {
-        let url = url.as_ref().to_string();
+    pub fn new(url: impl AsRef<str>, minting_key: impl AsRef<str>) -> Self {
         Substrate {
-            url,
+            url: url.as_ref().to_string(),
+            minting_pair: sr25519::Pair::from_string(minting_key.as_ref(), None)
+                .expect("invalid Substrate minting key"),
             connected_api: RwLock::new(None),
         }
     }
@@ -151,27 +152,15 @@ impl Receiver for Substrate {
 }
 
 impl Sender for Substrate {
-    // TODO(shelbyd): Mint tokens.
-    fn send(&self, swap: &mut Swap, received_amount: Balance) -> anyhow::Result<SwapState> {
-        let key = swap
-            .secret_sidecar
-            .get::<ReceiveSidecar>("substrate/receive")?
-            .ok_or_else(|| anyhow::anyhow!("Missing sidecar for substrate receive"))?
-            .secret_key;
-        let (pair, _) = sr25519::Pair::from_phrase(&key, None).expect("valid pair key");
-        let temp_api = Api::new(self.url.clone())?.set_signer(pair)?;
-
+    fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState> {
         let to = AccountId32::from_str(&swap.user.send_address).expect("valid user address");
+        let minting_api = Api::new(self.url.clone())?.set_signer(self.minting_pair.clone())?;
 
-        todo!("Correct txn");
         let txn = compose_extrinsic(
-            &temp_api,
-            "Balances",
-            "transfer",
-            (
-                GenericAddress::Id(to),
-                parity_scale_codec::Compact(received_amount),
-            ),
+            &minting_api,
+            "FractalTokenDistribution",
+            "mint",
+            (to, parity_scale_codec::Compact(amount)),
         );
 
         let hash = self

@@ -208,5 +208,49 @@ mod token_distribution {
                 assert_eq!(Balances::free_balance(&42), FIRST_MINTING_TOTAL);
             });
         }
+
+        #[cfg(test)]
+        mod mint {
+            use super::*;
+
+            #[test]
+            fn allows_minting_from_whitelisted_addresses() {
+                run_test(|| {
+                    assert_ok!(FractalTokenDistribution::set_allow_minting(Origin::root(), 42, true));
+                    assert_ok!(FractalTokenDistribution::mint(
+                        Origin::signed(42),
+                        42,
+                        123456
+                    ));
+                });
+            }
+
+            #[test]
+            fn disallows_minting() {
+                run_test(|| {
+                    assert_noop!(
+                        FractalTokenDistribution::mint(Origin::signed(42), 42, 123456),
+                        sp_runtime::traits::BadOrigin
+                    );
+                });
+            }
+
+            #[test]
+            fn disallows_minting_after_removed() {
+                run_test(|| {
+                    assert_ok!(FractalTokenDistribution::set_allow_minting(Origin::root(), 42, true));
+                    assert_ok!(FractalTokenDistribution::set_allow_minting(
+                        Origin::root(),
+                        42,
+                        false
+                    ));
+
+                    assert_noop!(
+                        FractalTokenDistribution::mint(Origin::signed(42), 42, 123456),
+                        sp_runtime::traits::BadOrigin
+                    );
+                });
+            }
+        }
     }
 }

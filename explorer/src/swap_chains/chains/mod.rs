@@ -26,7 +26,10 @@ pub trait Sender: Chain {
 
 lazy_static::lazy_static! {
     static ref TEST: test::Test = test::Test;
-    static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(fractal_protocol_url());
+    static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(
+        fractal_protocol_url(),
+        fractal_protocol_minting_key(),
+    );
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
         &*TEST,
@@ -60,6 +63,9 @@ pub fn sender(id: &str) -> anyhow::Result<SenderRef> {
 }
 
 fn fractal_protocol_url() -> String {
-    std::env::var("SUBSTRATE_CHAIN_URL")
-        .unwrap_or_else(|_| "wss://nodes.mainnet.fractalprotocol.com:443".to_string())
+    std::env::var("SUBSTRATE_CHAIN_URL").unwrap_or_else(|_| "ws://127.0.0.1:9944".to_string())
+}
+
+fn fractal_protocol_minting_key() -> String {
+    std::env::var("SUBSTRATE_MINTING_KEY").unwrap_or_else(|_| "//Alice".to_string())
 }

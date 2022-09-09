@@ -44,6 +44,10 @@ pub mod pallet {
     pub type ArtificiallyBurned<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
     #[pallet::storage]
+    pub type AllowedToMint<T: Config> =
+        StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+
+    #[pallet::storage]
     pub type DestinationWeights<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, u32, ValueQuery>;
 
@@ -94,12 +98,29 @@ pub mod pallet {
             DispatchClass::Normal,
             Pays::No
         ))]
+        pub fn set_allow_minting(origin: OriginFor<T>, address: T::AccountId, should_allow: bool) -> DispatchResult {
+            ensure_root(origin)?;
+
+            if should_allow {
+                AllowedToMint::<T>::insert(address, ());
+            } else {
+                AllowedToMint::<T>::remove(address);
+            }
+
+            Ok(())
+        }
+
+        #[pallet::weight((
+            10_000 + T::DbWeight::get().reads_writes(1, 1),
+            DispatchClass::Normal,
+            Pays::No
+        ))]
         pub fn mint(
             origin: OriginFor<T>,
             address: T::AccountId,
             #[pallet::compact] amount: BalanceOf<T>,
         ) -> DispatchResult {
-            ensure_root(origin)?;
+            Self::ensure_allowed_to_mint(origin)?;
 
             T::Currency::deposit_creating(&address, amount);
             Self::increase_artificial(amount);
@@ -151,6 +172,19 @@ pub mod pallet {
             let already_issued = T::Currency::total_issuance() + ArtificiallyBurned::<T>::get();
 
             should_be_issued.saturating_sub(already_issued)
+        }
+
+        fn ensure_allowed_to_mint(origin: OriginFor<T>) -> DispatchResult {
+            if let Ok(()) = ensure_root(origin.clone()) {
+                return Ok(());
+            }
+
+            let signed_by = ensure_signed(origin)?;
+            if let Some(()) = AllowedToMint::<T>::get(signed_by) {
+                return Ok(());
+            }
+
+            Err(DispatchError::BadOrigin)
         }
     }
 
