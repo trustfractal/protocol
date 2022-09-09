@@ -98,7 +98,11 @@ pub mod pallet {
             DispatchClass::Normal,
             Pays::No
         ))]
-        pub fn set_allow_minting(origin: OriginFor<T>, address: T::AccountId, should_allow: bool) -> DispatchResult {
+        pub fn set_allow_minting(
+            origin: OriginFor<T>,
+            address: T::AccountId,
+            should_allow: bool,
+        ) -> DispatchResult {
             ensure_root(origin)?;
 
             if should_allow {

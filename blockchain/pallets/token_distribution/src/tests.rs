@@ -216,7 +216,11 @@ mod token_distribution {
             #[test]
             fn allows_minting_from_whitelisted_addresses() {
                 run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_allow_minting(Origin::root(), 42, true));
+                    assert_ok!(FractalTokenDistribution::set_allow_minting(
+                        Origin::root(),
+                        42,
+                        true
+                    ));
                     assert_ok!(FractalTokenDistribution::mint(
                         Origin::signed(42),
                         42,
@@ -238,7 +242,11 @@ mod token_distribution {
             #[test]
             fn disallows_minting_after_removed() {
                 run_test(|| {
-                    assert_ok!(FractalTokenDistribution::set_allow_minting(Origin::root(), 42, true));
+                    assert_ok!(FractalTokenDistribution::set_allow_minting(
+                        Origin::root(),
+                        42,
+                        true
+                    ));
                     assert_ok!(FractalTokenDistribution::set_allow_minting(
                         Origin::root(),
                         42,
