@@ -15,6 +15,8 @@ pub trait Receiver: Chain {
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
     fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>>;
 
+    // This is potentially called more than once (if machines fail or sending fails).
+    // Therefore, it must be idempotent.
     fn after_finalized(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<()>;
 }
 

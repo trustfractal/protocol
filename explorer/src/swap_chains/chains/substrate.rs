@@ -128,6 +128,10 @@ impl Receiver for Substrate {
     }
 
     fn after_finalized(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<()> {
+        if self.balance_at_block(&get_receive_account(swap)?, None)? == 0 {
+            return Ok(());
+        }
+
         let sidecar = get_receive_sidecar(swap)?;
         let (signer, _) =
             sr25519::Pair::from_phrase(&sidecar.secret_key, None).expect("valid pair key");
@@ -140,7 +144,7 @@ impl Receiver for Substrate {
             (Some(amount),),
         );
 
-        todo!();
+        self.api_call(|api| api.send_extrinsic(txn.hex_encode(), XtStatus::InBlock))?;
 
         Ok(())
     }
