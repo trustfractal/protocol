@@ -31,6 +31,8 @@ lazy_static = "1.4.0"
 parity-scale-codec = "*"
 sp-core = "3.0.0"
 substrate-api-client = "0.6.6"
+web3 = "0.18.0"
+tokio = "1.21.1"
 
 
 [[bin]]

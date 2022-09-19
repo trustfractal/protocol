@@ -1,5 +1,6 @@
 use super::{Balance, ChainInfo, Sidecar, Swap, SwapState};
 
+mod evm_mintable;
 mod substrate;
 mod test;
 
@@ -29,6 +30,13 @@ lazy_static::lazy_static! {
     static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(
         fractal_protocol_url(),
         fractal_protocol_minting_key(),
+    );
+    static ref ACALA: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
+        acala_url(),
+        ChainInfo {
+            name: "Acala".to_string(),
+            id: "acala".to_string(),
+        },
     );
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
@@ -68,4 +76,9 @@ fn fractal_protocol_url() -> String {
 
 fn fractal_protocol_minting_key() -> String {
     std::env::var("SUBSTRATE_MINTING_KEY").unwrap_or_else(|_| "//Alice".to_string())
+}
+
+fn acala_url() -> String {
+    std::env::var("ACALA_URL")
+        .unwrap_or_else(|_| "https://acala-mandala-adapter.api.onfinality.io/public".to_string())
 }
