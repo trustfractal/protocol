@@ -5,6 +5,8 @@ use ramhorns::Ramhorns;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 
+use crate::retry_blocking;
+
 mod chains;
 pub use chains::{Receiver, ReceiverRef, Sender, SenderRef};
 
@@ -242,21 +244,14 @@ async fn find_and_drive(
     id: String,
     pg: web::Data<Pool<postgres::Client>>,
 ) -> anyhow::Result<Option<Swap>> {
-    let found = storage::find_by_id(id.clone(), pg.clone()).await?;
-
-    if let Some(mut result) = found {
-        let driven = drive::drive(
-            result.clone(),
-            chains::receiver(&result.user.system_receive)?,
-            chains::sender(&result.user.system_send)?,
-        )
-        .await?;
-        if driven != result {
-            result = storage::update(driven, pg).await?;
-        }
-
-        return Ok(Some(result));
-    }
-
-    Ok(None)
+    retry_blocking(move || {
+        storage::run_locked(&mut pg.take(), &id, |swap| {
+            drive::drive(
+                swap,
+                chains::receiver(&swap.user.system_receive)?,
+                chains::sender(&swap.user.system_send)?,
+            )
+        })
+    })
+    .await
 }

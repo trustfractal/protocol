@@ -1,52 +1,42 @@
-use actix_web::web;
-
 use super::*;
 
-pub async fn drive(swap: Swap, receiver: ReceiverRef, sender: SenderRef) -> anyhow::Result<Swap> {
+pub fn drive(swap: &mut Swap, receiver: ReceiverRef, sender: SenderRef) -> anyhow::Result<()> {
     match &swap.state {
-        SwapState::AwaitingReceive { .. } => drive_receive(swap, receiver).await,
-        SwapState::Finalizing { .. } => drive_finalizing(swap, receiver).await,
+        SwapState::AwaitingReceive { .. } => drive_receive(swap, receiver),
+        SwapState::Finalizing { .. } => drive_finalizing(swap, receiver),
         SwapState::Sending { amount_str } => {
             let amount = amount_str.parse()?;
-            drive_sending(swap, receiver, sender, amount).await
+            drive_sending(swap, receiver, sender, amount)
         }
-        SwapState::Finished { .. } => Ok(swap),
+        SwapState::Finished { .. } => Ok(()),
     }
 }
 
-async fn drive_receive(mut swap: Swap, receiver: ReceiverRef) -> anyhow::Result<Swap> {
-    web::block(move || {
-        if receiver.has_received(&mut swap)? {
-            swap.transition_to(SwapState::Finalizing {});
-        }
-        anyhow::Ok(swap)
-    })
-    .await
-    .map_err(anyhow::Error::new)
+fn drive_receive(swap: &mut Swap, receiver: ReceiverRef) -> anyhow::Result<()> {
+    if receiver.has_received(swap)? {
+        swap.transition_to(SwapState::Finalizing {});
+    }
+    Ok(())
 }
 
-async fn drive_finalizing(mut swap: Swap, receiver: ReceiverRef) -> anyhow::Result<Swap> {
-    web::block(move || {
-        if let Some(amount) = receiver.finalized_amount(&mut swap)? {
-            swap.transition_to(SwapState::Sending {
-                amount_str: amount.to_string(),
-            });
-        }
+fn drive_finalizing(swap: &mut Swap, receiver: ReceiverRef) -> anyhow::Result<()> {
+    if let Some(amount) = receiver.finalized_amount(swap)? {
+        swap.transition_to(SwapState::Sending {
+            amount_str: amount.to_string(),
+        });
+    }
 
-        anyhow::Ok(swap)
-    })
-    .await
-    .map_err(anyhow::Error::new)
+    Ok(())
 }
 
-async fn drive_sending(
-    mut swap: Swap,
+fn drive_sending(
+    swap: &mut Swap,
     receiver: ReceiverRef,
     sender: SenderRef,
     amount: Balance,
-) -> anyhow::Result<Swap> {
-    receiver.after_finalized(&mut swap, amount)?;
-    let new_state = sender.send(&mut swap, amount)?;
+) -> anyhow::Result<()> {
+    receiver.after_finalized(swap, amount)?;
+    let new_state = sender.send(swap, amount)?;
     swap.transition_to(new_state);
-    Ok(swap)
+    Ok(())
 }

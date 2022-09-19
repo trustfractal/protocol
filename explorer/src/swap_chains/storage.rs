@@ -1,6 +1,5 @@
 use actix_web::*;
 use block_pool::Pool;
-use std::sync::Arc;
 
 use crate::{retry_blocking, swap_chains::Swap};
 
@@ -38,38 +37,41 @@ pub async fn insert_swap(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> a
     .await
 }
 
-pub async fn find_by_id(
-    id: String,
-    pg: web::Data<Pool<postgres::Client>>,
+/// Run the provided function with the swap with the provided id (if found) in a transaction,
+/// preventing multiple instances from performing side effects concurrently.
+///
+/// If no swap with the provided id is found, returns `None` immediately.
+pub fn run_locked(
+    pg: &mut postgres::Client,
+    id: &str,
+    f: impl FnOnce(&mut Swap) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<Swap>> {
-    retry_blocking(move || {
-        let pg = &mut pg.take();
-        let queried = pg.query_opt("SELECT json FROM swaps WHERE id = $1", &[&id])?;
-        let row = match queried {
-            Some(r) => r,
-            None => return Ok(None),
-        };
-        let json = row.get("json");
-        let swap: Swap = serde_json::from_value(json)?;
+    let mut txn = pg.transaction()?;
 
-        Ok(Some(swap))
-    })
-    .await
-}
+    let queried = txn.query_opt("SELECT json FROM swaps WHERE id = $1 FOR UPDATE", &[&id])?;
+    let row = match queried {
+        Some(r) => r,
+        None => return Ok(None),
+    };
+    log::info!("Retrieved swap {}", id);
+    let json = row.get("json");
+    let mut swap: Swap = serde_json::from_value(json)?;
+    let original_swap = swap.clone();
 
-pub async fn update(swap: Swap, pg: web::Data<Pool<postgres::Client>>) -> anyhow::Result<Swap> {
-    let swap = Arc::new(swap);
+    // Don't return result immediately so we can commit or roll-back the transaction.
+    let result = f(&mut swap);
 
-    let clone = swap.clone();
-    retry_blocking(move || -> anyhow::Result<_> {
-        let pg = &mut pg.take();
+    if swap == original_swap {
+        log::info!("No changes for swap {}", id);
+        txn.rollback()?;
+    } else {
+        log::info!("Updating swap {}", id);
+        txn.execute(
+            "UPDATE swaps SET json=$2 WHERE id=$1",
+            &[&id, &serde_json::to_value(&swap)?],
+        )?;
+        txn.commit()?;
+    }
 
-        let json = serde_json::to_value(&*clone)?;
-        pg.execute("UPDATE swaps SET json=$2 WHERE id=$1", &[&clone.id, &json])?;
-
-        Ok(())
-    })
-    .await?;
-
-    Ok(Arc::try_unwrap(swap).unwrap())
+    result.map(|_| Some(swap))
 }
