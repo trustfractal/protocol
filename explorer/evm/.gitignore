@@ -11,6 +11,3 @@ yarn.lock
 .env
 
 typechain/*
-
-
-
