@@ -201,6 +201,13 @@ pub enum SwapState {
 #[serde(rename_all = "camelCase")]
 pub enum Event {
     TransitionedFromState(SwapState),
+    Generic(String, serde_json::Value),
+}
+
+impl Event {
+    fn generic(name: &str, ser: impl Serialize) -> anyhow::Result<Event> {
+        Ok(Event::Generic(name.to_string(), serde_json::to_value(ser)?))
+    }
 }
 
 async fn swap_page(templates: web::Data<Ramhorns>) -> actix_web::Result<HttpResponse> {
