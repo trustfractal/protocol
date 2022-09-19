@@ -12,7 +12,7 @@ contract FCLBurner {
   }
 
   function burn(string calldata id, uint256 amount) public {
-    amountBurnedById[id] = amount;
     fclTokenContract.burnFrom(msg.sender, amount);
+    amountBurnedById[id] = amount;
   }
 }

@@ -1,23 +1,20 @@
 const { expect } = require("chai");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("FCLBurner", function () {
-  async function deployFixture () {
-    const [owner, account1] = await ethers.getSigners();
+describe("FCLBurner", function() {
+  async function deployFixture() {
+    const [owner, user] = await ethers.getSigners();
 
     const FCLToken = await ethers.getContractFactory("FCLToken");
-
-    const fclToken = await FCLToken.deploy();
+    const fclToken = await FCLToken.connect(owner).deploy();
 
     const FCLBurner = await ethers.getContractFactory("FCLBurner");
+    const fclBurner = await FCLBurner.connect(owner).deploy(fclToken.address);
 
-    const fclBurner = await FCLBurner.deploy(fclToken.address);
-    console.log(fclToken.address);
-
-    return { owner, account1, fclToken, fclBurner };
+    return { owner, user, fclToken, fclBurner };
   };
 
-  it("Deployment should set the FCLToken contract address", async function () {
+  it("deployment sets the FCLToken contract address", async function() {
     const { fclToken, fclBurner } = await loadFixture(deployFixture);
 
     const fclTokenContract = await fclBurner.fclTokenContract();
@@ -25,56 +22,55 @@ describe("FCLBurner", function () {
     expect(fclTokenContract).to.equal(fclToken.address);
   });
 
-  describe("Burning", function () {
+  describe("burning", function() {
     const burnId = "derp";
     const amount = 10;
 
-    it("Should record ID and burned amount", async function () {
-      const { account1, fclToken, fclBurner } = await loadFixture(deployFixture);
+    it("burns", async function() {
+      const { user, fclToken, fclBurner } = await loadFixture(deployFixture);
 
-      await fclToken.mint(account1.address, amount);
-      await fclToken.connect(account1).approve(fclBurner.address, amount);
+      await fclToken.mint(user.address, amount);
+      await fclToken.connect(user).approve(fclBurner.address, amount);
 
-      await fclBurner.connect(account1).burn(burnId, amount);
+      await expect(
+        fclBurner.connect(user).burn(burnId, amount)
+      ).to.changeTokenBalance(fclToken, user, -amount);
+    });
+
+    it("records ID and burned amount", async function() {
+      const { user, fclToken, fclBurner } = await loadFixture(deployFixture);
+
+      await fclToken.mint(user.address, amount);
+      await fclToken.connect(user).approve(fclBurner.address, amount);
+
+      await fclBurner.connect(user).burn(burnId, amount);
 
       const amountBurned = await fclBurner.amountBurnedById(burnId);
-
       expect(amountBurned).to.equal(amount);
     });
 
-    it("Should burn", async function () {
-      const { account1, fclToken, fclBurner } = await loadFixture(deployFixture);
-
-      await fclToken.mint(account1.address, amount);
-      await fclToken.connect(account1).approve(fclBurner.address, amount);
-
-      await expect(
-        fclBurner.connect(account1).burn(burnId, amount)
-      ).to.changeTokenBalance(fclToken, account1, -amount);
-    });
-
-    it("Should fail if user hasn't approved FCLBurner", async function () {
+    it("fails if user hasn't approved FCLBurner", async function() {
       const { fclToken, fclBurner } = await loadFixture(deployFixture);
-      const [_, account1] = await ethers.getSigners();
+      const [_, user] = await ethers.getSigners();
 
-      await fclToken.mint(account1.address, amount);
+      await fclToken.mint(user.address, amount);
 
       await expect(
-        fclBurner.connect(account1).burn(burnId, amount)
+        fclBurner.connect(user).burn(burnId, amount)
       ).to.be.revertedWith("ERC20: insufficient allowance");
 
       const amountBurned = await fclBurner.amountBurnedById(burnId);
       expect(amountBurned).to.equal(0);
     });
 
-    it("Should fail if user doesn't have enough balance", async function () {
+    it("fails if user doesn't have enough balance", async function() {
       const { fclToken, fclBurner } = await loadFixture(deployFixture);
-      const [_, account1] = await ethers.getSigners();
+      const [_, user] = await ethers.getSigners();
 
-      await fclToken.connect(account1).approve(fclBurner.address, amount);
+      await fclToken.connect(user).approve(fclBurner.address, amount);
 
       await expect(
-        fclBurner.connect(account1).burn(burnId, amount)
+        fclBurner.connect(user).burn(burnId, amount)
       ).to.be.revertedWith("ERC20: burn amount exceeds balance");
 
       expect(await fclBurner.amountBurnedById(burnId)).to.equal(0);
