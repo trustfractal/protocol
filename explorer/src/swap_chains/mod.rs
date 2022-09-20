@@ -180,10 +180,7 @@ impl Sidecar {
 #[serde(rename_all = "camelCase")]
 pub enum SwapState {
     #[serde(rename_all = "camelCase")]
-    AwaitingReceive {
-        payment_request: String,
-        receive_address: String,
-    },
+    AwaitingReceive(PaymentRequest),
 
     #[serde(rename_all = "camelCase")]
     Finalizing {},
@@ -197,6 +194,21 @@ pub enum SwapState {
 
     #[serde(rename_all = "camelCase")]
     Finished { txn_id: String, txn_link: String },
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum PaymentRequest {
+    #[serde(rename_all = "camelCase")]
+    Metamask {
+        chain_id: u32,
+    },
+
+    #[serde(rename_all = "camelCase")]
+    Simple {
+        payment_request: String,
+        receive_address: String,
+    },
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]

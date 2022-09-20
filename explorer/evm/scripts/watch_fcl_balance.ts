@@ -2,7 +2,7 @@ import { ethers } from 'hardhat';
 
 async function main() {
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const balanceAddress = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+  const balanceAddress = "0x2bE695db4A06BbE30DC33fbdc73875ca1F5DeE5D";
 
   const FCLToken = await ethers.getContractFactory("FCLToken");
   const tokenInstance = await FCLToken.attach(contractAddress);

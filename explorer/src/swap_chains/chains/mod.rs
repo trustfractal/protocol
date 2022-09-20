@@ -1,5 +1,6 @@
-use super::{Balance, ChainInfo, Sidecar, Swap, SwapState};
+use super::{Balance, ChainInfo, PaymentRequest, Sidecar, Swap, SwapState};
 
+mod evm_burner;
 mod evm_mintable;
 mod substrate;
 mod test;
@@ -31,7 +32,7 @@ pub trait Sender: Chain {
 lazy_static::lazy_static! {
     static ref TEST: test::Test = test::Test;
     static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(
-        env_or("SUBSTRATE_CHAIN_URL", "ws://127.0.0.1:9944"),
+        env_or("SUBSTRATE_CHAIN_URL", "wss://main.devnet.fractalprotocol.com:443"),
         env_or("SUBSTRATE_MINTING_KEY", "//Alice"),
     );
     static ref ACALA_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
@@ -40,6 +41,7 @@ lazy_static::lazy_static! {
         env_or("ACALA_FCL_TOKEN_ADDRESS", "0x5FbDB2315678afecb367f032d93F642f64180aa3"),
         env_or(
             "ACALA_FCL_MINTER_KEY",
+            // Known account 1
             "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
         ),
         ChainInfo {
@@ -48,9 +50,18 @@ lazy_static::lazy_static! {
         },
     ).unwrap();
 
+    static ref ACALA_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
+        ChainInfo {
+            name: "Acala".to_string(),
+            id: "acala_sender".to_string(),
+        },
+        env_or("ACALA_CHAIN_ID", "31337"),
+    ).unwrap();
+
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
         &*TEST,
         &*SUBSTRATE,
+        &*ACALA_RECEIVER,
     ];
 
     static ref SENDERS: Vec<&'static dyn Sender> = vec![

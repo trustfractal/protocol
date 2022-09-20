@@ -1,11 +1,11 @@
-use super::{Swap, SwapState, UserOptions};
+use super::*;
 
 pub fn get(id: &str) -> Option<Swap> {
     let state = match id {
-        "test-started" => SwapState::AwaitingReceive {
+        "test-started" => SwapState::AwaitingReceive(PaymentRequest::Simple {
             payment_request: String::from("bitcoincash:qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
-             receive_address: String::from("qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
-        },
+            receive_address: String::from("qpq0v9prnnvlf9ewflx0tekdlltwahv6asgvpact83"),
+        }),
 
         "test-finalizing" => SwapState::Finalizing {},
 

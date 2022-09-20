@@ -48,8 +48,10 @@ const Swap = (props) => {
   if (swap == null) return Loading();
 
   let currentState;
-  if (swap.state.awaitingReceive !== undefined) {
-    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive} />`;
+  if (swap.state.awaitingReceive?.simple !== undefined) {
+    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive.simple} />`;
+  } else if (swap.state.awaitingReceive?.metamask !== undefined) {
+    currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} />`;
   } else if (swap.state.finalizing !== undefined) {
     currentState = html`<${Finalizing} state=${swap.state.finalizing} />`;
   } else if (swap.state.sending !== undefined) {
@@ -84,6 +86,45 @@ const AwaitingReceive = (props) => {
     </div>
   `;
 };
+
+const AwaitingMetamaskReceive = (props) => {
+  const [enabled, setEnabled] = React.useState(true);
+
+  const doMetaMask = async (txns) => {
+    setEnabled(false);
+    await sendMetamaskTransactions(txns);
+    setEnabled(true);
+  };
+
+  return html`
+    <div>
+      <h2>Awaiting Receive</h2>
+
+      <p>This swap will use MetaMask to send.</p>
+
+      <button className="btn" disabled=${!enabled} onClick=${() => doMetaMask(props.state)}>
+        Open MetaMask
+        <i className="material-icons right">open_in_new</i>
+      </button>
+
+      <pre>${JSON.stringify(props.state, null, 2)}</pre>
+    </div>
+  `;
+};
+
+async function sendMetamaskTransactions(txns) {
+  console.log('txns', txns);
+  console.log('ethereum.isConnected()', ethereum.isConnected());
+
+  const chainIdHex = await ethereum.request({ method: 'eth_chainId' });
+  const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
+  if (chainIdNumber !== txns.chainId) {
+    await ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: `0x${txns.chainId.toString(16)}` }],
+    });
+  }
+}
 
 const CopyToClipboard = (props) => {
   const doCopy = async () => {

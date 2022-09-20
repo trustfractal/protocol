@@ -18,10 +18,10 @@ impl Chain for Test {
 impl Receiver for Test {
     fn create_receive_request(&self) -> (SwapState, Option<Sidecar>) {
         (
-            SwapState::AwaitingReceive {
+            SwapState::AwaitingReceive(PaymentRequest::Simple {
                 payment_request: "test:abcdef".to_string(),
                 receive_address: "abcdef".to_string(),
-            },
+            }),
             None,
         )
     }

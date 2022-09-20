@@ -78,10 +78,10 @@ impl Receiver for Substrate {
         let (pair, secret_key, _) = sr25519::Pair::generate_with_phrase(None);
 
         let account_id: AccountId32 = pair.public().into();
-        let state = SwapState::AwaitingReceive {
+        let state = SwapState::AwaitingReceive(PaymentRequest::Simple {
             receive_address: account_id.to_string(),
             payment_request: format!("fcl_substrate:{}", account_id),
-        };
+        });
 
         let mut sidecar = Sidecar::default();
         sidecar
