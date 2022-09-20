@@ -1,4 +1,4 @@
-use super::{Balance, ChainInfo, PaymentRequest, Sidecar, Swap, SwapState};
+use super::{evm, Balance, ChainInfo, PaymentRequest, Sidecar, Swap, SwapState};
 
 mod evm_burner;
 mod evm_mintable;
@@ -35,29 +35,22 @@ lazy_static::lazy_static! {
         env_or("SUBSTRATE_CHAIN_URL", "wss://main.devnet.fractalprotocol.com:443"),
         env_or("SUBSTRATE_MINTING_KEY", "//Alice"),
     );
+
+    static ref ACALA: evm::Chain = acala_chain().unwrap();
+
     static ref ACALA_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
-        env_or("ACALA_URL", "http://127.0.0.1:8545"),
+        &*ACALA,
         env_or("ACALA_EXPLORER_URL", "http://acala.subscan.io"),
-        acala_fcl_token_address(),
         env_or(
             "ACALA_FCL_MINTER_KEY",
             // Known account 1
             "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
         ),
-        ChainInfo {
-            name: "Acala".to_string(),
-            id: "acala_sender".to_string(),
-        },
     ).unwrap();
 
     static ref ACALA_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
-        ChainInfo {
-            name: "Acala".to_string(),
-            id: "acala_sender".to_string(),
-        },
-        env_or("ACALA_CHAIN_ID", "31337"),
-        acala_fcl_token_address(),
-        env_or("ACALA_BURNER_ADDRESS", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"),
+        &*ACALA,
+        // env_or("ACALA_BURNER_ADDRESS", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"),
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
@@ -97,9 +90,30 @@ fn env_or(env: &str, fallback: &str) -> String {
     std::env::var(env).unwrap_or_else(|_| fallback.to_string())
 }
 
-fn acala_fcl_token_address() -> String {
-    env_or(
-        "ACALA_FCL_TOKEN_ADDRESS",
-        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    )
+fn acala_chain() -> anyhow::Result<evm::Chain> {
+    Ok(evm::Chain {
+        info: ChainInfo {
+            id: "acala".to_string(),
+            name: "Acala".to_string(),
+        },
+        chain_id: env_or("ACALA_CHAIN_ID", "31337").parse()?,
+
+        burner_contract: env_or(
+            "ACALA_BURNER_ADDRESS",
+            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+        token_contract: env_or(
+            "ACALA_FCL_TOKEN_ADDRESS",
+            "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+
+        web3: web3::Web3::new(web3::transports::Http::new(&env_or(
+            "ACALA_URL",
+            "http://127.0.0.1:8545",
+        ))?),
+    })
 }

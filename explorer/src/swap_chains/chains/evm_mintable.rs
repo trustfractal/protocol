@@ -5,38 +5,23 @@ use secp256k1::SecretKey;
 use web3::{
     contract::{Contract, Options},
     types::*,
-    *,
 };
 
 pub struct EvmMintable {
-    info: ChainInfo,
-    web3: Web3<transports::Http>,
-
-    contract_address: Address,
+    chain: &'static evm::Chain,
     minting_key: SecretKey,
-
     explorer_url: String,
 }
 
 impl EvmMintable {
     pub fn new(
-        url: String,
+        chain: &'static evm::Chain,
         explorer_url: String,
-        contract_address: String,
         private_key: String,
-        info: ChainInfo,
     ) -> anyhow::Result<Self> {
-        let minting_key = if private_key.starts_with("0x") {
-            &private_key[2..]
-        } else {
-            &private_key
-        }
-        .parse()?;
         Ok(EvmMintable {
-            info,
-            web3: Web3::new(transports::Http::new(&url).unwrap()),
-            contract_address: contract_address.parse()?,
-            minting_key,
+            chain,
+            minting_key: private_key.trim_start_matches("0x").parse()?,
             explorer_url,
         })
     }
@@ -44,7 +29,7 @@ impl EvmMintable {
 
 impl Chain for EvmMintable {
     fn info(&self) -> ChainInfo {
-        self.info.clone()
+        self.chain.info.clone()
     }
 }
 
@@ -52,8 +37,8 @@ impl Sender for EvmMintable {
     fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState> {
         block_on(async {
             let contract = Contract::from_json(
-                self.web3.eth(),
-                self.contract_address,
+                self.chain.web3.eth(),
+                self.chain.token_contract,
                 &serde_json::to_vec(&evm::token_abi())?,
             )?;
 

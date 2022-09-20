@@ -1,4 +1,11 @@
+use super::*;
+
 use serde::{Deserialize, Serialize};
+use web3::{
+    contract::{Contract, Options},
+    types::*,
+    *,
+};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -31,4 +38,17 @@ lazy_static::lazy_static! {
         )).unwrap();
         json["abi"].take()
     };
+}
+
+pub struct Chain {
+    pub web3: Web3<transports::Http>,
+    pub info: ChainInfo,
+    pub chain_id: u32,
+
+    pub token_contract: Address,
+    pub burner_contract: Address,
+}
+
+pub fn address_str(addr: &Address) -> String {
+    format!("{:?}", addr)
 }
