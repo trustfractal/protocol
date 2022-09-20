@@ -1,4 +1,4 @@
-import { React, ReactDOM, html } from "/static/deps.js";
+import { React, ReactDOM, html, ethers } from "/static/deps.js";
 import { useLoaded, fetchJson, Loading } from "/static/utils.js";
 
 import QRCode from "https://unpkg.com/qrcode.react@3.0.1/lib/esm/index.js";
@@ -89,11 +89,16 @@ const AwaitingReceive = (props) => {
 
 const AwaitingMetamaskReceive = (props) => {
   const [enabled, setEnabled] = React.useState(true);
+  // TODO(shelbyd): Get amount from user.
+  const amount = ethers.utils.parseUnits("1", 12);
 
   const doMetaMask = async (txns) => {
     setEnabled(false);
-    await sendMetamaskTransactions(txns);
-    setEnabled(true);
+    try {
+      await sendMetamaskTransactions(txns, amount);
+    } finally {
+      setEnabled(true);
+    }
   };
 
   return html`
@@ -112,17 +117,37 @@ const AwaitingMetamaskReceive = (props) => {
   `;
 };
 
-async function sendMetamaskTransactions(txns) {
-  console.log('txns', txns);
-  console.log('ethereum.isConnected()', ethereum.isConnected());
+async function sendMetamaskTransactions(metamask, amount) {
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
 
-  const chainIdHex = await ethereum.request({ method: 'eth_chainId' });
+  const chainIdHex = await provider.send('eth_chainId');
   const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
-  if (chainIdNumber !== txns.chainId) {
-    await ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: `0x${txns.chainId.toString(16)}` }],
+  if (chainIdNumber !== metamask.chainId) {
+    await provider.send(
+      'wallet_switchEthereumChain',
+      [{ chainId: `0x${metamask.chainId.toString(16)}` }],
+    );
+  }
+
+  let accounts = await provider.send('eth_accounts');
+  while (accounts.length === 0) {
+    accounts = await provider.send('eth_requestAccounts');
+  }
+
+  const signer = provider.getSigner();
+  for (const txn of metamask.transactions) {
+    const contract = new ethers.Contract(txn.contractAddress, txn.contractAbi, provider);
+    const withSigner = contract.connect(signer);
+
+    const params = txn.params.map(p => {
+      if (p === "user_amount") {
+        return amount;
+      } else {
+        return p;
+      }
     });
+
+    await withSigner[txn.method](...params);
   }
 }
 

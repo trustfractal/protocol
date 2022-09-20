@@ -1,5 +1,5 @@
 use super::*;
-use crate::swap_chains::Event;
+use crate::swap_chains::{evm, Event};
 
 use secp256k1::SecretKey;
 use web3::{
@@ -26,8 +26,6 @@ impl EvmMintable {
         private_key: String,
         info: ChainInfo,
     ) -> anyhow::Result<Self> {
-        lazy_static::initialize(&TOKEN_ABI);
-
         let minting_key = if private_key.starts_with("0x") {
             &private_key[2..]
         } else {
@@ -53,7 +51,11 @@ impl Chain for EvmMintable {
 impl Sender for EvmMintable {
     fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState> {
         block_on(async {
-            let contract = Contract::from_json(self.web3.eth(), self.contract_address, &TOKEN_ABI)?;
+            let contract = Contract::from_json(
+                self.web3.eth(),
+                self.contract_address,
+                &serde_json::to_vec(&evm::token_abi())?,
+            )?;
 
             let user_address: Address = swap.user.send_address.parse()?;
             let receipt = contract
@@ -83,13 +85,4 @@ fn block_on<F: core::future::Future>(f: F) -> F::Output {
         .build()
         .unwrap()
         .block_on(f)
-}
-
-lazy_static::lazy_static! {
-    static ref TOKEN_ABI: Vec<u8> = {
-        let json: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../../evm/artifacts/contracts/FCLToken.sol/FCLToken.json"
-        )).unwrap();
-        serde_json::to_vec(&json["abi"]).unwrap()
-    };
 }

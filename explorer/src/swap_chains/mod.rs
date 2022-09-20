@@ -11,6 +11,7 @@ mod chains;
 pub use chains::{Receiver, ReceiverRef, Sender, SenderRef};
 
 mod drive;
+mod evm;
 mod storage;
 mod test_data;
 
@@ -202,6 +203,7 @@ pub enum PaymentRequest {
     #[serde(rename_all = "camelCase")]
     Metamask {
         chain_id: u32,
+        transactions: Vec<evm::Transaction>,
     },
 
     #[serde(rename_all = "camelCase")]

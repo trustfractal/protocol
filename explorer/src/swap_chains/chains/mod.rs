@@ -38,7 +38,7 @@ lazy_static::lazy_static! {
     static ref ACALA_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
         env_or("ACALA_URL", "http://127.0.0.1:8545"),
         env_or("ACALA_EXPLORER_URL", "http://acala.subscan.io"),
-        env_or("ACALA_FCL_TOKEN_ADDRESS", "0x5FbDB2315678afecb367f032d93F642f64180aa3"),
+        acala_fcl_token_address(),
         env_or(
             "ACALA_FCL_MINTER_KEY",
             // Known account 1
@@ -56,6 +56,8 @@ lazy_static::lazy_static! {
             id: "acala_sender".to_string(),
         },
         env_or("ACALA_CHAIN_ID", "31337"),
+        acala_fcl_token_address(),
+        env_or("ACALA_BURNER_ADDRESS", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"),
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
@@ -93,4 +95,11 @@ pub fn sender(id: &str) -> anyhow::Result<SenderRef> {
 
 fn env_or(env: &str, fallback: &str) -> String {
     std::env::var(env).unwrap_or_else(|_| fallback.to_string())
+}
+
+fn acala_fcl_token_address() -> String {
+    env_or(
+        "ACALA_FCL_TOKEN_ADDRESS",
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    )
 }
