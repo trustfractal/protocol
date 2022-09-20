@@ -50,7 +50,7 @@ lazy_static::lazy_static! {
 
     static ref ACALA_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
         &*ACALA,
-        // env_or("ACALA_BURNER_ADDRESS", "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"),
+        env_or("ACALA_CONFIRMATIONS_REQUIRED", "12"),
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
@@ -115,5 +115,7 @@ fn acala_chain() -> anyhow::Result<evm::Chain> {
             "ACALA_URL",
             "http://127.0.0.1:8545",
         ))?),
+
+        decimals: env_or("ACALA_FCL_TOKEN_DECIMALS", "18").parse()?,
     })
 }

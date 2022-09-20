@@ -2,6 +2,7 @@
 
 set -euxo pipefail
 
+CARGO_INCREMENTAL=false cargo test --jobs 2 --release --manifest-path explorer/Cargo.toml
 CARGO_INCREMENTAL=false cargo build --jobs 2 --release --manifest-path explorer/Cargo.toml
 
 rm target/release/fractal_explorer_*

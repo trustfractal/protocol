@@ -156,6 +156,7 @@ impl Sender for Substrate {
         let to = AccountId32::from_str(&swap.user.send_address).expect("valid user address");
         let minting_api = Api::new(self.url.clone())?.set_signer(self.minting_pair.clone())?;
 
+        log::info!("Sending {} to {}", amount, to);
         let txn = compose_extrinsic(
             &minting_api,
             "FractalTokenDistribution",

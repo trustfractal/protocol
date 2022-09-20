@@ -1,11 +1,11 @@
 use super::*;
-use crate::swap_chains::{evm, Event};
+use crate::{
+    block_on,
+    swap_chains::{evm, Event},
+};
 
 use secp256k1::SecretKey;
-use web3::{
-    contract::{Contract, Options},
-    types::*,
-};
+use web3::{contract::Options, types::*};
 
 pub struct EvmMintable {
     chain: &'static evm::Chain,
@@ -36,17 +36,13 @@ impl Chain for EvmMintable {
 impl Sender for EvmMintable {
     fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState> {
         block_on(async {
-            let contract = Contract::from_json(
-                self.chain.web3.eth(),
-                self.chain.token_contract,
-                &serde_json::to_vec(&evm::token_abi())?,
-            )?;
-
             let user_address: Address = swap.user.send_address.parse()?;
+
+            let contract = self.chain.token_contract()?;
             let receipt = contract
                 .signed_call_with_confirmations(
                     "mint",
-                    (user_address, U256::from(amount)),
+                    (user_address, self.chain.balance_to_erc20(amount)),
                     Options::default(),
                     1,
                     &self.minting_key,
@@ -62,12 +58,4 @@ impl Sender for EvmMintable {
             })
         })
     }
-}
-
-fn block_on<F: core::future::Future>(f: F) -> F::Output {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(f)
 }

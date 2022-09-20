@@ -89,13 +89,12 @@ const AwaitingReceive = (props) => {
 
 const AwaitingMetamaskReceive = (props) => {
   const [enabled, setEnabled] = React.useState(true);
-  // TODO(shelbyd): Get amount from user.
-  const amount = ethers.utils.parseUnits("1", 12);
 
   const doMetaMask = async (txns) => {
     setEnabled(false);
     try {
-      await sendMetamaskTransactions(txns, amount);
+      // TODO(shelbyd): Get amount from user.
+      await sendMetamaskTransactions(txns, "123");
     } finally {
       setEnabled(true);
     }
@@ -117,8 +116,10 @@ const AwaitingMetamaskReceive = (props) => {
   `;
 };
 
-async function sendMetamaskTransactions(metamask, amount) {
+async function sendMetamaskTransactions(metamask, amountString) {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
+
+  const amount = ethers.utils.parseUnits(amountString, metamask.ercDecimals);
 
   const chainIdHex = await provider.send('eth_chainId');
   const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
