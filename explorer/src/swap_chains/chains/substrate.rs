@@ -74,7 +74,7 @@ impl Chain for Substrate {
 }
 
 impl Receiver for Substrate {
-    fn create_receive_request(&self) -> (SwapState, Option<Sidecar>) {
+    fn create_receive_request(&self, _id: &str) -> (SwapState, Option<Sidecar>) {
         let (pair, secret_key, _) = sr25519::Pair::generate_with_phrase(None);
 
         let account_id: AccountId32 = pair.public().into();

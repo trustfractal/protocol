@@ -14,7 +14,7 @@ pub trait Chain: Sync + Send {
 
 /// For all these methods, the swaps are still persisted even if the function returns `Err(_)`.
 pub trait Receiver: Chain {
-    fn create_receive_request(&self) -> (SwapState, Option<Sidecar>);
+    fn create_receive_request(&self, id: &str) -> (SwapState, Option<Sidecar>);
     fn has_received(&self, swap: &mut Swap) -> anyhow::Result<bool>;
     fn finalized_amount(&self, swap: &mut Swap) -> anyhow::Result<Option<Balance>>;
 

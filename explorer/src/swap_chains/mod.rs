@@ -74,7 +74,7 @@ async fn create_swap(
     let id = bs58::encode(rand::random::<u64>().to_string()).into_string();
     let receiver = chains::receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
 
-    let (state, secret_sidecar) = receiver.create_receive_request();
+    let (state, secret_sidecar) = receiver.create_receive_request(&id);
     let swap = Swap {
         id: id.clone(),
         state,

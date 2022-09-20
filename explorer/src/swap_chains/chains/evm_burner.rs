@@ -32,7 +32,7 @@ impl Chain for EvmBurner {
 }
 
 impl Receiver for EvmBurner {
-    fn create_receive_request(&self) -> (SwapState, Option<Sidecar>) {
+    fn create_receive_request(&self, id: &str) -> (SwapState, Option<Sidecar>) {
         let state = SwapState::AwaitingReceive(PaymentRequest::Metamask {
             chain_id: self.chain_id,
             transactions: vec![
@@ -50,7 +50,7 @@ impl Receiver for EvmBurner {
                     contract_abi: evm::burner_abi(),
                     method: "burn".to_string(),
                     params: vec![
-                        serde_json::Value::from("TODO: actual swap id"),
+                        serde_json::Value::from(id),
                         serde_json::Value::from("user_amount"),
                     ],
                 },
