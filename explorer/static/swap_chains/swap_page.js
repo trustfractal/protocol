@@ -88,30 +88,40 @@ const AwaitingReceive = (props) => {
 };
 
 const AwaitingMetamaskReceive = (props) => {
-  const [enabled, setEnabled] = React.useState(true);
+  const [doingMetaMask, setDoingMetaMask] = React.useState(false);
+  const [amountStr, setAmountStr] = React.useState(null);
 
   const doMetaMask = async (txns) => {
-    setEnabled(false);
+    setDoingMetaMask(true);
     try {
       // TODO(shelbyd): Get amount from user.
-      await sendMetamaskTransactions(txns, "123");
-    } finally {
-      setEnabled(true);
+      await sendMetamaskTransactions(txns, amountStr);
+    } catch (e) {
+      setDoingMetaMask(false);
+      throw e;
     }
   };
 
+  const enabled = !!amountStr && !doingMetaMask;
+
   return html`
-    <div>
+    <div class="flex-col">
       <h2>Awaiting Receive</h2>
 
       <p>This swap will use MetaMask to send.</p>
+
+      <label>
+        <input type="number"
+            placeholder="123"
+            value=${amountStr}
+            onChange=${(event) => setAmountStr(event.target.value)} />
+        Amount (in FCL)
+      </label>
 
       <button className="btn" disabled=${!enabled} onClick=${() => doMetaMask(props.state)}>
         Open MetaMask
         <i className="material-icons right">open_in_new</i>
       </button>
-
-      <pre>${JSON.stringify(props.state, null, 2)}</pre>
     </div>
   `;
 };
