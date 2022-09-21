@@ -21,6 +21,7 @@ pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
         web::resource("/swap_chains").to(index),
         web::resource("/swap_chains/chain_options.json").to(chain_options),
+        web::resource("/swap_chains/validate_address.json").to(validate_address),
         web::resource("/swap_chains/create.json").to(create_swap),
         web::resource("/swap_chains/{id}.json").to(get_swap),
         web::resource("/swap_chains/{id}").to(swap_page),
@@ -72,7 +73,12 @@ async fn create_swap(
     pg: web::Data<Pool<postgres::Client>>,
 ) -> actix_web::Result<impl Responder> {
     let id = bs58::encode(rand::random::<u64>().to_string()).into_string();
-    let receiver = chains::receiver(&options.system_receive).map_err(ErrorInternalServerError)?;
+    let receiver = chains::receiver(&options.system_receive).map_err(ErrorBadRequest)?;
+
+    let sender = chains::sender(&options.system_send).map_err(ErrorBadRequest)?;
+    if !sender.is_valid(&options.send_address) {
+        return Err(ErrorBadRequest(anyhow::anyhow!("Invalid send address {}", &options.send_address)));
+    }
 
     let (state, secret_sidecar) = receiver.create_receive_request(&id);
     let swap = Swap {
@@ -269,4 +275,26 @@ async fn find_and_drive(
         })
     })
     .await
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ValidateRequest {
+    chain: String,
+    address: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ValidateResponse {
+    valid: bool,
+}
+
+async fn validate_address(
+    request: web::Json<ValidateRequest>,
+) -> actix_web::Result<web::Json<ValidateResponse>> {
+    let sender = chains::sender(&request.chain).map_err(ErrorBadRequest)?;
+    let valid = sender.is_valid(&request.address);
+
+    Ok(web::Json(ValidateResponse { valid }))
 }

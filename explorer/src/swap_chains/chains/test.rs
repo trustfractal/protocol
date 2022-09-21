@@ -74,6 +74,10 @@ impl Sender for Test {
             txn_link: format!("https://example.com/{}/{}", send_to, received_amount),
         })
     }
+
+    fn is_valid(&self, _: &str) -> bool {
+        true
+    }
 }
 
 #[derive(Deserialize, Serialize, Default)]

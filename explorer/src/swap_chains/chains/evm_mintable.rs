@@ -58,4 +58,9 @@ impl Sender for EvmMintable {
             })
         })
     }
+
+    fn is_valid(&self, address: &str) -> bool {
+        let address: Result<Address, _> = address.trim_start_matches("0x").parse();
+        address.is_ok()
+    }
 }

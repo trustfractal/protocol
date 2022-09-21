@@ -153,7 +153,8 @@ impl Receiver for Substrate {
 
 impl Sender for Substrate {
     fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState> {
-        let to = AccountId32::from_str(&swap.user.send_address).expect("valid user address");
+        let to =
+            AccountId32::from_str(&swap.user.send_address).map_err(|e| anyhow::anyhow!("{}", e))?;
         let minting_api = Api::new(self.url.clone())?.set_signer(self.minting_pair.clone())?;
 
         log::info!("Sending {} to {}", amount, to);
@@ -173,6 +174,10 @@ impl Sender for Substrate {
             txn_link: format!("https://explorer.fractalprotocol.com/{}", hash_str),
             txn_id: hash_str,
         })
+    }
+
+    fn is_valid(&self, address: &str) -> bool {
+        AccountId32::from_str(&address).is_ok()
     }
 }
 

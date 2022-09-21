@@ -27,6 +27,8 @@ pub trait Sender: Chain {
     /// This is potentially called more than once (if machines fail or sending fails).
     /// Therefore, it must be idempotent.
     fn send(&self, swap: &mut Swap, amount: Balance) -> anyhow::Result<SwapState>;
+
+    fn is_valid(&self, address: &str) -> bool;
 }
 
 lazy_static::lazy_static! {
