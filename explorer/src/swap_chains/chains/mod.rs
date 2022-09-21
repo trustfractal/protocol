@@ -3,7 +3,6 @@ use super::{evm, Balance, ChainInfo, PaymentRequest, Sidecar, Swap, SwapState};
 mod evm_burner;
 mod evm_mintable;
 mod substrate;
-mod test;
 
 pub type ReceiverRef = &'static dyn Receiver;
 pub type SenderRef = &'static dyn Sender;
@@ -32,7 +31,6 @@ pub trait Sender: Chain {
 }
 
 lazy_static::lazy_static! {
-    static ref TEST: test::Test = test::Test;
     static ref SUBSTRATE: substrate::Substrate = substrate::Substrate::new(
         env_or("SUBSTRATE_CHAIN_URL", "wss://main.devnet.fractalprotocol.com:443"),
         env_or("SUBSTRATE_MINTING_KEY", "//Alice"),
@@ -63,14 +61,12 @@ lazy_static::lazy_static! {
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
-        &*TEST,
         &*SUBSTRATE,
         &*ACALA_RECEIVER,
         &*ETHEREUM_RECEIVER,
     ];
 
     static ref SENDERS: Vec<&'static dyn Sender> = vec![
-        &*TEST,
         &*SUBSTRATE,
         &*ACALA_SENDER,
     ];

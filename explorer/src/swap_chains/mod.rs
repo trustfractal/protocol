@@ -13,7 +13,6 @@ pub use chains::{Receiver, ReceiverRef, Sender, SenderRef};
 mod drive;
 mod evm;
 mod storage;
-mod test_data;
 
 pub type Balance = u128;
 
@@ -246,9 +245,7 @@ async fn get_swap(
     pg: web::Data<Pool<postgres::Client>>,
 ) -> actix_web::Result<web::Json<Swap<()>>> {
     let swap = {
-        if let Some(test) = test_data::get(&id) {
-            test
-        } else if let Some(found) = find_and_drive(id.clone(), pg)
+        if let Some(found) = find_and_drive(id.clone(), pg)
             .await
             .map_err(ErrorInternalServerError)?
         {
