@@ -55,10 +55,18 @@ lazy_static::lazy_static! {
         env_or("ACALA_CONFIRMATIONS_REQUIRED", "12"),
     ).unwrap();
 
+    static ref ETHEREUM: evm::Chain = ethereum_chain().unwrap();
+
+    static ref ETHEREUM_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
+        &*ETHEREUM,
+        env_or("ETHEREUM_CONFIRMATIONS_REQUIRED", "12"),
+    ).unwrap();
+
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
         &*TEST,
         &*SUBSTRATE,
         &*ACALA_RECEIVER,
+        &*ETHEREUM_RECEIVER,
     ];
 
     static ref SENDERS: Vec<&'static dyn Sender> = vec![
@@ -119,5 +127,35 @@ fn acala_chain() -> anyhow::Result<evm::Chain> {
         ))?),
 
         decimals: env_or("ACALA_FCL_TOKEN_DECIMALS", "18").parse()?,
+    })
+}
+
+fn ethereum_chain() -> anyhow::Result<evm::Chain> {
+    Ok(evm::Chain {
+        info: ChainInfo {
+            id: "ethereum".to_string(),
+            name: "Ethereum".to_string(),
+        },
+        chain_id: env_or("ETHEREUM_CHAIN_ID", "1").parse()?,
+
+        burner_contract: env_or(
+            "ETHEREUM_BURNER_ADDRESS",
+            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+        token_contract: env_or(
+            "ETHEREUM_FCL_TOKEN_ADDRESS",
+            "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+
+        web3: web3::Web3::new(web3::transports::Http::new(&env_or(
+            "ETHEREUM_URL",
+            "http://127.0.0.1:8545",
+        ))?),
+
+        decimals: env_or("ETHEREUM_FCL_TOKEN_DECIMALS", "18").parse()?,
     })
 }
