@@ -13,6 +13,8 @@ async function main() {
   const burnerInstance = await FCLBurner.deploy(tokenInstance.address);
   await burnerInstance.deployed();
 
+  await tokenInstance.mint("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "1234000000000000000000");
+
   console.log(JSON.stringify({
     tokenContract: tokenInstance.address,
     minterAddress: minter.address,

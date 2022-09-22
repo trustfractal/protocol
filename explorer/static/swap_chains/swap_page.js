@@ -88,48 +88,55 @@ const AwaitingReceive = (props) => {
 };
 
 const AwaitingMetamaskReceive = (props) => {
-  const [doingMetaMask, setDoingMetaMask] = React.useState(false);
-  const [amountStr, setAmountStr] = React.useState(null);
+  const [phaseComponent, setPhaseComponent] = React.useState(null);
 
-  const doMetaMask = async (txns) => {
-    setDoingMetaMask(true);
-    try {
-      // TODO(shelbyd): Get amount from user.
-      await sendMetamaskTransactions(txns, amountStr);
-    } catch (e) {
-      setDoingMetaMask(false);
-      throw e;
-    }
+  const ui = {
+    getAmountString: () => new Promise(resolve => {
+      setPhaseComponent(html`<${AmountString} onSubmit=${(amount) => resolve(amount)} />`);
+    }),
+    showMessage: (message) => {
+      setPhaseComponent(html`<p>${message}</p>`);
+    },
+    awaitContinue: () => new Promise(resolve => {
+      setPhaseComponent(html`
+        <button className="btn" onClick=${() => resolve()}>
+          Continue
+          <i className="material-icons right">arrow_forward</i>
+        </button>
+      `);
+    }),
   };
 
-  const enabled = !!amountStr && !doingMetaMask;
+  React.useEffect(() => {
+    (async () => {
+      while (true) {
+        try {
+          await sendMetamaskTransactions(props.state, ui);
+          break;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    })();
+  }, []);
 
   return html`
-    <div class="flex-col">
+    <div className="flex-col">
       <h2>Awaiting Receive</h2>
 
       <p>This swap will use MetaMask to send.</p>
 
-      <label>
-        <input type="number"
-            placeholder="123"
-            value=${amountStr}
-            onChange=${(event) => setAmountStr(event.target.value)} />
-        Amount (in FCL)
-      </label>
-
-      <button className="btn" disabled=${!enabled} onClick=${() => doMetaMask(props.state)}>
-        Open MetaMask
-        <i className="material-icons right">open_in_new</i>
-      </button>
+      ${phaseComponent}
     </div>
   `;
 };
 
-async function sendMetamaskTransactions(metamask, amountString) {
+async function sendMetamaskTransactions(metamask, ui) {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
 
+  const amountString = await ui.getAmountString();
   const amount = ethers.utils.parseUnits(amountString, metamask.ercDecimals);
+  ui.showMessage(`Sending ${amountString} FCL`);
 
   const chainIdHex = await provider.send('eth_chainId');
   const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
@@ -142,9 +149,11 @@ async function sendMetamaskTransactions(metamask, amountString) {
 
   let accounts = await provider.send('eth_accounts');
   while (accounts.length === 0) {
+    ui.showMessage('Please select an account to send with');
     accounts = await provider.send('eth_requestAccounts');
   }
 
+  let txnNumber = 0;
   const signer = provider.getSigner();
   for (const txn of metamask.transactions) {
     const contract = new ethers.Contract(txn.contractAddress, txn.contractAbi, provider);
@@ -158,9 +167,44 @@ async function sendMetamaskTransactions(metamask, amountString) {
       }
     });
 
-    await withSigner[txn.method](...params);
+    txnNumber += 1;
+    ui.showMessage(`Sending transaction ${txnNumber} / ${metamask.transactions.length}`);
+    const sentTxn = await withSigner[txn.method](...params);
+    ui.showMessage(`Waiting for transaction in block: ${sentTxn.hash}`);
+    const waited = await sentTxn.wait();
+
+    const remaining = metamask.transactions.length - txnNumber;
+    if (remaining > 0) {
+      await ui.awaitContinue(`Transaction in block, ${remaining} remaining`)
+    }
   }
+
+  ui.showMessage('All transactions sent');
 }
+
+const AmountString = (props) => {
+  const [amountStr, setAmountStr] = React.useState('');
+
+  const enabled = !!amountStr;
+
+  return html`
+    <div className="flex-col">
+      <label>
+        <input type="number"
+            autoFocus
+            placeholder="123"
+            value=${amountStr}
+            onChange=${(event) => setAmountStr(event.target.value)} />
+        Amount (in FCL)
+      </label>
+
+      <button className="btn" disabled=${!enabled} onClick=${() => props.onSubmit(amountStr)}>
+        Submit
+        <i className="material-icons right">open_in_new</i>
+      </button>
+    </div>
+  `;
+};
 
 const CopyToClipboard = (props) => {
   const doCopy = async () => {
