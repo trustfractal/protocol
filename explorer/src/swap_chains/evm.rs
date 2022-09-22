@@ -23,14 +23,14 @@ pub fn burner_abi() -> serde_json::Value {
 lazy_static::lazy_static! {
     static ref TOKEN_ABI: serde_json::Value = {
         let mut json: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../evm/artifacts/contracts/FCLToken.sol/FCLToken.json"
+            "./FCLToken_contract.json"
         )).unwrap();
         json["abi"].take()
     };
 
     static ref BURNER_ABI: serde_json::Value = {
         let mut json: serde_json::Value = serde_json::from_slice(include_bytes!(
-            "../../evm/artifacts/contracts/FCLBurner.sol/FCLBurner.json"
+            "./FCLBurner_contract.json"
         )).unwrap();
         json["abi"].take()
     };
