@@ -4,6 +4,7 @@
     "@nomicfoundation/hardhat-toolbox": "^2.0.0"
   },
   "devDependencies": {
+    "@acala-network/eth-providers": "^2.4.21",
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/providers": "^5.7.1",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
