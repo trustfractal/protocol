@@ -76,7 +76,10 @@ async fn create_swap(
 
     let sender = chains::sender(&options.system_send).map_err(ErrorBadRequest)?;
     if !sender.is_valid(&options.send_address) {
-        return Err(ErrorBadRequest(anyhow::anyhow!("Invalid send address {}", &options.send_address)));
+        return Err(ErrorBadRequest(anyhow::anyhow!(
+            "Invalid send address {}",
+            &options.send_address
+        )));
     }
 
     let (state, secret_sidecar) = receiver.create_receive_request(&id);

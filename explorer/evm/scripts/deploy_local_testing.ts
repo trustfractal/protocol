@@ -1,4 +1,4 @@
-import { ethers } from 'hardhat';
+const { ethers } = require('hardhat');
 
 async function main() {
   const FCLToken = await ethers.getContractFactory("FCLToken");
@@ -23,7 +23,9 @@ async function main() {
   }, null, 2));
 }
 
-main().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  });
