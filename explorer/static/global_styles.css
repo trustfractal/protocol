@@ -2,3 +2,46 @@
   display: flex;
   flex-direction: column;
 }
+
+body {
+  background-color: #F5F5F5;
+
+  /* makes footer sticky */
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+header nav {
+  background-color: #FA9650 !important;
+}
+
+header nav a.brand-logo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media only screen and (min-width: 993px) {
+  header nav .container {
+    width: 80%;
+  }
+}
+
+footer {
+  background-color: #FFFFFF;
+
+  padding: 1.5em 5%;
+}
+
+footer * {
+  color: #424242 !important;
+}
+
+footer .legal-links {
+  margin: 0;
+}
+
+footer .legal-links li {
+  display: inline;
+  margin-left: 2em;
+}

@@ -7,7 +7,11 @@
 
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;900">
     <link rel="stylesheet" href="/static/global_styles.css">
+    <link rel="stylesheet" href="/static/swap_chains/style.css">
 
     <title>Fractal Protocol Explorer</title>
 
@@ -20,13 +24,21 @@
     </script>
   </head>
   <body>
-    {{>pages/navbar.html}}
+    <header>
+      {{>pages/navbar.html}}
+    </header>
 
-    <div class="section">
-      <div class="container">
-        {{&page}}
+    <main>
+      <div class="section">
+        <div class="container">
+          {{&page}}
+        </div>
       </div>
-    </div>
+    </main>
+
+    <footer>
+      {{>pages/footer.html}}
+    </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   </body>

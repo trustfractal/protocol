@@ -49,9 +49,9 @@ const Swap = (props) => {
 
   let currentState;
   if (swap.state.awaitingReceive?.simple !== undefined) {
-    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive.simple} />`;
+    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive.simple} user=${swap.user} />`;
   } else if (swap.state.awaitingReceive?.metamask !== undefined) {
-    currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} />`;
+    currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} user=${swap.user} />`;
   } else if (swap.state.finalizing !== undefined) {
     currentState = html`<${Finalizing} state=${swap.state.finalizing} />`;
   } else if (swap.state.sending !== undefined) {
@@ -64,7 +64,7 @@ const Swap = (props) => {
 
   return html`
     <div>
-      <h1>Swap: ${swap.id}</h1>
+      <h1>Your swap is ready</h1>
 
       ${currentState}
 
@@ -76,13 +76,17 @@ const Swap = (props) => {
 const AwaitingReceive = (props) => {
   return html`
     <div>
-      <h2>Awaiting Receive</h2>
+      <h2>Awaiting your token transfer in <span className="style--capitalize">${props.user.systemReceive}</span>...</h2>
 
-      <p>
-        Send any amount to <${CopyToClipboard} text=${props.state.receiveAddress} />
-      </p>
+      <p className="qrcode"><${QRCode} value=${props.state.paymentRequest} /></p>
 
-      <${QRCode} value=${props.state.paymentRequest} />
+      <div class="instructions">
+        <p>
+          To continue, send any FCL amount to
+          <br />
+          <${CopyToClipboard} text=${props.state.receiveAddress} />
+        </p>
+      </div>
     </div>
   `;
 };
@@ -122,9 +126,7 @@ const AwaitingMetamaskReceive = (props) => {
 
   return html`
     <div className="flex-col">
-      <h2>Awaiting Receive</h2>
-
-      <p>This swap will use MetaMask to send.</p>
+      <h2>Awaiting your token transfer in <span className="style--capitalize">${props.user?.systemReceive}</span>...</h2>
 
       ${phaseComponent}
     </div>
@@ -190,16 +192,16 @@ const AmountString = (props) => {
   return html`
     <div className="flex-col">
       <label>
-        <input type="number"
-            autoFocus
-            placeholder="123"
-            value=${amountStr}
-            onChange=${(event) => setAmountStr(event.target.value)} />
         Amount (in FCL)
+      <input type="number"
+        autoFocus
+        placeholder="100"
+        value=${amountStr}
+        onChange=${(event) => setAmountStr(event.target.value)} />
       </label>
 
       <button className="btn" disabled=${!enabled} onClick=${() => props.onSubmit(amountStr)}>
-        Submit
+        Send in MetaMask
         <i className="material-icons right">open_in_new</i>
       </button>
     </div>
@@ -213,8 +215,8 @@ const CopyToClipboard = (props) => {
 
   return html`
     <span className="interactive-text">
-      ${props.text}
-      <button className="btn" onClick=${doCopy}>
+      <span className="style--monospace style--wrap-text">${props.text}</span>
+      <button className="btn-flat" onClick=${doCopy}>
         <i className="material-icons">content_copy</i>
       </button>
     </span>

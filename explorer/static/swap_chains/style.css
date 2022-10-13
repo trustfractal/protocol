@@ -1,0 +1,104 @@
+.swap_chains {
+  background-color: #FFFFFF;
+
+  color: #424242;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+
+  margin-top: 3em;
+  padding: 27px 59px 72px;
+} @media only screen and (max-width: 992px) {
+.swap_chains {
+  margin-top: 1em;
+  padding: 1em;
+}}
+
+.swap_chains h1 {
+  color: #212121;
+  font-size: 30px;
+  font-weight: 800;
+
+  text-align: center;
+} @media only screen and (max-width: 992px) {
+.swap_chains h1 {
+  margin-top: 0;
+}}
+
+.swap_chains h2 {
+  color: #424242;
+  font-size: 24px;
+  font-weight: 500;
+
+  text-align: center;
+}
+
+.swap_chains img.flavour-img {
+  display: block;
+  margin: 0 auto;
+  width: 184px;
+}
+
+.swap_chains select {
+  color: #757575;
+
+  border: 1px solid #757575;
+  border-radius: 8px;
+
+  display: block;
+}
+
+.swap_chains select:valid {
+  background-color: #F9EFE8;
+  border-color: #FD8836;
+
+  color: #FA9650;
+}
+
+.swap_chains button.btn {
+  background-color: #FA9650;
+  border-radius: 8px;
+  text-transform: unset;
+}
+
+.swap_chains p.next {
+  text-align: center;
+}
+
+.swap_chains p.qrcode {
+  margin: 3em 0;
+  text-align: center;
+}
+
+.swap_chains div.instructions {
+  background-color: #FAFAFA;
+  border-radius: 8px;
+  border: 1px solid #E0E0E0;
+  padding: 0 1em;
+}
+
+.swap_chains span.interactive-text {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.swap_chains label {
+  color: #757575;
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 1em 0 0.3em;
+}
+
+.swap_chains .style--capitalize {
+  text-transform: capitalize;
+}
+
+.swap_chains .style--monospace {
+  font-family: monospace;
+}
+
+.swap_chains .style--wrap-text {
+  word-break: break-all;
+}
