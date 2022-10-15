@@ -80,7 +80,7 @@ const AwaitingReceive = (props) => {
 
       <p className="qrcode"><${QRCode} value=${props.state.paymentRequest} /></p>
 
-      <div class="instructions">
+      <div className="instructions">
         <p>
           To continue, send any FCL amount to
           <br />
