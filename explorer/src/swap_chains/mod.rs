@@ -47,6 +47,7 @@ struct ChainOptions {
 pub struct ChainInfo {
     id: String,
     name: String,
+    can_bridge_to: Vec<String>,
 }
 
 async fn chain_options() -> actix_web::Result<impl Responder> {

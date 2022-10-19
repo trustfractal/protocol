@@ -101,6 +101,9 @@ fn acala_chain() -> anyhow::Result<evm::Chain> {
         info: ChainInfo {
             id: "acala".to_string(),
             name: "Acala".to_string(),
+            can_bridge_to: vec![
+                String::from("substrate"),
+            ],
         },
         chain_id: env_or("ACALA_CHAIN_ID", "31337").parse()?,
 
@@ -131,6 +134,10 @@ fn ethereum_chain() -> anyhow::Result<evm::Chain> {
         info: ChainInfo {
             id: "ethereum".to_string(),
             name: "Ethereum".to_string(),
+            can_bridge_to: vec![
+                String::from("acala"),
+                String::from("substrate")
+            ],
         },
         chain_id: env_or("ETHEREUM_CHAIN_ID", "1").parse()?,
 

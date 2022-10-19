@@ -13,6 +13,10 @@ const Index = (props) => {
   if (!chainOptions.loaded) return Loading();
   chainOptions = chainOptions.value;
 
+  const getReceiveChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
+
+  const getSendChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
+
   const receiveButtons = chainOptions.systemReceive.map(chain => {
     return html`
       <option
@@ -23,15 +27,17 @@ const Index = (props) => {
     `;
   });
 
-  const sendButtons = chainOptions.systemSend.map(chain => {
-    return html`
-      <option
-          key=${chain.id}
-          value=${chain.id}>
-        ${chain.name}
-      </option>
-    `;
-  });
+  const sendButtons = chainOptions.systemSend
+    .filter(chain => systemReceive?.can_bridge_to?.includes(chain.id))
+    .map(chain => {
+      return html`
+        <option
+            key=${chain.id}
+            value=${chain.id}>
+          ${chain.name}
+        </option>
+      `;
+    });
 
   const startEnabled = sendAddress != "" && termsAccepted === true && !startingSwap;
 
@@ -57,10 +63,6 @@ const Index = (props) => {
       setStartingSwap(false);
     }
   };
-
-  const getReceiveChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
-
-  const getSendChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
 
   return html`
     <div>
