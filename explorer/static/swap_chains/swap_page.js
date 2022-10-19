@@ -1,8 +1,6 @@
 import { React, ReactDOM, html, ethers } from "/static/deps.js";
 import { useLoaded, fetchJson, Loading } from "/static/utils.js";
 
-import QRCode from "https://unpkg.com/qrcode.react@3.0.1/lib/esm/index.js";
-
 const Swap = (props) => {
   const id = props.swapId;
 
@@ -85,9 +83,6 @@ const AwaitingReceive = (props) => {
           To continue, send any FCL amount to
           <br />
           <${CopyToClipboard} text=${props.state.receiveAddress} />
-        </p>
-        <p className="qrcode">
-          <${QRCode} value=${props.state.paymentRequest} />
         </p>
       </div>
     </div>
