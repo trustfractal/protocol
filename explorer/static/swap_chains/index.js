@@ -97,7 +97,7 @@ const Index = (props) => {
       `}
 
       ${showTerms === true && html`
-        <label>You read and agreed to the <a href="#" target="_blank">User Agreement</a>:</label>
+        <label>You read and agreed to the <a href="https://fractal.id/documents/end-user-agreement" target="_blank">User Agreement</a>:</label>
 
         <div className="accept-terms">
           <label className="style--no-top-margin">
