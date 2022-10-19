@@ -50,14 +50,14 @@ lazy_static::lazy_static! {
 
     static ref ACALA_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
         &*ACALA,
-        env_or("ACALA_CONFIRMATIONS_REQUIRED", "12"),
+        env_or("ACALA_CONFIRMATIONS_REQUIRED", "3"),
     ).unwrap();
 
     static ref ETHEREUM: evm::Chain = ethereum_chain().unwrap();
 
     static ref ETHEREUM_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
         &*ETHEREUM,
-        env_or("ETHEREUM_CONFIRMATIONS_REQUIRED", "12"),
+        env_or("ETHEREUM_CONFIRMATIONS_REQUIRED", "3"),
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![

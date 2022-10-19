@@ -53,9 +53,9 @@ const Swap = (props) => {
   } else if (swap.state.awaitingReceive?.metamask !== undefined) {
     currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} user=${swap.user} />`;
   } else if (swap.state.finalizing !== undefined) {
-    currentState = html`<${Finalizing} state=${swap.state.finalizing} />`;
+    currentState = html`<${Finalizing} state=${swap.state.finalizing} user=${swap.user} />`;
   } else if (swap.state.sending !== undefined) {
-    currentState = html`<${Sending} state=${swap.state.sending} />`;
+    currentState = html`<${Sending} state=${swap.state.sending} user=${swap.user} />`;
   } else if (swap.state.finished !== undefined) {
     currentState = html`<${Finished} state=${swap.state.finished} />`;
   } else {
@@ -64,8 +64,6 @@ const Swap = (props) => {
 
   return html`
     <div>
-      <h1>Your swap is ready</h1>
-
       ${currentState}
 
       ${showJson && html`<pre>${JSON.stringify(swap, null, 2)}</pre>`}
@@ -76,15 +74,20 @@ const Swap = (props) => {
 const AwaitingReceive = (props) => {
   return html`
     <div>
+      <h1>Your swap is prepared</h1>
+
       <h2>Awaiting your token transfer in <span className="style--capitalize">${props.user.systemReceive}</span>...</h2>
 
-      <p className="qrcode"><${QRCode} value=${props.state.paymentRequest} /></p>
+      <${LoadingSpinner} />
 
-      <div className="instructions">
+      <div className="instructions style--center-text">
         <p>
           To continue, send any FCL amount to
           <br />
           <${CopyToClipboard} text=${props.state.receiveAddress} />
+        </p>
+        <p className="qrcode">
+          <${QRCode} value=${props.state.paymentRequest} />
         </p>
       </div>
     </div>
@@ -98,15 +101,20 @@ const AwaitingMetamaskReceive = (props) => {
     getAmountString: () => new Promise(resolve => {
       setPhaseComponent(html`<${AmountString} onSubmit=${(amount) => resolve(amount)} />`);
     }),
-    showMessage: (message) => {
-      setPhaseComponent(html`<p>${message}</p>`);
+    showMessage: (message, options) => {
+      setPhaseComponent(html`
+        ${options?.loading && html`<${LoadingSpinner} />` }
+        <p className="style--center-text">${message}</p>
+      `);
     },
     awaitContinue: () => new Promise(resolve => {
       setPhaseComponent(html`
-        <button className="btn" onClick=${() => resolve()}>
-          Continue
-          <i className="material-icons right">arrow_forward</i>
-        </button>
+        <p className="style--center-text">
+          <button className="btn" onClick=${() => resolve()}>
+            Continue
+            <i className="material-icons right">arrow_forward</i>
+          </button>
+        </p>
       `);
     }),
   };
@@ -126,6 +134,8 @@ const AwaitingMetamaskReceive = (props) => {
 
   return html`
     <div className="flex-col">
+      <h1>Your swap is prepared</h1>
+
       <h2>Awaiting your token transfer in <span className="style--capitalize">${props.user?.systemReceive}</span>...</h2>
 
       ${phaseComponent}
@@ -138,7 +148,7 @@ async function sendMetamaskTransactions(metamask, ui) {
 
   const amountString = await ui.getAmountString();
   const amount = ethers.utils.parseUnits(amountString, metamask.ercDecimals);
-  ui.showMessage(`Sending ${amountString} FCL`);
+  ui.showMessage(`Preparing to send ${amountString} FCL`);
 
   const chainIdHex = await provider.send('eth_chainId');
   const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
@@ -151,7 +161,7 @@ async function sendMetamaskTransactions(metamask, ui) {
 
   let accounts = await provider.send('eth_accounts');
   while (accounts.length === 0) {
-    ui.showMessage('Please select an account to send with');
+    ui.showMessage('Please select a MetaMask account to send from', { loading: true });
     accounts = await provider.send('eth_requestAccounts');
   }
 
@@ -170,35 +180,36 @@ async function sendMetamaskTransactions(metamask, ui) {
     });
 
     txnNumber += 1;
-    ui.showMessage(`Sending transaction ${txnNumber} / ${metamask.transactions.length}`);
+    ui.showMessage(`(${txnNumber} / ${metamask.transactions.length}) Preparing ${metamask.transactions[txnNumber-1].method} transaction ...`, { loading: true });
     const sentTxn = await withSigner[txn.method](...params);
-    ui.showMessage(`Waiting for transaction in block: ${sentTxn.hash}`);
+    ui.showMessage(`(${txnNumber} / ${metamask.transactions.length}) Waiting for ${metamask.transactions[txnNumber-1].method} transaction to be mined...`, { loading: true });
     const waited = await sentTxn.wait();
 
     const remaining = metamask.transactions.length - txnNumber;
     if (remaining > 0) {
-      await ui.awaitContinue(`Transaction in block, ${remaining} remaining`)
+      await ui.awaitContinue(`Transaction in block, ${remaining} remaining...`)
     }
   }
 
-  ui.showMessage('All transactions sent');
+  ui.showMessage('All transactions mined!');
 }
 
 const AmountString = (props) => {
-  const [amountStr, setAmountStr] = React.useState('');
+  const [amountStr, setAmountStr] = React.useState("");
 
   const enabled = !!amountStr;
 
   return html`
     <div className="flex-col">
-      <label>
-        Amount (in FCL)
-      <input type="number"
-        autoFocus
-        placeholder="100"
-        value=${amountStr}
-        onChange=${(event) => setAmountStr(event.target.value)} />
-      </label>
+      <label>Amount of FCL to bridge (minimum 1 FCL):</label>
+      <div className="input-field style--no-top-margin">
+        <input type="number"
+          autoFocus
+          min="1"
+          step="0.1"
+          required
+          onChange=${(event) => setAmountStr(event.target.validity.valid ? event.target.value : "")} />
+      </div>
 
       <button className="btn" disabled=${!enabled} onClick=${() => props.onSubmit(amountStr)}>
         Send in MetaMask
@@ -226,11 +237,9 @@ const CopyToClipboard = (props) => {
 const Finalizing = (props) => {
   return html`
     <div>
-      <h2>Finalizing</h2>
+      <h1>Your swap is ongoing</h1>
 
-      <p>
-        Transaction received, waiting for finalization.
-      </p>
+      <h2>Burning your FCL in <span className="style--capitalize">${props.user.systemReceive}</span>...</h2>
 
       <${LoadingSpinner} />
     </div>
@@ -240,11 +249,9 @@ const Finalizing = (props) => {
 const Sending = (props) => {
   return html`
     <div>
-      <h2>Sending</h2>
+      <h1>Your swap is ongoing</h1>
 
-      <p>
-        Transaction finalized, sending.
-      </p>
+      <h2>Minting your FCL in <span className="style--capitalize">${props.user.systemSend}</span>...</h2>
 
       <${LoadingSpinner} />
     </div>
@@ -253,14 +260,16 @@ const Sending = (props) => {
 
 const LoadingSpinner = (props) => {
   return html`
-    <div className="preloader-wrapper big active">
-      <div className="spinner-layer spinner-blue-only">
-        <div className="circle-clipper left">
-          <div className="circle"></div>
-        </div><div className="gap-patch">
-          <div className="circle"></div>
-        </div><div className="circle-clipper right">
-          <div className="circle"></div>
+    <div className="spinner">
+      <div className="preloader-wrapper big active">
+        <div className="spinner-layer spinner-blue-only">
+          <div className="circle-clipper left">
+            <div className="circle"></div>
+          </div><div className="gap-patch">
+            <div className="circle"></div>
+          </div><div className="circle-clipper right">
+            <div className="circle"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -270,10 +279,19 @@ const LoadingSpinner = (props) => {
 const Finished = (props) => {
   return html`
     <div>
-      <h2>Swap Finished</h2>
+      <h1>Your swap is complete</h1>
 
-      <p>
+      <img className="flavour-img" src="/static/swap_chains/swap_done.svg" />
+
+      <p className="style--center-text">
         Transaction: <a href=${props.state.txnLink}>${props.state.txnId}</a>
+      </p>
+
+      <p className="style--center-text">
+        <a className="btn" href="/swap_chains">
+          <i className="material-icons left">cloud_sync</i>
+          New swap
+        </a>
       </p>
     </div>
   `;

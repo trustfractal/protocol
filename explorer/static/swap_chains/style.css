@@ -55,18 +55,49 @@
   color: #FA9650;
 }
 
-.swap_chains button.btn {
+.swap_chains input[type=text],
+.swap_chains input[type=number] {
+  border-top: 1px solid transparent;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom-color: #757575;
+  border-radius: 8px;
+
+  color: #757575;
+  text-indent: 10px;
+}
+
+.swap_chains input[type=text].valid,
+.swap_chains input[type=number]:valid {
+  background-color: #F9EFE8;
+  border-color: #FD8836 !important;
+  box-shadow: none !important;
+
+  color: #FA9650;
+}
+
+.swap_chains input[type="checkbox"]:checked+span:not(.lever) {
+  color: #FA9650;
+}
+
+.swap_chains input[type="checkbox"]:checked+span:not(.lever):before {
+  border-right-color: #FD8836;
+  border-bottom-color: #FD8836;
+}
+
+.swap_chains .btn {
   background-color: #FA9650;
   border-radius: 8px;
   text-transform: unset;
 }
 
-.swap_chains p.next {
+.swap_chains .spinner {
+  margin: 3em auto;
   text-align: center;
 }
 
-.swap_chains p.qrcode {
-  margin: 3em 0;
+.swap_chains .qrcode {
+  margin-top: 3em;
   text-align: center;
 }
 
@@ -75,12 +106,6 @@
   border-radius: 8px;
   border: 1px solid #E0E0E0;
   padding: 0 1em;
-}
-
-.swap_chains span.interactive-text {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
 }
 
 .swap_chains label {
@@ -99,6 +124,14 @@
   font-family: monospace;
 }
 
+.swap_chains .style--center-text {
+  text-align: center;
+}
+
 .swap_chains .style--wrap-text {
   word-break: break-all;
+}
+
+.swap_chains .style--no-top-margin {
+  margin-top: 0;
 }

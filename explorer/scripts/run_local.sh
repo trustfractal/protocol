@@ -12,9 +12,10 @@ POSTGRES="${1:-"postgres://juliosantos@localhost/fractal_protocol_explorer?sslmo
 
 PORT="${PORT:-8080}" \
   HEROKU_POSTGRESQL_AQUA_URL=$POSTGRES \
-  ACALA_BURNER_ADDRESS="0xE5067452913E5bDd9E726Dde21c66498594a8236" \
-  ACALA_CHAIN_ID=686 \
-  ACALA_FCL_TOKEN_ADDRESS="0xf1c1588Edf48EFd98c9822320cC869dA926657B7" \
-  ACALA_URL="https://eth-rpc-karura.aca-api.network" \
+  ACALA_BURNER_ADDRESS="0xa952afE5c21d0D482E390F173F52d9c98383eDa0" \
+  ACALA_CHAIN_ID=787 \
+  ACALA_FCL_TOKEN_ADDRESS="0x477eBd116029877D108C9054be9d0Da01e85cd27" \
+  ACALA_URL="https://eth-rpc-acala.aca-staging.network" \
+  ACALA_STORAGE_BYTE_DEPOSIT=300000000000000 \
   SUBSTRATE_CHAIN_URL="wss://main.devnet.fractalprotocol.com:443" \
   foreman start -f explorer/Procfile.dev -d . web

@@ -5,6 +5,8 @@ const Index = (props) => {
   const [systemReceive, setSystemReceive] = React.useState(null);
   const [systemSend, setSystemSend] = React.useState(null);
   const [sendAddress, setSendAddress] = React.useState("");
+  const [showTerms, setShowTerms] = React.useState(false);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [startingSwap, setStartingSwap] = React.useState(false);
 
   let chainOptions = useLoaded(() => fetchJson("/swap_chains/chain_options.json"), []);
@@ -31,7 +33,7 @@ const Index = (props) => {
     `;
   });
 
-  const startEnabled = sendAddress != "" && !startingSwap;
+  const startEnabled = sendAddress != "" && termsAccepted === true && !startingSwap;
 
   const startSwap = async () => {
     try {
@@ -87,19 +89,29 @@ const Index = (props) => {
       `}
 
       ${systemSend != null && html`
-        <div className=${systemSend.id}>
+        <div className="${systemSend.id}">
           <${ReceiveAddress}
               withChain=${systemSend}
-              onChange=${(value, valid) => setSendAddress(valid ? value : "")} />
+              onChange=${(value, valid) => {setSendAddress(valid ? value : ""); setShowTerms(showTerms || valid);}} />
         </div>
       `}
 
-      <p className="next">
+      ${showTerms === true && html`
+        <label>You read and agreed to the <a href="#" target="_blank">User Agreement</a>:</label>
+
+        <div className="accept-terms">
+          <label className="style--no-top-margin">
+            <input type="checkbox" onChange=${(event) => setTermsAccepted(event.target.checked)} />
+            <span>Yes</span>
+          </label>
+        </div>
+      `}
+
+      <p className="style--center-text">
         <button
             className=${`btn btn-large ${startEnabled ? "" : "disabled"}`}
             onClick=${() => startSwap()}>
-          Start
-          ${startingSwap && html`<i className="material-icons right">cloud_sync</i>`}
+          ${startingSwap ? "Starting..." : "Start"}
         </button>
       </p>
     </div>
@@ -146,13 +158,13 @@ const ReceiveAddress = (props) => {
   return html`
     <div>
       <label>You will receive FCL in ${chainName} on this address:</label>
-      <div className="input-field">
+      <div className="input-field style--no-top-margin">
         <input type="text"
             id="receive-address"
-            className=${address && validity === true ? "valid" : "invalid"}
+            className=${validity === true ? "valid" : address !== "" ? "invalid" : ""}
             value=${address}
             onChange=${(event) => onAddressChange(event.target.value)} />
-        <span className="helper-text" data-error="Please enter a valid ${chainName} address"></i>
+        <span className="helper-text" data-error="Please enter a valid ${chainName} address"></span>
       </div>
     </div>
   `;
