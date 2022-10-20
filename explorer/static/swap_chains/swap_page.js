@@ -279,7 +279,7 @@ const Finished = (props) => {
       <img className="flavour-img" src="/static/swap_chains/swap_done.svg" />
 
       <p className="style--center-text">
-        Transaction: <a href=${props.state.txnLink}>${props.state.txnId}</a>
+        Transaction: <a href=${props.state.txnLink} target="_blank">${props.state.txnId}</a>
       </p>
 
       <p className="style--center-text">

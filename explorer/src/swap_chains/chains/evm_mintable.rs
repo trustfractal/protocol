@@ -61,7 +61,7 @@ impl Sender for EvmMintable {
             swap.push_event(Event::generic("evm_transaction_receipt", receipt)?);
 
             Ok(SwapState::Finished {
-                txn_link: format!("{}/{}", self.explorer_url, hash),
+                txn_link: format!("{}/tx/{}", self.explorer_url, hash),
                 txn_id: hash,
             })
         })

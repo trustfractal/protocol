@@ -40,7 +40,7 @@ lazy_static::lazy_static! {
 
     static ref ACALA_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
         &*ACALA,
-        env_or("ACALA_EXPLORER_URL", "http://acala.subscan.io"),
+        env_or("ACALA_EXPLORER_URL", "https://blockscout.acala.network"),
         env_or(
             "ACALA_FCL_MINTER_KEY",
             // Known account 1
