@@ -1,7 +1,6 @@
 heroku:
   buildpacks:
     - https://github.com/emk/heroku-buildpack-rust
-    - heroku/nodejs
   app: fractal-protocol-explorer
   copy_to_root:
     - yarn.lock
