@@ -4,7 +4,6 @@ heroku:
     - heroku/nodejs
   app: fractal-protocol-explorer
   copy_to_root:
-    - package.json
     - yarn.lock
     - RustConfig
     - Procfile
