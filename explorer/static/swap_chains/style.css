@@ -108,6 +108,23 @@
   padding: 0 1em;
 }
 
+.swap_chains div.instructions div.wallet-screenshots {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  margin: 1em 0;
+} @media only screen and (max-width: 992px) {
+.swap_chains div.instructions div.wallet-screenshots {
+  display: block;
+}}
+
+.swap_chains div.instructions div.wallet-screenshots img {
+  width: 45%;
+} @media only screen and (max-width: 992px) {
+.swap_chains div.instructions div.wallet-screenshots img {
+  width: 100%;
+}}
+
 .swap_chains label {
   color: #757575;
   display: block;

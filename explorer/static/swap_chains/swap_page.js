@@ -84,6 +84,13 @@ const AwaitingReceive = (props) => {
           <br />
           <${CopyToClipboard} text=${props.state.receiveAddress} />
         </p>
+        <p>
+          Unlock your Fractal Wallet, click the Protocol tab, and click the Send button at the bottom. Finally, enter the address shown above and the amound you'd like to bridge.
+        </p>
+        <div className="wallet-screenshots">
+          <img src="/static/swap_chains/fractal-wallet-1.png" />
+          <img src="/static/swap_chains/fractal-wallet-2.png" />
+        </div>
       </div>
     </div>
   `;
