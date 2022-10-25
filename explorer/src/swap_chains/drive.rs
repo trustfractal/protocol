@@ -7,7 +7,8 @@ pub fn drive(swap: &mut Swap, receiver: ReceiverRef, sender: SenderRef) -> anyho
         SwapState::Sending { amount_str } => {
             let amount = amount_str.parse()?;
             drive_sending(swap, receiver, sender, amount)
-        }
+        },
+        SwapState::AttemptingSend { .. } => Ok(()),
         SwapState::Finished { .. } => Ok(()),
     }
 }
@@ -35,6 +36,8 @@ fn drive_sending(
     sender: SenderRef,
     amount: Balance,
 ) -> anyhow::Result<()> {
+    swap.transition_to(SwapState::AttemptingSend {});
+
     receiver.after_finalized(swap, amount)?;
     let new_state = sender.send(swap, amount)?;
     swap.transition_to(new_state);

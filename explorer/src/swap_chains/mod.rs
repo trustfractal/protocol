@@ -203,6 +203,9 @@ pub enum SwapState {
     },
 
     #[serde(rename_all = "camelCase")]
+    AttemptingSend {},
+
+    #[serde(rename_all = "camelCase")]
     Finished { txn_id: String, txn_link: String },
 }
 

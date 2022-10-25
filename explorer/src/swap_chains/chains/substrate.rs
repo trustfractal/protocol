@@ -112,6 +112,7 @@ impl Receiver for Substrate {
         match &swap.state {
             SwapState::AwaitingReceive { .. } => return Ok(None),
             SwapState::Finalizing { .. } => {}
+            SwapState::AttemptingSend { .. } => {}
             SwapState::Sending { .. } | SwapState::Finished { .. } => unreachable!(),
         }
 
