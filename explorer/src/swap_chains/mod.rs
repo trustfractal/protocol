@@ -275,6 +275,7 @@ async fn find_and_drive(
                 swap,
                 chains::receiver(&swap.user.system_receive)?,
                 chains::sender(&swap.user.system_send)?,
+                &mut pg.take(),
             )
         })
     })
