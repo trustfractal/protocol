@@ -68,7 +68,7 @@ impl Chain for Substrate {
     fn info(&self) -> ChainInfo {
         ChainInfo {
             id: String::from("substrate"),
-            name: String::from("Substrate"),
+            name: String::from("Substrate (Fractal Protocol)"),
             can_bridge_to: vec![String::from("acala")],
         }
     }
