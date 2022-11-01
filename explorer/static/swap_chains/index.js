@@ -80,13 +80,15 @@ const Index = (props) => {
       </div>
 
       ${systemReceive != null && html`
-        <label>You want to receive FCL in:</label>
+        <div>
+          <label>You want to receive FCL in:</label>
 
-        <div className="send-buttons">
-          <select required onChange=${(event) => setSystemSend(getSendChain(event.target.value))} defaultValue="">
-            <option value="" disabled>Choose your option</option>
-            ${sendButtons}
-          </select>
+          <div className="send-buttons">
+            <select required onChange=${(event) => setSystemSend(getSendChain(event.target.value))} defaultValue="">
+              <option value="" disabled>Choose your option</option>
+              ${sendButtons}
+            </select>
+          </div>
         </div>
       `}
 
@@ -99,13 +101,15 @@ const Index = (props) => {
       `}
 
       ${showTerms === true && html`
-        <label>You read and agreed to the <a href="https://fractal.id/documents/end-user-agreement" target="_blank">User Agreement</a>:</label>
+        <div>
+          <label>You read and agreed to the <a href="/static/swap_chains/end-user-agreement.pdf" target="_blank">User Agreement</a>:</label>
 
-        <div className="accept-terms">
-          <label className="style--no-top-margin">
-            <input type="checkbox" onChange=${(event) => setTermsAccepted(event.target.checked)} />
-            <span>Yes</span>
-          </label>
+          <div className="accept-terms">
+            <label className="style--no-top-margin">
+              <input type="checkbox" onChange=${(event) => setTermsAccepted(event.target.checked)} />
+              <span>Yes</span>
+            </label>
+          </div>
         </div>
       `}
 
