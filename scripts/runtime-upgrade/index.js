@@ -37,7 +37,7 @@ async function main() {
     console.log(`Upgrading from ${adminId}, ${code.length / 2} bytes`);
 
     // Perform the actual chain upgrade via the sudo module
-    const txn = TxnWatcher.signAndSend(api.tx.sudo.sudoUncheckedWeight(proposal, 1), newPair);
+    const txn = TxnWatcher.signAndSend(api.tx.sudo.sudoUncheckedWeight(proposal, 0), newPair);
     let data = await txn.inBlock();
     console.log('Included in block'); //TODO: console.log(`Included in block - ${data.block}`);
 
