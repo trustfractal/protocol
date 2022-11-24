@@ -69,7 +69,7 @@ impl Chain for Substrate {
         ChainInfo {
             id: String::from("substrate"),
             name: String::from("Substrate (Fractal Protocol)"),
-            can_bridge_to: vec![String::from("acala")],
+            can_bridge_to: vec![String::from("gnosis")],
         }
     }
 }

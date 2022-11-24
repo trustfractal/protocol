@@ -10,5 +10,12 @@ module.exports = {
         interval: [3000, 6000],
       },
     },
+    gnosis: {
+      url: "https://rpc.gnosischain.com/",
+      //hardfork: "merge",
+      //gasPrice: 1000000000,
+      gasPrice: 10000000000,
+      accounts: [process.env.PRIVATE_KEY_GNOSIS],
+    },
   },
 };
