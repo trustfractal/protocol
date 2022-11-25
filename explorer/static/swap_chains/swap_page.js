@@ -320,7 +320,7 @@ const Finished = ({ state, swapId, systemSend }) => {
       </p>
 
       <p className="style--center-text">
-        <a className="btn" href="/swap_chains">
+        <a className="btn" href="/swap_chains?testing">
           <i className="material-icons left">cloud_sync</i>
           New swap
         </a>

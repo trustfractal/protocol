@@ -138,24 +138,24 @@ fn gnosis_chain() -> anyhow::Result<evm::Chain> {
                 String::from("substrate"),
             ],
         },
-        chain_id: env_or("GNOSIS_CHAIN_ID", "31337").parse()?,
+        chain_id: env_or("GNOSIS_CHAIN_ID", "100").parse()?,
 
         burner_contract: env_or(
             "GNOSIS_BURNER_ADDRESS",
-            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+            "0x265B056E3Ec5fDC08FB79d37cc9a2551d1c1c231",
         )
         .trim_start_matches("0x")
         .parse()?,
         token_contract: env_or(
             "GNOSIS_FCL_TOKEN_ADDRESS",
-            "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+            "0xb2B90d3C7A9EB291c4fA06cFc1EFE5AdDdCa7FD4",
         )
         .trim_start_matches("0x")
         .parse()?,
 
         web3: web3::Web3::new(web3::transports::Http::new(&env_or(
             "GNOSIS_URL",
-            "http://127.0.0.1:8545",
+            "https://rpc.gnosischain.com",
         ))?),
 
         decimals: env_or("GNOSIS_FCL_TOKEN_DECIMALS", "18").parse()?,

@@ -5,7 +5,7 @@ set -euxo pipefail
 CARGO_INCREMENTAL=false cargo test --jobs 2 --release --manifest-path explorer/Cargo.toml
 CARGO_INCREMENTAL=false cargo build --jobs 2 --release --manifest-path explorer/Cargo.toml
 
-rm explorer/target/release/fractal_explorer_*
+rm target/release/fractal_explorer_*
 mv explorer/target/release/fractal_explorer_* target/release/
 
 POSTGRES="${1:-"postgres://juliosantos@localhost/fractal_protocol_explorer?sslmode=disable"}"
