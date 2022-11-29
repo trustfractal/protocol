@@ -307,7 +307,7 @@ const Finished = ({ state, swapId, systemSend }) => {
     <div>
       <h1>Your swap is complete</h1>
 
-      <img className="flavour-img" src="/static/swap_chains/swap_done.svg" />
+      <img className="flavour-img" src="/static/swap_chains/swap_done.jpg" />
 
       ${systemSend !== "substrate" && html`
         <p className="style--center-text">

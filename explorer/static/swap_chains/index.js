@@ -75,7 +75,7 @@ const Index = (props) => {
     <div>
       <h1>Swap FCL Between Chains</h1>
 
-      <img className="flavour-img" src="/static/swap_chains/swap.svg" />
+      <img className="flavour-img" src="/static/swap_chains/swap.jpg" />
 
       <label>You will send FCL from:</label>
 
