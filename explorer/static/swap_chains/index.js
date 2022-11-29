@@ -13,6 +13,13 @@ const Index = (props) => {
   if (!chainOptions.loaded) return Loading();
   chainOptions = chainOptions.value;
 
+  const resetSystemReceive = (id) => {
+    setSystemReceive(getReceiveChain(id));
+    setSystemSend(null);
+    setSendAddress("");
+    setShowTerms(false);
+  };
+
   const getReceiveChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
 
   const getSendChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
@@ -73,18 +80,18 @@ const Index = (props) => {
       <label>You will send FCL from:</label>
 
       <div className="receive-buttons">
-        <select required onChange=${(event) => setSystemReceive(getReceiveChain(event.target.value))} defaultValue="">
+        <select required onChange=${(event) => resetSystemReceive(event.target.value)} value="${systemReceive?.id || ""}">
           <option value="" disabled>Choose your option</option>
           ${receiveButtons}
         </select>
       </div>
 
-      ${systemReceive != null && html`
+      ${systemReceive && html`
         <div>
           <label>You want to receive FCL in:</label>
 
           <div className="send-buttons">
-            <select required onChange=${(event) => setSystemSend(getSendChain(event.target.value))} defaultValue="">
+            <select required onChange=${(event) => setSystemSend(getSendChain(event.target.value))} value="${systemSend?.id || ""}">
               <option value="" disabled>Choose your option</option>
               ${sendButtons}
             </select>
@@ -106,7 +113,7 @@ const Index = (props) => {
 
           <div className="accept-terms">
             <label className="style--no-top-margin">
-              <input type="checkbox" onChange=${(event) => setTermsAccepted(event.target.checked)} />
+              <input type="checkbox" checked="${termsAccepted}" onChange=${(event) => setTermsAccepted(event.target.checked)} />
               <span>Yes</span>
             </label>
           </div>
