@@ -36,39 +36,39 @@ lazy_static::lazy_static! {
         env_or("SUBSTRATE_MINTING_KEY", "//Alice"),
     );
 
-    static ref ACALA: evm::Chain = acala_chain().unwrap();
+    static ref GNOSIS: evm::Chain = gnosis_chain().unwrap();
 
-    static ref ACALA_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
-        &*ACALA,
-        env_or("ACALA_EXPLORER_URL", "http://acala.subscan.io"),
+    static ref GNOSIS_SENDER: evm_mintable::EvmMintable = evm_mintable::EvmMintable::new(
+        &*GNOSIS,
+        env_or("GNOSIS_EXPLORER_URL", "https://blockscout.com/xdai/mainnet"),
         env_or(
-            "ACALA_FCL_MINTER_KEY",
+            "GNOSIS_FCL_MINTER_KEY",
             // Known account 1
             "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
         ),
     ).unwrap();
 
-    static ref ACALA_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
-        &*ACALA,
-        env_or("ACALA_CONFIRMATIONS_REQUIRED", "12"),
+    static ref GNOSIS_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
+        &*GNOSIS,
+        env_or("GNOSIS_CONFIRMATIONS_REQUIRED", "3"),
     ).unwrap();
 
     static ref ETHEREUM: evm::Chain = ethereum_chain().unwrap();
 
     static ref ETHEREUM_RECEIVER: evm_burner::EvmBurner = evm_burner::EvmBurner::new(
         &*ETHEREUM,
-        env_or("ETHEREUM_CONFIRMATIONS_REQUIRED", "12"),
+        env_or("ETHEREUM_CONFIRMATIONS_REQUIRED", "3"),
     ).unwrap();
 
     static ref RECEIVERS: Vec<&'static dyn Receiver> = vec![
         &*SUBSTRATE,
-        &*ACALA_RECEIVER,
+        &*GNOSIS_RECEIVER,
         &*ETHEREUM_RECEIVER,
     ];
 
     static ref SENDERS: Vec<&'static dyn Sender> = vec![
         &*SUBSTRATE,
-        &*ACALA_SENDER,
+        &*GNOSIS_SENDER,
     ];
 }
 
@@ -101,6 +101,9 @@ fn acala_chain() -> anyhow::Result<evm::Chain> {
         info: ChainInfo {
             id: "acala".to_string(),
             name: "Acala".to_string(),
+            can_bridge_to: vec![
+                String::from("substrate"),
+            ],
         },
         chain_id: env_or("ACALA_CHAIN_ID", "31337").parse()?,
 
@@ -126,11 +129,48 @@ fn acala_chain() -> anyhow::Result<evm::Chain> {
     })
 }
 
+fn gnosis_chain() -> anyhow::Result<evm::Chain> {
+    Ok(evm::Chain {
+        info: ChainInfo {
+            id: "gnosis".to_string(),
+            name: "Gnosis".to_string(),
+            can_bridge_to: vec![
+                String::from("substrate"),
+            ],
+        },
+        chain_id: env_or("GNOSIS_CHAIN_ID", "100").parse()?,
+
+        burner_contract: env_or(
+            "GNOSIS_BURNER_ADDRESS",
+            "0x265B056E3Ec5fDC08FB79d37cc9a2551d1c1c231",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+        token_contract: env_or(
+            "GNOSIS_FCL_TOKEN_ADDRESS",
+            "0xb2B90d3C7A9EB291c4fA06cFc1EFE5AdDdCa7FD4",
+        )
+        .trim_start_matches("0x")
+        .parse()?,
+
+        web3: web3::Web3::new(web3::transports::Http::new(&env_or(
+            "GNOSIS_URL",
+            "https://rpc.gnosischain.com",
+        ))?),
+
+        decimals: env_or("GNOSIS_FCL_TOKEN_DECIMALS", "18").parse()?,
+    })
+}
+
 fn ethereum_chain() -> anyhow::Result<evm::Chain> {
     Ok(evm::Chain {
         info: ChainInfo {
             id: "ethereum".to_string(),
             name: "Ethereum".to_string(),
+            can_bridge_to: vec![
+                String::from("gnosis"),
+                String::from("substrate")
+            ],
         },
         chain_id: env_or("ETHEREUM_CHAIN_ID", "1").parse()?,
 

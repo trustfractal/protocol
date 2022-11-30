@@ -1,7 +1,20 @@
 import { React, ReactDOM, html, ethers } from "/static/deps.js";
 import { useLoaded, fetchJson, Loading } from "/static/utils.js";
 
-import QRCode from "https://unpkg.com/qrcode.react@3.0.1/lib/esm/index.js";
+const metamaskChainData = {
+  acala: {
+    chainId: `0x${(787).toString(16)}`,
+    rpcUrls: ["https://eth-rpc-acala.aca-staging.network/"],
+    // rpcUrls: ["https://eth-rpc-acala.aca-api.network"],
+    chainName: "Acala",
+    nativeCurrency: {
+      name: "Acala",
+      symbol: "ACA",
+      decimals: 18,
+    },
+    blockExplorerUrls: ["https://blockscout.acala.network/"],
+  },
+};
 
 const Swap = (props) => {
   const id = props.swapId;
@@ -49,23 +62,23 @@ const Swap = (props) => {
 
   let currentState;
   if (swap.state.awaitingReceive?.simple !== undefined) {
-    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive.simple} />`;
+    currentState = html`<${AwaitingReceive} state=${swap.state.awaitingReceive.simple} systemReceive=${swap.user.systemReceive} />`;
   } else if (swap.state.awaitingReceive?.metamask !== undefined) {
-    currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} />`;
+    currentState = html`<${AwaitingMetamaskReceive} state=${swap.state.awaitingReceive.metamask} systemReceive=${swap.user.systemReceive} />`;
   } else if (swap.state.finalizing !== undefined) {
-    currentState = html`<${Finalizing} state=${swap.state.finalizing} />`;
+    currentState = html`<${Finalizing} systemReceive=${swap.user.systemReceive} />`;
   } else if (swap.state.sending !== undefined) {
-    currentState = html`<${Sending} state=${swap.state.sending} />`;
+    currentState = html`<${Sending} systemSend=${swap.user.systemSend} />`;
+  } else if (swap.state.attemptingSend !== undefined) {
+    currentState = html`<${AttemptingSend} swapId=${swap.id} />`;
   } else if (swap.state.finished !== undefined) {
-    currentState = html`<${Finished} state=${swap.state.finished} />`;
+    currentState = html`<${Finished} state=${swap.state.finished} swapId=${swap.id} systemSend=${swap.user.systemSend} />`;
   } else {
     throw new Error(`Unrecognized state ${JSON.stringify(swap.state)}`);
   }
 
   return html`
     <div>
-      <h1>Swap: ${swap.id}</h1>
-
       ${currentState}
 
       ${showJson && html`<pre>${JSON.stringify(swap, null, 2)}</pre>`}
@@ -73,36 +86,56 @@ const Swap = (props) => {
   `;
 }
 
-const AwaitingReceive = (props) => {
+const AwaitingReceive = ({ state, systemReceive }) => {
   return html`
     <div>
-      <h2>Awaiting Receive</h2>
+      <h1>Your swap is prepared</h1>
 
-      <p>
-        Send any amount to <${CopyToClipboard} text=${props.state.receiveAddress} />
-      </p>
+      <h2>Awaiting your token transfer in <span className="style--capitalize">${systemReceive}</span>...</h2>
 
-      <${QRCode} value=${props.state.paymentRequest} />
+      <${LoadingSpinner} />
+
+      <div className="instructions style--center-text">
+        <p>
+          To continue, send any FCL amount to
+          <br />
+          <${CopyToClipboard} text=${state.receiveAddress} />
+        </p>
+        <p>
+          Unlock your Fractal Wallet, click the Protocol tab, and click the Send button at the bottom. Finally, enter the address shown above and the amound you'd like to bridge.
+        </p>
+        <div className="wallet-screenshots">
+          <img src="/static/swap_chains/fractal-wallet-1.png" />
+          <img src="/static/swap_chains/fractal-wallet-2.png" />
+        </div>
+      </div>
     </div>
   `;
 };
 
-const AwaitingMetamaskReceive = (props) => {
+const AwaitingMetamaskReceive = ({ state, systemReceive }) => {
   const [phaseComponent, setPhaseComponent] = React.useState(null);
 
   const ui = {
     getAmountString: () => new Promise(resolve => {
       setPhaseComponent(html`<${AmountString} onSubmit=${(amount) => resolve(amount)} />`);
     }),
-    showMessage: (message) => {
-      setPhaseComponent(html`<p>${message}</p>`);
+    showMessage: (message, options) => {
+      setPhaseComponent(html`
+        <div>
+          ${options?.loading && html`<${LoadingSpinner} />` }
+          <p className="style--center-text">${message}</p>
+        </div>
+      `);
     },
     awaitContinue: () => new Promise(resolve => {
       setPhaseComponent(html`
-        <button className="btn" onClick=${() => resolve()}>
-          Continue
-          <i className="material-icons right">arrow_forward</i>
-        </button>
+        <p className="style--center-text">
+          <button className="btn" onClick=${() => resolve()}>
+            Continue
+            <i className="material-icons right">arrow_forward</i>
+          </button>
+        </p>
       `);
     }),
   };
@@ -111,7 +144,7 @@ const AwaitingMetamaskReceive = (props) => {
     (async () => {
       while (true) {
         try {
-          await sendMetamaskTransactions(props.state, ui);
+          await sendMetamaskTransactions(state, systemReceive, ui);
           break;
         } catch (e) {
           console.error(e);
@@ -122,40 +155,48 @@ const AwaitingMetamaskReceive = (props) => {
 
   return html`
     <div className="flex-col">
-      <h2>Awaiting Receive</h2>
+      <h1>Your swap is prepared</h1>
 
-      <p>This swap will use MetaMask to send.</p>
+      <h2>Awaiting your token transfer in <span className="style--capitalize">${systemReceive}</span>...</h2>
 
       ${phaseComponent}
     </div>
   `;
 };
 
-async function sendMetamaskTransactions(metamask, ui) {
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
+async function sendMetamaskTransactions(state, systemReceive, ui) {
+  const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
 
   const amountString = await ui.getAmountString();
-  const amount = ethers.utils.parseUnits(amountString, metamask.ercDecimals);
-  ui.showMessage(`Sending ${amountString} FCL`);
+  const amount = ethers.utils.parseUnits(amountString, state.ercDecimals);
+  ui.showMessage(`Preparing to send ${amountString} FCL`);
 
   const chainIdHex = await provider.send('eth_chainId');
   const chainIdNumber = parseInt(chainIdHex.slice(2), 16);
-  if (chainIdNumber !== metamask.chainId) {
-    await provider.send(
-      'wallet_switchEthereumChain',
-      [{ chainId: `0x${metamask.chainId.toString(16)}` }],
-    );
+  if (chainIdNumber !== state.chainId) {
+    try {
+      await provider.send(
+        'wallet_switchEthereumChain',
+        [{ chainId: `0x${state.chainId.toString(16)}` }],
+      );
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        await provider.send("wallet_addEthereumChain", [metamaskChainData[systemReceive]]);
+      } else {
+        throw switchError;
+      }
+    }
   }
 
   let accounts = await provider.send('eth_accounts');
   while (accounts.length === 0) {
-    ui.showMessage('Please select an account to send with');
+    ui.showMessage('Please select a MetaMask account to send from', { loading: true });
     accounts = await provider.send('eth_requestAccounts');
   }
 
   let txnNumber = 0;
   const signer = provider.getSigner();
-  for (const txn of metamask.transactions) {
+  for (const txn of state.transactions) {
     const contract = new ethers.Contract(txn.contractAddress, txn.contractAbi, provider);
     const withSigner = contract.connect(signer);
 
@@ -168,38 +209,39 @@ async function sendMetamaskTransactions(metamask, ui) {
     });
 
     txnNumber += 1;
-    ui.showMessage(`Sending transaction ${txnNumber} / ${metamask.transactions.length}`);
+    ui.showMessage(`(${txnNumber} / ${state.transactions.length}) Preparing ${state.transactions[txnNumber-1].method} transaction ...`, { loading: true });
     const sentTxn = await withSigner[txn.method](...params);
-    ui.showMessage(`Waiting for transaction in block: ${sentTxn.hash}`);
+    ui.showMessage(`(${txnNumber} / ${state.transactions.length}) Waiting for ${state.transactions[txnNumber-1].method} transaction to be mined...`, { loading: true });
     const waited = await sentTxn.wait();
 
-    const remaining = metamask.transactions.length - txnNumber;
+    const remaining = state.transactions.length - txnNumber;
     if (remaining > 0) {
-      await ui.awaitContinue(`Transaction in block, ${remaining} remaining`)
+      await ui.awaitContinue(`Transaction in block, ${remaining} remaining...`)
     }
   }
 
-  ui.showMessage('All transactions sent');
+  ui.showMessage('All transactions mined!');
 }
 
 const AmountString = (props) => {
-  const [amountStr, setAmountStr] = React.useState('');
+  const [amountStr, setAmountStr] = React.useState("");
 
   const enabled = !!amountStr;
 
   return html`
     <div className="flex-col">
-      <label>
+      <label>Amount of FCL to bridge (minimum 1 FCL):</label>
+      <div className="input-field style--no-top-margin">
         <input type="number"
-            autoFocus
-            placeholder="123"
-            value=${amountStr}
-            onChange=${(event) => setAmountStr(event.target.value)} />
-        Amount (in FCL)
-      </label>
+          autoFocus
+          min="1"
+          step="0.1"
+          required
+          onChange=${(event) => setAmountStr(event.target.validity.valid ? event.target.value : "")} />
+      </div>
 
       <button className="btn" disabled=${!enabled} onClick=${() => props.onSubmit(amountStr)}>
-        Submit
+        Send in MetaMask
         <i className="material-icons right">open_in_new</i>
       </button>
     </div>
@@ -213,69 +255,98 @@ const CopyToClipboard = (props) => {
 
   return html`
     <span className="interactive-text">
-      ${props.text}
-      <button className="btn" onClick=${doCopy}>
+      <span className="style--monospace style--wrap-text">${props.text}</span>
+      <button className="btn-flat" onClick=${doCopy}>
         <i className="material-icons">content_copy</i>
       </button>
     </span>
   `;
 };
 
-const Finalizing = (props) => {
+const Finalizing = ({ systemReceive }) => {
   return html`
     <div>
-      <h2>Finalizing</h2>
+      <h1>Your swap is ongoing</h1>
 
-      <p>
-        Transaction received, waiting for finalization.
-      </p>
+      <h2>Burning your FCL in <span className="style--capitalize">${systemReceive}</span>...</h2>
 
       <${LoadingSpinner} />
     </div>
   `;
 };
 
-const Sending = (props) => {
+const Sending = ({ systemSend }) => {
   return html`
     <div>
-      <h2>Sending</h2>
+      <h1>Your swap is ongoing</h1>
 
-      <p>
-        Transaction finalized, sending.
-      </p>
+      <h2>Minting your FCL in <span className="style--capitalize">${systemSend}</span>...</h2>
 
       <${LoadingSpinner} />
     </div>
   `;
 };
 
-const LoadingSpinner = (props) => {
+const AttemptingSend = ({ swapId }) => {
   return html`
-    <div className="preloader-wrapper big active">
-      <div className="spinner-layer spinner-blue-only">
-        <div className="circle-clipper left">
-          <div className="circle"></div>
-        </div><div className="gap-patch">
-          <div className="circle"></div>
-        </div><div className="circle-clipper right">
-          <div className="circle"></div>
+    <div>
+      <h1>Your swap is stuck</h1>
+
+      <h2>Please contact us for help</h2>
+
+      <div className="instructions">
+        Your swap ID: <span className="style--monospace">${swapId}</span>
+      </div>
+    </div>
+  `;
+};
+
+
+const Finished = ({ state, swapId, systemSend }) => {
+  return html`
+    <div>
+      <h1>Your swap is complete</h1>
+
+      <img className="flavour-img" src="/static/swap_chains/swap_done.jpg" />
+
+      ${systemSend !== "substrate" && html`
+        <p className="style--center-text">
+            Transaction: <a href=${state.txnLink} target="_blank">${state.txnId}</a>
+        </p>
+      `}
+
+      <p className="style--center-text">
+        Your swap ID: <span className="style--monospace">${swapId}</span>
+      </p>
+
+      <p className="style--center-text">
+        <a className="btn" href="/swap_chains?testing">
+          <i className="material-icons left">cloud_sync</i>
+          New swap
+        </a>
+      </p>
+    </div>
+  `;
+};
+
+const LoadingSpinner = () => {
+  return html`
+    <div className="spinner">
+      <div className="preloader-wrapper big active">
+        <div className="spinner-layer spinner-blue-only">
+          <div className="circle-clipper left">
+            <div className="circle"></div>
+          </div><div className="gap-patch">
+            <div className="circle"></div>
+          </div><div className="circle-clipper right">
+            <div className="circle"></div>
+          </div>
         </div>
       </div>
     </div>
   `;
 };
 
-const Finished = (props) => {
-  return html`
-    <div>
-      <h2>Swap Finished</h2>
-
-      <p>
-        Transaction: <a href=${props.state.txnLink}>${props.state.txnId}</a>
-      </p>
-    </div>
-  `;
-};
 
 const pathParts = window.location.pathname.split("/");
 const swapId = pathParts[pathParts.length - 1];

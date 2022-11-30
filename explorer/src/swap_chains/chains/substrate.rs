@@ -68,7 +68,8 @@ impl Chain for Substrate {
     fn info(&self) -> ChainInfo {
         ChainInfo {
             id: String::from("substrate"),
-            name: String::from("Substrate"),
+            name: String::from("Substrate (Fractal Protocol)"),
+            can_bridge_to: vec![String::from("gnosis")],
         }
     }
 }
@@ -111,6 +112,7 @@ impl Receiver for Substrate {
         match &swap.state {
             SwapState::AwaitingReceive { .. } => return Ok(None),
             SwapState::Finalizing { .. } => {}
+            SwapState::AttemptingSend { .. } => {}
             SwapState::Sending { .. } | SwapState::Finished { .. } => unreachable!(),
         }
 

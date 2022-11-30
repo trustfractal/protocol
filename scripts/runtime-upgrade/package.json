@@ -9,8 +9,8 @@
   "author": "Antoni Dikov <antoni@fractal.id>",
   "license": "ISC",
   "dependencies": {
-    "@polkadot/api": "^6.3.1",
-    "@polkadot/types": "^6.3.1",
+    "@polkadot/api": "9.2.3",
+    "@polkadot/types": "9.2.3",
     "@trustfractal/polkadot-utils": "^0.1.4",
     "minimist": "^1.2.5"
   }

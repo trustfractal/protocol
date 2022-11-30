@@ -46,9 +46,11 @@ impl Sender for EvmMintable {
                     "mint",
                     (user_address, self.chain.balance_to_erc20(amount)),
                     Options::with(|options| {
-                        let (gas_price, gas_limit) = calculate_acala_gas(block_number);
-                        options.gas = Some(gas_limit);
-                        options.gas_price = Some(gas_price);
+                        if self.chain.info.id == "acala" {
+                            let (gas_price, gas_limit) = calculate_acala_gas(block_number);
+                            options.gas = Some(gas_limit);
+                            options.gas_price = Some(gas_price);
+                        }
                     }),
                     1,
                     &self.minting_key,
@@ -59,7 +61,7 @@ impl Sender for EvmMintable {
             swap.push_event(Event::generic("evm_transaction_receipt", receipt)?);
 
             Ok(SwapState::Finished {
-                txn_link: format!("{}/{}", self.explorer_url, hash),
+                txn_link: format!("{}/tx/{}", self.explorer_url, hash),
                 txn_id: hash,
             })
         })
@@ -75,7 +77,7 @@ impl Sender for EvmMintable {
 // https://evmdocs.acala.network/tutorials/hardhat-tutorials/advancedescrow-tutorial#transaction-helper-utility
 fn calculate_acala_gas(block_number: U64) -> (U256, U256) {
     let tx_fee_per_gas = U256::from_str_radix("199999946752", 10).unwrap();
-    let storage_byte_deposit = U256::from_str_radix("100000000000000", 10).unwrap();
+    let storage_byte_deposit = U256::from_str_radix(&std::env::var("ACALA_STORAGE_BYTE_DEPOSIT").unwrap_or("100000000000000".to_string()), 10).unwrap();
     let gas_limit = U256::from_str_radix("31000000", 10).unwrap();
     let storage_limit = U256::from_str_radix("64001", 10).unwrap();
     let valid_until = U256::from((block_number + 100).as_u64());

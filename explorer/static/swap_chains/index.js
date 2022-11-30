@@ -5,24 +5,48 @@ const Index = (props) => {
   const [systemReceive, setSystemReceive] = React.useState(null);
   const [systemSend, setSystemSend] = React.useState(null);
   const [sendAddress, setSendAddress] = React.useState("");
+  const [showTerms, setShowTerms] = React.useState(false);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [startingSwap, setStartingSwap] = React.useState(false);
 
   let chainOptions = useLoaded(() => fetchJson("/swap_chains/chain_options.json"), []);
   if (!chainOptions.loaded) return Loading();
   chainOptions = chainOptions.value;
 
+  const resetSystemReceive = (id) => {
+    setSystemReceive(getReceiveChain(id));
+    setSystemSend(null);
+    setSendAddress("");
+    setShowTerms(false);
+  };
+
+  const getReceiveChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
+
+  const getSendChain = (id) => chainOptions.systemReceive.find((chain) => (chain.id === id));
+
   const receiveButtons = chainOptions.systemReceive.map(chain => {
     return html`
-      <button
-          className=${chain == systemReceive ? "btn" : "btn-flat"}
+      <option
           key=${chain.id}
-          onClick=${() => setSystemReceive(chain)}>
+          value=${chain.id}>
         ${chain.name}
-      </button>
+      </option>
     `;
   });
 
-  const startEnabled = sendAddress != "" && !startingSwap;
+  const sendButtons = chainOptions.systemSend
+    .filter(chain => systemReceive?.can_bridge_to?.includes(chain.id))
+    .map(chain => {
+      return html`
+        <option
+            key=${chain.id}
+            value=${chain.id}>
+          ${chain.name}
+        </option>
+      `;
+    });
+
+  const startEnabled = sendAddress != "" && termsAccepted === true && !startingSwap;
 
   const startSwap = async () => {
     try {
@@ -33,9 +57,9 @@ const Index = (props) => {
         sendAddress: sendAddress,
       };
       const startedId = await fetchJson("/swap_chains/create.json", body, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -47,66 +71,76 @@ const Index = (props) => {
     }
   };
 
-  const sendButtons = chainOptions.systemSend.map(chain => {
-    return html`
-      <button
-          className=${chain == systemSend ? "btn" : "btn-flat"}
-          key=${chain.id}
-          onClick=${() => setSystemSend(chain)}>
-        ${chain.name}
-      </button>
-    `;
-  });
-
   return html`
     <div>
-      <h2>You Send${systemReceive != null && `: ${systemReceive.name}`}</h2>
+      <h1>Swap FCL Between Chains</h1>
+
+      <img className="flavour-img" src="/static/swap_chains/swap.jpg" />
+
+      <label>You will send FCL from:</label>
 
       <div className="receive-buttons">
-        ${receiveButtons}
+        <select required onChange=${(event) => resetSystemReceive(event.target.value)} value="${systemReceive?.id || ""}">
+          <option value="" disabled>Choose your option</option>
+          ${receiveButtons}
+        </select>
       </div>
 
-      ${systemReceive != null && html`
-        <h2>You Receive${systemSend != null && `: ${systemSend.name}`}</h2>
+      ${systemReceive && html`
+        <div>
+          <label>You want to receive FCL in:</label>
 
-        <div className="send-buttons">
-          ${sendButtons}
+          <div className="send-buttons">
+            <select required onChange=${(event) => setSystemSend(getSendChain(event.target.value))} value="${systemSend?.id || ""}">
+              <option value="" disabled>Choose your option</option>
+              ${sendButtons}
+            </select>
+          </div>
         </div>
       `}
 
       ${systemSend != null && html`
-        <div>
+        <div className="${systemSend.id}">
           <${ReceiveAddress}
-              withChain=${systemSend.id}
-              onChange=${(value, valid) => setSendAddress(valid ? value : '')} />
+              withChain=${systemSend}
+              onChange=${(value, valid) => {setSendAddress(valid ? value : ""); setShowTerms(showTerms || valid);}} />
         </div>
       `}
 
-      <button
-          className=${`btn ${startEnabled ? "" : "disabled"}`}
-          onClick=${() => startSwap()}>
-        Start
-        ${startingSwap && html`<i className="material-icons right">cloud_sync</i>`}
-      </button>
+      ${showTerms === true && html`
+        <div>
+          <label>You read and agreed to the <a href="/static/swap_chains/end-user-agreement.pdf" target="_blank">User Agreement</a>:</label>
+
+          <div className="accept-terms">
+            <label className="style--no-top-margin">
+              <input type="checkbox" checked="${termsAccepted}" onChange=${(event) => setTermsAccepted(event.target.checked)} />
+              <span>Yes</span>
+            </label>
+          </div>
+        </div>
+      `}
+
+      <p className="style--center-text">
+        <button
+            className=${`btn btn-large ${startEnabled ? "" : "disabled"}`}
+            onClick=${() => startSwap()}>
+          ${startingSwap ? "Starting..." : "Start"}
+        </button>
+      </p>
     </div>
   `;
 };
 
 const ReceiveAddress = (props) => {
-  const [address, setAddress] = React.useState('');
+  const [address, setAddress] = React.useState("");
   const [addressValidity, setAddressValidity] = React.useState({});
 
-  const chain = props.withChain;
+  const {id: chain, name: chainName } = props.withChain;
 
   const getValidity = (chain, address) => {
     return addressValidity[chain]?.[address];
   };
   const validity = getValidity(chain, address);
-
-  const icon = (!address || validity === false) ? 'close' :
-      validity == null ? 'refresh' :
-      'done';
-
 
   const onAddressChange = async (address) => {
     setAddress(address);
@@ -117,9 +151,9 @@ const ReceiveAddress = (props) => {
         address,
         chain,
       }, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -135,13 +169,16 @@ const ReceiveAddress = (props) => {
   };
 
   return html`
-    <div className="input-field">
-      <i className="material-icons prefix">${icon}</i>
-      <label htmlFor="receive-address">Receive Address</label>
-      <input type="text"
-          id="receive-address"
-          value=${address}
-          onChange=${(event) => onAddressChange(event.target.value)} />
+    <div>
+      <label>You will receive FCL in ${chainName} on this address:</label>
+      <div className="input-field style--no-top-margin">
+        <input type="text"
+            id="receive-address"
+            className=${validity === true ? "valid" : address !== "" ? "invalid" : ""}
+            value=${address}
+            onChange=${(event) => onAddressChange(event.target.value)} />
+        <span className="helper-text" data-error="Please enter a valid ${chainName} address"></span>
+      </div>
     </div>
   `;
 };
