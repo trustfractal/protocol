@@ -153,7 +153,7 @@ pub mod pallet {
             let after_from = ArtificiallyBurned::<T>::mutate(|a| {
                 let orig_a = *a;
                 *a = a.saturating_sub(amount);
-                amount - orig_a
+                amount.saturating_sub(orig_a)
             });
             ArtificiallyIssued::<T>::mutate(|a| {
                 *a += after_from;
@@ -164,7 +164,7 @@ pub mod pallet {
             let after_from = ArtificiallyIssued::<T>::mutate(|a| {
                 let orig_a = *a;
                 *a = a.saturating_sub(amount);
-                amount - orig_a
+                amount.saturating_sub(orig_a)
             });
             ArtificiallyBurned::<T>::mutate(|a| {
                 *a += after_from;
