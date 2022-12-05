@@ -18,7 +18,7 @@ pub type Balance = u128;
 
 pub fn resources() -> impl Iterator<Item = Resource> {
     vec![
-        web::resource("/swap_chains").guard(guard::fn_guard(|head| head.uri.query().eq(&Some("testing")))).to(index),
+        web::resource("/swap_chains").to(index),
         web::resource("/swap_chains/chain_options.json").to(chain_options),
         web::resource("/swap_chains/validate_address.json").to(validate_address),
         web::resource("/swap_chains/create.json").to(create_swap),
