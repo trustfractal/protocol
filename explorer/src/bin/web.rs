@@ -47,6 +47,7 @@ async fn main() -> std::io::Result<()> {
             .service(indexing::id_to_entity::redirect_id)
             .service(web::resource("*").route(web::get().to(pages::not_found)))
     })
+    .workers(16)
     .bind(("0.0.0.0", port))?
     .run()
     .await
