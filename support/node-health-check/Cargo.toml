@@ -12,4 +12,4 @@ reqwest = { version = "0.11.4", features = ["json"] }
 serde = {  version = "1.0.130", features = ["derive"] }
 structopt = "0.3.23"
 tokio = { version =  "1.12", features = ["macros", "time", "rt-multi-thread"]}
-warp = "0.3.1"
+warp = "0.3.3"
