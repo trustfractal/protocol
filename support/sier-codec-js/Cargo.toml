@@ -1,0 +1,18 @@
+[package]
+name = "sier-codec-js"
+version = "0.1.0"
+authors = ["Antoni Dikov <antoni.dikov@gmail.com"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.79", features = ["serde-serialize"] }
+
+sier-codec = { path="../sier-codec" }
+serde_json = "1.0.79"
+js-sys = "0.3.56"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.29"
